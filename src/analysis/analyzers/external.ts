@@ -54,7 +54,7 @@ export async function runTool(command: string, args: string[], cwd: string): Pro
 }
 
 /**
- * Map a tool's severity vocabulary onto buddy-bot's.
+ * Map a tool's severity vocabulary onto buddy's.
  *
  * Everything a linter calls "style" lands on `nit`, so a formatting opinion
  * cannot outrank a correctness finding in the review's ordering.

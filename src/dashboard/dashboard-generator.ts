@@ -75,7 +75,7 @@ export class DashboardGenerator {
   private generateDefaultHeader(_data: DashboardData): string {
     // const portalUrl = `https://developer.mend.io/github/${data.repository.owner}/${data.repository.name}`
 
-    return `This issue lists Buddy Bot updates and detected dependencies. Read the [Dependency Dashboard](https://buddy-bot.sh/features/dependency-dashboard) docs to learn more.
+    return `This issue lists Buddy updates and detected dependencies. Read the [Dependency Dashboard](https://buddy.sh/features/dependency-dashboard) docs to learn more.
 
 `
   }
@@ -452,7 +452,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
   private generateFooter(): string {
     return `---
 
-- [ ] <!-- manual job -->Check this box to trigger a request for Buddy Bot to run again on this repository
+- [ ] <!-- manual job -->Check this box to trigger a request for Buddy to run again on this repository
 `
   }
 

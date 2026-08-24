@@ -105,7 +105,7 @@ export class DeprecatedDependenciesChecker {
       const registry = getNpmRegistryUrl(dependency.name)
       const response = await fetchWithTimeout(
         `${registry}/${encodeURIComponent(dependency.name).replace('%40', '@')}`,
-        { headers: { 'User-Agent': 'buddy-bot' } },
+        { headers: { 'User-Agent': 'buddy' } },
       )
 
       if (!response.ok) {
@@ -148,7 +148,7 @@ export class DeprecatedDependenciesChecker {
     try {
       const response = await fetchWithTimeout(
         `${getComposerRegistryUrl()}/packages/${dependency.name}.json`,
-        { headers: { 'User-Agent': 'buddy-bot' } },
+        { headers: { 'User-Agent': 'buddy' } },
       )
 
       if (!response.ok) {

@@ -3,7 +3,7 @@ import { semver } from 'bun'
 /**
  * Packages that are behind for a reason no manifest shows.
  *
- * Everything else buddy-bot does compares a *declared* range against the
+ * Everything else buddy does compares a *declared* range against the
  * registry: `^1.2.0` is declared, `1.5.0` is published, so there is an update.
  * That misses an entire class of staleness, and the missed class is the one
  * that wastes the most time, because from inside the repository everything
@@ -11,7 +11,7 @@ import { semver } from 'bun'
  *
  * **The case this exists for, which happened.** An application declared
  * `@stacksjs/database@^0.70.315` and got it. It also depended, transitively, on
- * `buddy-bot`, which declared `ts-pantry@^0.10.11` while the rest of that family
+ * `buddy`, which declared `ts-pantry@^0.10.11` while the rest of that family
  * had moved to `^0.11`. Under hoisted linking one copy wins for the whole tree,
  * so the cap decided it: `ts-pantry@0.10.56` was installed while `0.11.19`
  * existed and satisfied every range the application itself declared. A fix
@@ -25,7 +25,7 @@ import { semver } from 'bun'
  * So: compare what is *installed* against the newest version every declared
  * range would allow, and when they differ, name the dependant responsible.
  * Naming it is most of the value - "ts-pantry is behind" sends somebody to the
- * wrong repository; "buddy-bot caps ts-pantry at ^0.10.11" is the fix.
+ * wrong repository; "buddy caps ts-pantry at ^0.10.11" is the fix.
  */
 
 /** A range somebody declared, and who declared it. */

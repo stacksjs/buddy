@@ -5,7 +5,7 @@ import { formatError } from './errors'
 /**
  * Verbosity levels, ordered from quietest to loudest.
  *
- * `silent` is what programmatic consumers want: embedding buddy-bot in another
+ * `silent` is what programmatic consumers want: embedding buddy in another
  * tool should not print several hundred lines to that tool's stdout.
  */
 export type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug'
@@ -30,14 +30,14 @@ function redactErrorArgs(args: any[]): any[] {
   return args.map(arg => (arg instanceof Error ? formatError(arg) : arg))
 }
 
-/** Resolve the level implied by `BUDDY_BOT_LOG_LEVEL`, when set and valid. */
+/** Resolve the level implied by `BUDDY_LOG_LEVEL`, when set and valid. */
 function levelFromEnv(): LogLevel | undefined {
-  const raw = process.env.BUDDY_BOT_LOG_LEVEL?.toLowerCase()
+  const raw = process.env.BUDDY_LOG_LEVEL?.toLowerCase()
   return raw && raw in LEVEL_ORDER ? raw as LogLevel : undefined
 }
 
 /**
- * Level-aware logger used throughout buddy-bot.
+ * Level-aware logger used throughout buddy.
  *
  * Every message goes through an instance so output can be turned down or off.
  * Previously `info`, `warn`, `error` and `success` all wrote unconditionally
@@ -127,7 +127,7 @@ export class Logger {
   }
 
   /**
-   * Create a logger that emits nothing. Use when embedding buddy-bot in
+   * Create a logger that emits nothing. Use when embedding buddy in
    * another tool that owns its own output.
    */
   static silent(): Logger {

@@ -5,7 +5,7 @@ import type { PackageUpdate, PRManifest, PRManifestUpdate, UpdateGroup } from '.
  * the version lives inside the payload so a parser can decide what to do with
  * a newer manifest instead of failing to find it at all.
  */
-const MANIFEST_OPEN = '<!-- buddy-bot:manifest'
+const MANIFEST_OPEN = '<!-- buddy:manifest'
 const MANIFEST_CLOSE = '-->'
 
 /** Schema version emitted by this build. */
@@ -27,7 +27,7 @@ export const MANIFEST_MAX_LENGTH = 30000
  *
  * Non-greedy so a body containing several comments only yields the manifest.
  */
-const MANIFEST_REGEX = /<!--\s*buddy-bot:manifest\s+v(\d+)\s*([\s\S]*?)-->/
+const MANIFEST_REGEX = /<!--\s*buddy:manifest\s+v(\d+)\s*([\s\S]*?)-->/
 
 function toManifestUpdate(update: PackageUpdate): PRManifestUpdate {
   return {

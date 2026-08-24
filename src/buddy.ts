@@ -3,7 +3,7 @@ import type { GitProvider } from './git/provider'
 import type { Drift } from './scanner/resolution-drift'
 import type { AdvisoryQuery } from './services/security-advisories'
 import type {
-  BuddyBotConfig,
+  BuddyConfig,
   DashboardData,
   Issue,
   IssueOptions,
@@ -47,7 +47,7 @@ export class Buddy {
   private readonly dashboardGenerator: DashboardGenerator
 
   constructor(
-    private readonly config: BuddyBotConfig,
+    private readonly config: BuddyConfig,
     private readonly projectPath: string = process.cwd(),
   ) {
     this.logger = new Logger(config.verbose ?? false, config.logLevel)
@@ -55,7 +55,7 @@ export class Buddy {
     // Module-level helpers (dependency-file parsers, lock-file regeneration,
     // the GitHub provider) have no instance to inject into, so they read the
     // process-wide default. Setting it here means one `logLevel` governs every
-    // line buddy-bot prints, including from library use.
+    // line buddy prints, including from library use.
     setDefaultLogger(this.logger)
 
     // Auto-detect repository owner/name if not configured
@@ -544,24 +544,24 @@ export class Buddy {
       // Check if repository is configured
       if (!this.config.repository) {
         this.logger.error('❌ Repository configuration required for PR creation')
-        this.logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        this.logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         return
       }
 
       if (!this.config.repository.owner || !this.config.repository.name) {
         this.logger.error('❌ Repository owner and name are required for PR creation')
-        this.logger.info('Set them in buddy-bot.config.ts or ensure GITHUB_REPOSITORY env var is available')
+        this.logger.info('Set them in buddy.config.ts or ensure GITHUB_REPOSITORY env var is available')
         return
       }
 
       // Use GITHUB_TOKEN for all operations — this ensures commits and PRs are
       // attributed to github-actions[bot] instead of polluting a personal account's
-      // contribution graph. BUDDY_BOT_TOKEN (a PAT) is only passed separately for
+      // contribution graph. BUDDY_TOKEN (a PAT) is only passed separately for
       // workflow file updates that require elevated permissions.
       const token = process.env.GITHUB_TOKEN
-      const workflowToken = process.env.BUDDY_BOT_TOKEN
+      const workflowToken = process.env.BUDDY_TOKEN
       if (!token && !workflowToken) {
-        this.logger.error('❌ GITHUB_TOKEN or BUDDY_BOT_TOKEN environment variable required for PR creation')
+        this.logger.error('❌ GITHUB_TOKEN or BUDDY_TOKEN environment variable required for PR creation')
         return
       }
 
@@ -570,10 +570,10 @@ export class Buddy {
       const hasWorkflowPermissions = !!workflowToken
 
       if (workflowToken) {
-        this.logger.info('✅ BUDDY_BOT_TOKEN detected - workflow file permissions enabled')
+        this.logger.info('✅ BUDDY_TOKEN detected - workflow file permissions enabled')
       }
       else {
-        this.logger.info('ℹ️ No BUDDY_BOT_TOKEN — workflow file updates will be skipped')
+        this.logger.info('ℹ️ No BUDDY_TOKEN — workflow file updates will be skipped')
       }
 
       // Primary token for API calls, optional workflow token for elevated
@@ -604,7 +604,7 @@ export class Buddy {
           const groupStartTime = Date.now()
           this.logger.info(`Creating PR for group: ${group.name} (${group.updates.length} updates)`)
 
-          // (#1359) Groups that only touch .github/workflows/* require BUDDY_BOT_TOKEN
+          // (#1359) Groups that only touch .github/workflows/* require BUDDY_TOKEN
           // with the `workflow` scope — GITHUB_TOKEN can't push to workflow files,
           // and the PR-creation API call also fails ("GitHub Actions is not permitted
           // to create or approve pull requests"). Without elevated permissions, the
@@ -613,7 +613,7 @@ export class Buddy {
           const isWorkflowOnlyGroup = group.updates.length > 0
             && group.updates.every(u => u.file.includes('.github/workflows/'))
           if (isWorkflowOnlyGroup && !hasWorkflowPermissions) {
-            this.logger.warn(`⚠️ Skipping group ${group.name} — workflow-file updates require BUDDY_BOT_TOKEN with the workflow scope`)
+            this.logger.warn(`⚠️ Skipping group ${group.name} — workflow-file updates require BUDDY_TOKEN with the workflow scope`)
             continue
           }
 
@@ -668,7 +668,7 @@ export class Buddy {
           const expectedBranchName = this.generateBranchName(group)
 
           // Also support legacy branch names with timestamps for backwards compatibility
-          const legacyBranchPattern = `buddy-bot/update-${group.name.toLowerCase().replace(/\s+/g, '-')}-`
+          const legacyBranchPattern = `buddy/update-${group.name.toLowerCase().replace(/\s+/g, '-')}-`
 
           const existingPR = existingPRs.find(pr =>
             (
@@ -681,7 +681,7 @@ export class Buddy {
               // Quaternary match: similar titles (for grouped updates)
               || this.isSimilarPRTitle(pr.title, prTitle)
             )
-            && (pr.author === 'github-actions[bot]' || pr.author.includes('buddy') || pr.head.startsWith('buddy-bot/'))
+            && (pr.author === 'github-actions[bot]' || pr.author.includes('buddy') || pr.head.startsWith('buddy/'))
             && !pr.head.includes('renovate/') // Exclude Renovate PRs
             && !pr.head.includes('dependabot/') // Exclude Dependabot PRs
             && !pr.author.toLowerCase().includes('renovate') // Exclude Renovate bot
@@ -933,8 +933,8 @@ export class Buddy {
               // Match by branch name or similar title
               if (pr.head !== branchName && !this.isSimilarPRTitle(pr.title, prTitle))
                 return false
-              // Must be a buddy-bot PR
-              if (!pr.head.startsWith('buddy-bot/') && pr.author !== 'github-actions[bot]')
+              // Must be a buddy PR
+              if (!pr.head.startsWith('buddy/') && pr.author !== 'github-actions[bot]')
                 return false
               // Must not have been merged
               if (pr.mergedAt)
@@ -1227,7 +1227,7 @@ export class Buddy {
       return []
     }
 
-    const token = process.env.GITHUB_TOKEN || process.env.BUDDY_BOT_TOKEN
+    const token = process.env.GITHUB_TOKEN || process.env.BUDDY_TOKEN
     const candidates = zigFiles.flatMap(file =>
       file.dependencies
         .filter(dep => dep.type === 'zig-dependencies')
@@ -2084,7 +2084,7 @@ export class Buddy {
       .replace(/-+/g, '-') // Collapse multiple hyphens
       .replace(/^-|-$/g, '') // Trim leading/trailing hyphens
 
-    return `buddy-bot/update-${normalizedName}`
+    return `buddy/update-${normalizedName}`
   }
 
   /**
@@ -2460,7 +2460,7 @@ export class Buddy {
    *
    * `GITHUB_TOKEN` is preferred so commits are attributed to
    * `github-actions[bot]` rather than a maintainer's contribution graph;
-   * `BUDDY_BOT_TOKEN` is the fallback and the source of workflow-file
+   * `BUDDY_TOKEN` is the fallback and the source of workflow-file
    * permissions.
    */
   private async createGitProvider(): Promise<GitProvider | null> {
@@ -2524,7 +2524,7 @@ export class Buddy {
   }
 
   /**
-   * Merge open buddy-bot PRs that qualify for auto-merge and have green checks.
+   * Merge open buddy PRs that qualify for auto-merge and have green checks.
    *
    * This is the fallback for repositories where GitHub cannot queue a merge
    * itself — without required checks configured, `enableAutoMerge` is refused,
@@ -2545,7 +2545,7 @@ export class Buddy {
     const merged: number[] = []
     const prs = await gitProvider.getPullRequests('open')
 
-    for (const pr of prs.filter(candidate => candidate.head.startsWith('buddy-bot/'))) {
+    for (const pr of prs.filter(candidate => candidate.head.startsWith('buddy/'))) {
       const checks = settings.requireGreenCI && gitProvider.getPullRequestChecksState
         ? await gitProvider.getPullRequestChecksState(pr.number)
         : 'none'
@@ -2723,7 +2723,7 @@ export class Buddy {
   /**
    * Get configuration summary
    */
-  getConfig(): BuddyBotConfig {
+  getConfig(): BuddyConfig {
     return this.config
   }
 
@@ -2746,9 +2746,9 @@ export class Buddy {
       // Get all open PRs
       const openPRs = await gitProvider.getPullRequests('open')
 
-      // Only check buddy-bot PRs — never close PRs from other tools like Renovate or Dependabot
+      // Only check buddy PRs — never close PRs from other tools like Renovate or Dependabot
       const dependencyPRs = openPRs.filter(pr =>
-        pr.head.startsWith('buddy-bot/')
+        pr.head.startsWith('buddy/')
         || (pr.author === 'github-actions[bot]' && pr.labels.includes('dependencies')),
       )
 
@@ -2783,8 +2783,8 @@ export class Buddy {
 
                 await gitProvider.closePullRequest(pr.number)
 
-                // Try to delete the branch if it's a buddy-bot branch
-                if (pr.head.startsWith('buddy-bot/')) {
+                // Try to delete the branch if it's a buddy branch
+                if (pr.head.startsWith('buddy/')) {
                   try {
                     await gitProvider.deleteBranch(pr.head)
                     this.logger.success(`✅ Auto-closed PR #${pr.number} and deleted branch ${pr.head}`)
@@ -2834,16 +2834,16 @@ export class Buddy {
       // Get all open PRs
       const openPRs = await gitProvider.getPullRequests('open')
 
-      // Only check buddy-bot PRs — never close PRs from other tools
+      // Only check buddy PRs — never close PRs from other tools
       const dependencyPRs = openPRs.filter(pr =>
-        pr.head.startsWith('buddy-bot/')
+        pr.head.startsWith('buddy/')
         || (pr.author === 'github-actions[bot]' && pr.labels.includes('dependencies')),
       )
 
-      this.logger.info(`Found ${dependencyPRs.length} buddy-bot dependency PRs to validate`)
+      this.logger.info(`Found ${dependencyPRs.length} buddy dependency PRs to validate`)
 
       if (dependencyPRs.length === 0) {
-        this.logger.info('📋 No buddy-bot PRs to check')
+        this.logger.info('📋 No buddy PRs to check')
         return
       }
 
@@ -2855,7 +2855,7 @@ export class Buddy {
       // exist for major updates: without 'all', major updates would be filtered
       // out of the scan, their packages would be absent from currentUpdatesMap,
       // and the PR would be incorrectly considered "satisfied".
-      const scanConfig: BuddyBotConfig = {
+      const scanConfig: BuddyConfig = {
         ...this.config,
         packages: {
           ...this.config.packages,
@@ -2994,8 +2994,8 @@ export class Buddy {
 
                 await gitProvider.closePullRequest(pr.number)
 
-                // Try to delete the branch if it's a buddy-bot branch
-                if (pr.head.startsWith('buddy-bot/')) {
+                // Try to delete the branch if it's a buddy branch
+                if (pr.head.startsWith('buddy/')) {
                   try {
                     await gitProvider.deleteBranch(pr.head)
                     this.logger.success(`✅ Closed PR #${pr.number} and deleted branch ${pr.head}`)
@@ -3096,7 +3096,7 @@ export class Buddy {
       if (!this.config.repository.owner || !this.config.repository.name) {
         throw new Error(
           'Repository owner and name are required for dashboard. '
-          + 'Set them in buddy-bot.config.ts or ensure GITHUB_REPOSITORY env var is available.',
+          + 'Set them in buddy.config.ts or ensure GITHUB_REPOSITORY env var is available.',
         )
       }
 
@@ -3194,7 +3194,7 @@ export class Buddy {
       gitProvider.getPullRequests('open'),
     ])
 
-    // Filter PRs to include all dependency updates (from any source: buddy-bot, renovate, etc.)
+    // Filter PRs to include all dependency updates (from any source: buddy, renovate, etc.)
     // eslint-disable-next-line pickier/no-unused-vars -- pr IS used in the multi-line filter
     const dependencyPRs = openPRs.filter(pr =>
       // Include any PR that appears to be a dependency update
@@ -3208,7 +3208,7 @@ export class Buddy {
       || pr.title.toLowerCase().includes('renovate')
       || pr.head.includes('renovate/')
       || pr.head.includes('dependabot/')
-      || pr.head.includes('buddy-bot/')
+      || pr.head.includes('buddy/')
       || pr.head.includes('update-')
       || pr.head.includes('bump-'),
     )
@@ -3417,9 +3417,9 @@ export class Buddy {
       for (const issue of issues) {
         const hasRequiredLabels = issue.labels.includes('dashboard') && issue.labels.includes('dependencies')
         const titleMatches = issue.title.toLowerCase().includes('dependency dashboard')
-        const bodyHasMarker = issue.body.includes('This issue lists Buddy Bot updates and detected dependencies')
+        const bodyHasMarker = issue.body.includes('This issue lists Buddy updates and detected dependencies')
 
-        // The body marker alone is definitive: buddy-bot writes it and nobody
+        // The body marker alone is definitive: buddy writes it and nobody
         // types it by hand. Requiring labels as well made a dashboard whose
         // labels a maintainer removed permanently unfindable, so every run
         // opened a fresh one — which is how duplicates accumulate.

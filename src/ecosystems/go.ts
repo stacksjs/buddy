@@ -80,7 +80,7 @@ export const goAdapter: EcosystemAdapter = {
 
     const response = await fetchWithTimeout(
       `${base}/${encoded}/@latest`,
-      { headers: { 'User-Agent': 'buddy-bot', 'Accept': 'application/json' } },
+      { headers: { 'User-Agent': 'buddy', 'Accept': 'application/json' } },
     ).catch(() => null)
 
     if (!response?.ok)

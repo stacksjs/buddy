@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import * as fs from 'node:fs'
 
 export interface WorkflowConfig {
@@ -57,7 +57,7 @@ export class GitHubActionsTemplate {
       - name: Install dependencies
         run: bun install
 
-      - name: Build buddy-bot
+      - name: Build buddy
         run: bun run build`
   }
 
@@ -100,7 +100,7 @@ permissions:
   statuses: read
 
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -120,7 +120,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build buddy-bot
+      - name: Build buddy
         run: bun run build
 
       - name: Run Buddy dependency updates
@@ -147,7 +147,7 @@ jobs:
   /**
    * Generate workflow for different scheduling strategies
    */
-  static generateScheduledWorkflows(config?: BuddyBotConfig): Record<string, string> {
+  static generateScheduledWorkflows(config?: BuddyConfig): Record<string, string> {
     const autoMergeConfig = config?.pullRequest?.autoMerge
     const reviewers = config?.pullRequest?.reviewers || []
     const labels = config?.pullRequest?.labels || []
@@ -196,7 +196,7 @@ jobs:
   /**
    * Generate comprehensive workflow with multiple strategies
    */
-  static generateComprehensiveWorkflow(_config?: BuddyBotConfig): string {
+  static generateComprehensiveWorkflow(_config?: BuddyConfig): string {
     return `name: Buddy Dependency Updates
 
 on:
@@ -242,7 +242,7 @@ permissions:
   statuses: read
 
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -287,7 +287,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build buddy-bot
+      - name: Build buddy
         run: bun run build
 
       - name: Scan for updates
@@ -337,7 +337,7 @@ jobs:
   /**
    * Generate Docker-based workflow for complex setups
    */
-  static generateDockerWorkflow(_config?: BuddyBotConfig): string {
+  static generateDockerWorkflow(_config?: BuddyConfig): string {
     return `name: Buddy Dependencies (Docker)
 
 on:
@@ -346,7 +346,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -364,7 +364,7 @@ jobs:
         run: bun install
 
       - name: Run Buddy updates
-        run: bunx buddy-bot update --verbose
+        run: bunx @buddysh/buddy update --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 `
@@ -373,7 +373,7 @@ jobs:
   /**
    * Generate workflow for monorepos
    */
-  static generateMonorepoWorkflow(_config?: BuddyBotConfig): string {
+  static generateMonorepoWorkflow(_config?: BuddyConfig): string {
     return `name: Buddy Monorepo Updates
 
 on:
@@ -387,7 +387,7 @@ on:
         type: string
 
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -427,7 +427,7 @@ jobs:
       - name: Update workspace dependencies
         run: |
           cd \${{ matrix.workspace }}
-          bunx buddy-bot update --verbose
+          bunx @buddysh/buddy update --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
 `
@@ -436,7 +436,7 @@ jobs:
   /**
    * Generate testing workflow with enhanced manual controls
    */
-  static generateTestingWorkflow(_config?: BuddyBotConfig): string {
+  static generateTestingWorkflow(_config?: BuddyConfig): string {
     return `name: Buddy Update
 
 on:
@@ -481,7 +481,7 @@ permissions:
   statuses: read
 
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -501,12 +501,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build buddy-bot
+      - name: Build buddy
         run: bun run build
 
       - name: Display test configuration
         run: |
-          echo "🧪 **Buddy Bot Testing Mode**"
+          echo "🧪 **Buddy Testing Mode**"
           echo "Strategy: \${{ github.event.inputs.strategy || 'patch' }}"
           echo "Dry Run: \${{ github.event.inputs.dry_run || 'true' }}"
           echo "Packages: \${{ github.event.inputs.packages || 'all' }}"
@@ -569,7 +569,7 @@ jobs:
       - name: Create test summary
         if: always()
         run: |
-          echo "## 🧪 Buddy Bot Testing Summary" >> \$GITHUB_STEP_SUMMARY
+          echo "## 🧪 Buddy Testing Summary" >> \$GITHUB_STEP_SUMMARY
           echo "" >> \$GITHUB_STEP_SUMMARY
           echo "- **Strategy**: \${{ github.event.inputs.strategy || 'patch' }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: \${{ github.event_name }}" >> \$GITHUB_STEP_SUMMARY
@@ -604,7 +604,7 @@ jobs:
       reviewers?: string[]
       labels?: string[]
     },
-    config?: BuddyBotConfig,
+    config?: BuddyConfig,
   ): string {
     // Determine auto-merge configuration
     let autoMergeConfig: boolean | { enabled: boolean, strategy: 'merge' | 'squash' | 'rebase', conditions?: string[] } = false
@@ -638,7 +638,7 @@ jobs:
   }
 
   /**
-   * Generate the security-audit workflow that runs `buddy-bot security`
+   * Generate the security-audit workflow that runs `buddy security`
    * against `.github/workflows/*` on push, PR, schedule, and manual
    * dispatch. Output is emitted as inline annotations via the `github`
    * reporter when running on a runner.
@@ -676,8 +676,8 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Run buddy-bot security
-        run: bunx --bun buddy-bot security
+      - name: Run buddy security
+        run: bunx --bun @buddysh/buddy security
 `
   }
 }

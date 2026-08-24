@@ -77,7 +77,7 @@ export const rustAdapter: EcosystemAdapter = {
     const base = options.registryUrl ?? 'https://crates.io'
     const response = await fetchWithTimeout(
       `${base}/api/v1/crates/${encodeURIComponent(dependency.name)}`,
-      { headers: { 'User-Agent': 'buddy-bot (https://buddy-bot.sh)', 'Accept': 'application/json' } },
+      { headers: { 'User-Agent': 'buddy (https://buddy.sh)', 'Accept': 'application/json' } },
     ).catch(() => null)
 
     if (!response?.ok)

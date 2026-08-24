@@ -33,7 +33,7 @@ function cleanMessage(message: string): string {
  * YAML and JSON syntax validation.
  *
  * Native, so it needs no tool on the runner and always runs. It is also the
- * cheapest finding buddy-bot can produce that a human would certainly have
+ * cheapest finding buddy can produce that a human would certainly have
  * caught eventually: a malformed workflow or lockfile does not fail at review
  * time, it fails on the next run in a job whose logs nobody is watching.
  *

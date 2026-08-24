@@ -3,7 +3,7 @@ import process from 'node:process'
 /**
  * Default per-request timeout.
  *
- * Every outbound request buddy-bot makes is a small JSON API call, so 30s is
+ * Every outbound request buddy makes is a small JSON API call, so 30s is
  * generous. The point is that *some* bound exists: an unbounded `fetch()` in a
  * GitHub Actions job hangs until the 6-hour job cap, turning a transient
  * network stall into a wasted workflow run.

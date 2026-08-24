@@ -18,7 +18,7 @@ export type FailureKind =
 /** A classified failure with the evidence behind it. */
 export interface ClassifiedFailure {
   kind: FailureKind
-  /** Whether buddy-bot can fix this without a model */
+  /** Whether buddy can fix this without a model */
   mechanical: boolean
   /** The lines that led to this classification */
   evidence: string[]

@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import type { Logger } from '../utils/logger'
 import type { AiClient, AiCompletionRequest, AiProvider, AiProviderName, AiResponse } from './types'
 import process from 'node:process'
@@ -28,12 +28,12 @@ export interface AiResolution {
  * deliberate: no key configured is the normal state for a dependency bot, and
  * every AI feature is expected to degrade to a no-op rather than fail the run.
  *
- * @param config - Full buddy-bot configuration
+ * @param config - Full buddy configuration
  * @param env - Environment to read keys from (defaults to `process.env`)
  * @returns The resolution, or `null` when no provider is usable
  */
 export function resolveAiProvider(
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   env: Record<string, string | undefined> = process.env,
 ): AiResolution | null {
   const ai = config.ai
@@ -68,7 +68,7 @@ export function resolveAiProvider(
 /**
  * Build an AI client from configuration.
  *
- * @param config - Full buddy-bot configuration
+ * @param config - Full buddy configuration
  * @param logger - Logger for diagnostics; defaults to the process-wide logger
  * @returns A client, or `null` when no provider is configured — callers must
  * treat `null` as "AI features are off" rather than as an error
@@ -82,7 +82,7 @@ export function resolveAiProvider(
  * const response = await ai.complete({ messages: [{ role: 'user', content: 'hi' }] })
  * ```
  */
-export function createAiClient(config: BuddyBotConfig, logger: Logger = getDefaultLogger()): AiClient | null {
+export function createAiClient(config: BuddyConfig, logger: Logger = getDefaultLogger()): AiClient | null {
   const resolution = resolveAiProvider(config)
   if (!resolution) {
     logger.debug('AI disabled: no provider configured with an available API key')
@@ -181,7 +181,7 @@ function findApiKey(
  * user never chose.
  */
 function resolveModel(provider: AiProviderName, configured?: string): string | undefined {
-  const override = process.env.BUDDY_BOT_MODEL || configured
+  const override = process.env.BUDDY_MODEL || configured
   if (override)
     return resolveModelAlias(override)
 

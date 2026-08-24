@@ -11,7 +11,7 @@ import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
 
-/** GitLab's merge request, as much of it as buddy-bot reads. */
+/** GitLab's merge request, as much of it as buddy reads. */
 interface GitLabMergeRequest {
   iid: number
   title: string
@@ -124,7 +124,7 @@ export class GitLabProvider implements GitProvider {
       headers: {
         'PRIVATE-TOKEN': this.token,
         'Accept': options.raw ? 'text/plain' : 'application/json',
-        'User-Agent': 'buddy-bot',
+        'User-Agent': 'buddy',
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
@@ -297,7 +297,7 @@ export class GitLabProvider implements GitProvider {
 
   async getPullRequests(state: 'open' | 'closed' | 'all' = 'open'): Promise<PullRequest[]> {
     // GitLab splits closed and merged into distinct states, so "closed" for
-    // buddy-bot means both — a merged merge request is not open.
+    // buddy means both — a merged merge request is not open.
     const query = state === 'all'
       ? 'state=all'
       : state === 'open'
@@ -600,14 +600,14 @@ export class GitLabProvider implements GitProvider {
 
   // -- Housekeeping --------------------------------------------------------
 
-  async getBuddyBotBranches(): Promise<ProviderBranch[]> {
+  async getBuddyBranches(): Promise<ProviderBranch[]> {
     const branches = await this.request<GitLabBranch[]>(
       'GET',
-      `/projects/${this.projectId}/repository/branches?search=buddy-bot&per_page=100`,
+      `/projects/${this.projectId}/repository/branches?search=buddy&per_page=100`,
     )
 
     return branches
-      .filter(branch => branch.name.startsWith('buddy-bot/'))
+      .filter(branch => branch.name.startsWith('buddy/'))
       .map(branch => ({
         name: branch.name,
         sha: branch.commit?.id ?? '',
@@ -617,9 +617,9 @@ export class GitLabProvider implements GitProvider {
       }))
   }
 
-  async getOrphanedBuddyBotBranches(): Promise<ProviderBranch[]> {
+  async getOrphanedBuddyBranches(): Promise<ProviderBranch[]> {
     const [branches, open] = await Promise.all([
-      this.getBuddyBotBranches(),
+      this.getBuddyBranches(),
       this.getPullRequests('open'),
     ])
 
@@ -633,7 +633,7 @@ export class GitLabProvider implements GitProvider {
     dryRun: boolean = false,
   ): Promise<{ deleted: string[], failed: string[] }> {
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000)
-    const stale = (await this.getOrphanedBuddyBotBranches())
+    const stale = (await this.getOrphanedBuddyBranches())
       .filter(branch => branch.lastCommitDate < cutoff)
 
     if (dryRun)

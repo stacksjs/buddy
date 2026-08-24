@@ -3,7 +3,7 @@ import type { Logger } from '../utils/logger'
 import process from 'node:process'
 
 /**
- * Hosting platforms buddy-bot knows about.
+ * Hosting platforms buddy knows about.
  *
  * A name appearing here does not mean it works — {@link IMPLEMENTED_PROVIDERS}
  * is the list that does. Naming the unimplemented ones lets configuration
@@ -31,7 +31,7 @@ export const PROVIDER_TRACKING_ISSUES: Record<string, string> = {}
 /**
  * What a provider can actually do.
  *
- * Buddy-bot's feature surface is wider than any single platform's API, so
+ * Buddy's feature surface is wider than any single platform's API, so
  * features degrade against these flags instead of assuming GitHub. A caller
  * that checks a flag before calling the matching optional method gets a
  * documented no-op on platforms that lack it; a caller that does not gets a
@@ -58,7 +58,7 @@ export interface ProviderCapabilities {
   draftPullRequests: boolean
   /** Look up whether a user can write to the repository (`hasWriteAccess`) */
   permissionLookup: boolean
-  /** Enumerate and prune buddy-bot's own branches */
+  /** Enumerate and prune buddy's own branches */
   branchHousekeeping: boolean
   /**
    * Apply labels to pull requests and issues.
@@ -95,7 +95,7 @@ export const NO_CAPABILITIES: ProviderCapabilities = {
   labels: false,
 }
 
-/** A branch buddy-bot created, as the provider reports it. */
+/** A branch buddy created, as the provider reports it. */
 export interface ProviderBranch {
   name: string
   sha: string
@@ -124,7 +124,7 @@ export interface CheckRunResult {
 }
 
 /**
- * Everything buddy-bot needs from a hosting platform.
+ * Everything buddy needs from a hosting platform.
  *
  * The required members are the ones every code-hosting platform has; the
  * optional ones are gated by {@link ProviderCapabilities}. This split is the
@@ -228,17 +228,17 @@ export interface GitProvider {
 
   // -- Housekeeping (requires `branchHousekeeping`) -------------------------
 
-  /** Branches buddy-bot created */
-  getBuddyBotBranches?: () => Promise<ProviderBranch[]>
+  /** Branches buddy created */
+  getBuddyBranches?: () => Promise<ProviderBranch[]>
 
-  /** Buddy-bot branches with no open pull request */
-  getOrphanedBuddyBotBranches?: () => Promise<ProviderBranch[]>
+  /** Buddy branches with no open pull request */
+  getOrphanedBuddyBranches?: () => Promise<ProviderBranch[]>
 
-  /** Delete orphaned buddy-bot branches older than a cutoff */
+  /** Delete orphaned buddy branches older than a cutoff */
   cleanupStaleBranches?: (olderThanDays?: number, dryRun?: boolean) => Promise<{ deleted: string[], failed: string[] }>
 }
 
-/** Raised when configuration names a provider buddy-bot cannot use. */
+/** Raised when configuration names a provider buddy cannot use. */
 export class UnsupportedProviderError extends Error {
   constructor(
     message: string,
@@ -254,16 +254,16 @@ export class UnsupportedProviderError extends Error {
  * Environment variables consulted for each provider's token, in order.
  *
  * The ambient CI token comes first on purpose. It is not a fallback for the
- * buddy-bot token — the two have different jobs: the ambient token attributes
+ * buddy token — the two have different jobs: the ambient token attributes
  * pull requests to the CI bot rather than to a human's personal token, while
- * `BUDDY_BOT_TOKEN` is passed separately as the *workflow* token for the
+ * `BUDDY_TOKEN` is passed separately as the *workflow* token for the
  * elevated scopes CI files need. Preferring the personal token here would
  * change who appears to have opened every pull request.
  */
 export const PROVIDER_TOKEN_ENV: Record<GitProviderName, string[]> = {
-  github: ['GITHUB_TOKEN', 'BUDDY_BOT_TOKEN'],
-  gitlab: ['CI_JOB_TOKEN', 'GITLAB_TOKEN', 'BUDDY_BOT_TOKEN'],
-  bitbucket: ['BITBUCKET_TOKEN', 'BUDDY_BOT_TOKEN'],
+  github: ['GITHUB_TOKEN', 'BUDDY_TOKEN'],
+  gitlab: ['CI_JOB_TOKEN', 'GITLAB_TOKEN', 'BUDDY_TOKEN'],
+  bitbucket: ['BITBUCKET_TOKEN', 'BUDDY_TOKEN'],
 }
 
 /**
@@ -287,7 +287,7 @@ export function resolveProviderToken(
 }
 
 /**
- * Assert a provider name is one buddy-bot can actually use.
+ * Assert a provider name is one buddy can actually use.
  *
  * @param provider - Name from configuration
  * @throws {UnsupportedProviderError} When unknown, or known but not built
@@ -368,7 +368,7 @@ export async function createProvider(
 
     case 'github': {
       const { GitHubProvider } = await import('./github-provider')
-      const workflowToken = config.workflowToken ?? env.BUDDY_BOT_TOKEN
+      const workflowToken = config.workflowToken ?? env.BUDDY_TOKEN
 
       return new GitHubProvider(
         token,
@@ -404,7 +404,7 @@ export function supports<K extends keyof GitProvider>(
 /**
  * Assert a provider supports a capability, or explain what is missing.
  *
- * Used where the capability *is* the command — `buddy-bot cleanup` on a
+ * Used where the capability *is* the command — `buddy cleanup` on a
  * provider that cannot enumerate branches has nothing to degrade to, so
  * failing with a clear reason beats a `TypeError` or a silent success.
  *

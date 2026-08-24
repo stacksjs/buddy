@@ -1,4 +1,4 @@
-/** A package mentioned in an issue, with what buddy-bot already knows. */
+/** A package mentioned in an issue, with what buddy already knows. */
 export interface PackageContext {
   name: string
   /** Version declared in the repository, when it is a dependency */
@@ -56,7 +56,7 @@ export function findMentionedPackages(text: string, knownPackages: string[]): st
 }
 
 /**
- * Render what buddy-bot knows about the packages an issue mentions.
+ * Render what buddy knows about the packages an issue mentions.
  *
  * This is the half of issue enrichment that needs no model: every fact here is
  * already collected by the scanner, the advisory service and the deprecation

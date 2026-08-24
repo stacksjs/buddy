@@ -1,6 +1,6 @@
 import type { Dependency } from '../types'
 
-/** Runtimes buddy-bot knows how to resolve a version for. */
+/** Runtimes buddy knows how to resolve a version for. */
 export const KNOWN_ENGINES: Record<string, { registry: 'npm' | 'github', source: string }> = {
   node: { registry: 'github', source: 'nodejs/node' },
   bun: { registry: 'npm', source: 'bun' },

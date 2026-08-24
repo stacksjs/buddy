@@ -127,16 +127,16 @@ export function resolveCredentials(
   }
 
   if (registry === 'ghcr.io') {
-    const token = env.GITHUB_TOKEN?.trim() || env.BUDDY_BOT_TOKEN?.trim()
+    const token = env.GITHUB_TOKEN?.trim() || env.BUDDY_TOKEN?.trim()
     // GHCR accepts the token as the password with any username.
     if (token)
-      return { username: 'buddy-bot', password: token }
+      return { username: 'buddy', password: token }
   }
 
   if (registry === 'docker.io') {
     const token = env.DOCKERHUB_TOKEN?.trim() || env.DOCKER_TOKEN?.trim()
     if (token)
-      return { username: env.DOCKERHUB_USERNAME?.trim() || 'buddy-bot', password: token }
+      return { username: env.DOCKERHUB_USERNAME?.trim() || 'buddy', password: token }
   }
 
   return null
@@ -283,7 +283,7 @@ export class OciClient {
     ref: ImageRef,
     init: { method?: string, headers?: Record<string, string> } = {},
   ): Promise<Response | null> {
-    const headers: Record<string, string> = { 'User-Agent': 'buddy-bot', ...init.headers }
+    const headers: Record<string, string> = { 'User-Agent': 'buddy', ...init.headers }
     const cached = this.tokens.get(cacheKey(ref))
     if (cached)
       headers.Authorization = `Bearer ${cached}`
@@ -318,7 +318,7 @@ export class OciClient {
     if (credentials && 'token' in credentials)
       return credentials.token
 
-    const headers: Record<string, string> = { 'User-Agent': 'buddy-bot' }
+    const headers: Record<string, string> = { 'User-Agent': 'buddy' }
     if (credentials) {
       const encoded = Buffer.from(`${credentials.username}:${credentials.password}`).toString('base64')
       headers.Authorization = `Basic ${encoded}`

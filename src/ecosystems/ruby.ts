@@ -83,7 +83,7 @@ export const rubyAdapter: EcosystemAdapter = {
     const base = options.registryUrl ?? 'https://rubygems.org'
     const response = await fetchWithTimeout(
       `${base}/api/v1/versions/${encodeURIComponent(dependency.name)}.json`,
-      { headers: { 'User-Agent': 'buddy-bot', 'Accept': 'application/json' } },
+      { headers: { 'User-Agent': 'buddy', 'Accept': 'application/json' } },
     ).catch(() => null)
 
     if (!response?.ok)

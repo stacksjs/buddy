@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from './types'
+import type { BuddyConfig } from './types'
 import type { GitProviderName } from './git/provider'
 import { BUILTIN_ANALYZERS } from './analysis/engine'
 import { IMPLEMENTED_PROVIDERS, PROVIDER_TRACKING_ISSUES } from './git/provider'
@@ -159,7 +159,7 @@ function checkCron(issues: ConfigIssue[], path: string, value: unknown): void {
  *   console.error(formatConfigIssues(issues))
  * ```
  */
-export function validateConfig(config: BuddyBotConfig): ConfigIssue[] {
+export function validateConfig(config: BuddyConfig): ConfigIssue[] {
   const issues: ConfigIssue[] = []
 
   if (config.verbose !== undefined && typeof config.verbose !== 'boolean')
@@ -214,7 +214,7 @@ function validateDockerRegistries(issues: ConfigIssue[], docker: unknown): void 
   }
 }
 
-function validateAnalysis(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateAnalysis(issues: ConfigIssue[], config: BuddyConfig): void {
   const analysis = config.analysis
   if (analysis === undefined)
     return
@@ -243,7 +243,7 @@ function validateAnalysis(issues: ConfigIssue[], config: BuddyBotConfig): void {
   }
 }
 
-function validateRepository(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateRepository(issues: ConfigIssue[], config: BuddyConfig): void {
   const repository = config.repository
   if (repository === undefined)
     return
@@ -275,7 +275,7 @@ function validateRepository(issues: ConfigIssue[], config: BuddyBotConfig): void
   checkUrl(issues, 'repository.serverUrl', repository.serverUrl)
 }
 
-function validatePackages(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validatePackages(issues: ConfigIssue[], config: BuddyConfig): void {
   const packages = config.packages
   if (packages === undefined)
     return
@@ -432,7 +432,7 @@ function validateRules(issues: ConfigIssue[], rules: unknown): void {
   })
 }
 
-function validatePullRequest(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validatePullRequest(issues: ConfigIssue[], config: BuddyConfig): void {
   const pullRequest = config.pullRequest
   if (pullRequest === undefined)
     return
@@ -484,7 +484,7 @@ function validatePullRequest(issues: ConfigIssue[], config: BuddyBotConfig): voi
   }
 }
 
-function validateAi(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateAi(issues: ConfigIssue[], config: BuddyConfig): void {
   const ai = config.ai
   if (ai === undefined)
     return
@@ -572,7 +572,7 @@ function validateAi(issues: ConfigIssue[], config: BuddyBotConfig): void {
   }
 }
 
-function validateRegistries(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateRegistries(issues: ConfigIssue[], config: BuddyConfig): void {
   const registries = config.registries
   if (registries === undefined)
     return
@@ -598,7 +598,7 @@ function validateRegistries(issues: ConfigIssue[], config: BuddyBotConfig): void
   }
 }
 
-function validateSecurity(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateSecurity(issues: ConfigIssue[], config: BuddyConfig): void {
   const security = config.security
   if (security === undefined)
     return
@@ -618,7 +618,7 @@ function validateSecurity(issues: ConfigIssue[], config: BuddyBotConfig): void {
   checkEnum(issues, 'security.minimumSeverity', security.minimumSeverity, SEVERITIES)
 }
 
-function validateSchedules(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateSchedules(issues: ConfigIssue[], config: BuddyConfig): void {
   if (config.schedule !== undefined) {
     if (!isPlainObject(config.schedule)) {
       issues.push({ path: 'schedule', message: `expected an object, got ${quote(config.schedule)}` })
@@ -653,7 +653,7 @@ function validateSchedules(issues: ConfigIssue[], config: BuddyBotConfig): void 
   })
 }
 
-function validateReleaseNotes(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateReleaseNotes(issues: ConfigIssue[], config: BuddyConfig): void {
   const releaseNotes = config.releaseNotes
   if (releaseNotes === undefined)
     return
@@ -671,7 +671,7 @@ function validateReleaseNotes(issues: ConfigIssue[], config: BuddyBotConfig): vo
   checkNumber(issues, 'releaseNotes.maxBodyLength', releaseNotes.maxBodyLength, { min: 1, integer: true })
 }
 
-function validateDashboard(issues: ConfigIssue[], config: BuddyBotConfig): void {
+function validateDashboard(issues: ConfigIssue[], config: BuddyConfig): void {
   const dashboard = config.dashboard
   if (dashboard === undefined)
     return
@@ -704,13 +704,13 @@ export function formatConfigIssues(issues: readonly ConfigIssue[]): string {
  * @param config - Configuration to check
  * @throws {ConfigurationError} Listing every issue found
  */
-export function assertValidConfig(config: BuddyBotConfig): void {
+export function assertValidConfig(config: BuddyConfig): void {
   const issues = validateConfig(config)
   if (issues.length === 0)
     return
 
   throw new ConfigurationError(
-    `Invalid buddy-bot configuration (${issues.length} issue${issues.length === 1 ? '' : 's'}):\n${formatConfigIssues(issues)}`,
+    `Invalid buddy configuration (${issues.length} issue${issues.length === 1 ? '' : 's'}):\n${formatConfigIssues(issues)}`,
     issues[0].path,
   )
 }

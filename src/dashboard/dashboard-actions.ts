@@ -5,7 +5,7 @@
 export interface DashboardActions {
   /** Branches whose PRs should be rebased */
   rebaseBranches: string[]
-  /** Whether every open buddy-bot PR should be rebased */
+  /** Whether every open buddy PR should be rebased */
   rebaseAll: boolean
   /** Whether a full scan-and-update run was requested */
   manualRun: boolean
@@ -64,11 +64,11 @@ export function hasDashboardActions(actions: DashboardActions): boolean {
  * Unticks every dashboard checkbox so a handled request is not replayed on the
  * next run.
  *
- * Only the boxes buddy-bot owns are touched — a checkbox a maintainer added to
+ * Only the boxes buddy owns are touched — a checkbox a maintainer added to
  * the issue by hand is left alone.
  *
  * @param body - Dashboard issue body
- * @returns The body with all buddy-bot checkboxes cleared
+ * @returns The body with all buddy checkboxes cleared
  */
 export function uncheckDashboardActions(body: string): string {
   return body.replace(

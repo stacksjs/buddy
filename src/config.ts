@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from './types'
+import type { BuddyConfig } from './types'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { deepMerge, loadConfig } from 'bunfig'
@@ -6,7 +6,7 @@ import { assertValidConfig } from './config-validation'
 import { getDefaultLogger } from './utils/logger'
 import { resolveRepositoryConfig } from './utils/repository'
 
-export const defaultConfig: BuddyBotConfig = {
+export const defaultConfig: BuddyConfig = {
   verbose: true,
   repository: {
     owner: '',
@@ -48,7 +48,7 @@ export const defaultConfig: BuddyBotConfig = {
 }
 
 // Lazy-loaded config to avoid top-level await (enables bun --compile)
-let _config: BuddyBotConfig | null = null
+let _config: BuddyConfig | null = null
 
 /**
  * Load one specific config file, merged over the defaults.
@@ -61,7 +61,7 @@ let _config: BuddyBotConfig | null = null
  * @returns The merged configuration
  * @throws {Error} When the file is missing or exports no object
  */
-async function loadConfigFile(configPath: string): Promise<BuddyBotConfig> {
+async function loadConfigFile(configPath: string): Promise<BuddyConfig> {
   const absolute = resolve(configPath)
 
   const file = Bun.file(absolute)
@@ -80,11 +80,11 @@ async function loadConfigFile(configPath: string): Promise<BuddyBotConfig> {
   if (typeof loaded !== 'object' || loaded === null)
     throw new Error(`Config file ${absolute} does not export a configuration object`)
 
-  return deepMerge(defaultConfig, loaded as Partial<BuddyBotConfig>) as BuddyBotConfig
+  return deepMerge(defaultConfig, loaded as Partial<BuddyConfig>) as BuddyConfig
 }
 
 /**
- * Load and validate the buddy-bot configuration.
+ * Load and validate the buddy configuration.
  *
  * The result is memoized so repeated calls within a run see one config. An
  * explicit `configPath` bypasses the cache, since a caller naming a file is
@@ -94,7 +94,7 @@ async function loadConfigFile(configPath: string): Promise<BuddyBotConfig> {
  * @returns The validated configuration
  * @throws {Error} When the configuration fails validation
  */
-export async function getConfig(configPath?: string): Promise<BuddyBotConfig> {
+export async function getConfig(configPath?: string): Promise<BuddyConfig> {
   if (configPath) {
     const loaded = await loadConfigFile(configPath)
 
@@ -108,7 +108,7 @@ export async function getConfig(configPath?: string): Promise<BuddyBotConfig> {
 
   if (!_config) {
     const loaded = await loadConfig({
-      name: 'buddy-bot',
+      name: 'buddy',
       cwd: process.cwd(),
       defaultConfig,
     })
@@ -139,4 +139,4 @@ export function resetConfigCache(): void {
 }
 
 // For backwards compatibility - synchronous access with default fallback
-export const config: BuddyBotConfig = defaultConfig
+export const config: BuddyConfig = defaultConfig

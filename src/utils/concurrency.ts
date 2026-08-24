@@ -2,7 +2,7 @@
  * Default in-flight request cap.
  *
  * Registry APIs tolerate parallel reads well, but an unbounded fan-out over a
- * few hundred dependencies gets buddy-bot secondary-rate-limited. Eight keeps
+ * few hundred dependencies gets buddy secondary-rate-limited. Eight keeps
  * scans fast without tripping npm or GitHub throttling.
  */
 export const DEFAULT_CONCURRENCY = 8

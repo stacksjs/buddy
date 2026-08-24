@@ -121,7 +121,7 @@ function renderSummary(
     body += `${result.omittedFiles.map(path => `- \`${escapeCell(path)}\``).join('\n')}\n\n</details>\n\n`
   }
 
-  body += '---\n\nReply to any comment to discuss it, or comment `@buddy-bot pause` to stop reviewing this PR.\n'
+  body += '---\n\nReply to any comment to discuss it, or comment `@buddy pause` to stop reviewing this PR.\n'
   body += serializeReviewState({
     reviewedSha: headSha,
     fingerprints,

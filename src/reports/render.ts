@@ -5,7 +5,7 @@ import { getDefaultLogger } from '../utils/logger'
 import { PERIOD_DAYS } from './metrics'
 
 /** Marker identifying the report issue, so it is updated rather than duplicated. */
-export const REPORT_MARKER = '<!-- buddy-bot:report -->'
+export const REPORT_MARKER = '<!-- buddy:report -->'
 
 /** Render a delta as an arrow and a signed number. */
 function renderDelta(delta: Delta | undefined): string {

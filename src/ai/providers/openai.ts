@@ -80,8 +80,8 @@ export function createOpenAiProvider(options: {
         'Content-Type': 'application/json',
       }
       if (name === 'openrouter') {
-        headers['HTTP-Referer'] = 'https://github.com/stacksjs/buddy-bot'
-        headers['X-Title'] = 'buddy-bot'
+        headers['HTTP-Referer'] = 'https://github.com/stacksjs/buddy'
+        headers['X-Title'] = 'buddy'
       }
 
       const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {

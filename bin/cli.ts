@@ -3,7 +3,7 @@
 import type { GitProvider } from '../src/git/provider'
 import type { ReviewFinding } from '../src/review/findings'
 import type { ReviewFormat } from '../src/review/local'
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import fs from 'node:fs'
 import process from 'node:process'
 import { CLI } from '@stacksjs/clapp'
@@ -43,14 +43,14 @@ import { applySuggestion, REVIEW_FORMATS } from '../src/review/local'
 import { formatError } from '../src/utils/errors'
 import { Logger } from '../src/utils/logger'
 
-let _resolvedConfig: BuddyBotConfig | null = null
+let _resolvedConfig: BuddyConfig | null = null
 
 /**
  * Load the configuration once per process.
  *
  * @param configPath - Explicit config file from `--config`, bypassing discovery
  */
-async function resolveConfig(configPath?: string): Promise<BuddyBotConfig> {
+async function resolveConfig(configPath?: string): Promise<BuddyConfig> {
   if (configPath)
     return await getConfig(configPath)
 
@@ -72,10 +72,10 @@ async function resolveConfig(configPath?: string): Promise<BuddyBotConfig> {
  * @param logger - Where to report the failure
  * @returns A provider bound to the configured repository
  */
-async function providerFor(config: BuddyBotConfig, purpose: string, logger: Logger): Promise<GitProvider> {
+async function providerFor(config: BuddyConfig, purpose: string, logger: Logger): Promise<GitProvider> {
   if (!config.repository?.owner || !config.repository.name) {
     logger.error(`❌ Repository owner and name are required for ${purpose}`)
-    logger.info('Configure repository.owner and repository.name in buddy-bot.config.ts')
+    logger.info('Configure repository.owner and repository.name in buddy.config.ts')
     process.exit(1)
   }
 
@@ -169,7 +169,7 @@ async function applyFixes(findings: ReviewFinding[], assumeYes: boolean, logger:
 }
 
 /**
- * Collect what buddy-bot knows about this repository's dependencies.
+ * Collect what buddy knows about this repository's dependencies.
  *
  * Used to enrich an issue that names a package. Failures are swallowed: the
  * context is an extra, and losing it must not stop the quick-links comment
@@ -180,7 +180,7 @@ async function applyFixes(findings: ReviewFinding[], assumeYes: boolean, logger:
  * @returns One entry per declared dependency
  */
 async function collectPackageContext(
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   logger: Logger,
 ): Promise<Array<{ name: string, declaredVersion?: string }>> {
   try {
@@ -203,11 +203,11 @@ async function collectPackageContext(
   }
 }
 
-const cli = new CLI('buddy-bot')
+const cli = new CLI('buddy')
 
 cli.usage(`[command] [options]
 
-🤖 Buddy Bot - Your companion dependency manager
+🤖 Buddy - Your companion dependency manager
 
 Supports npm, Bun, yarn, pnpm, Composer, pkgx, Launchpad, GitHub Actions, and Dockerfiles
 Automatically migrates from Renovate and Dependabot
@@ -232,29 +232,29 @@ PACKAGE INFORMATION:
   search        🔍 Search for packages in the registry
 
 BRANCH MANAGEMENT:
-  cleanup       🧹 Clean up stale buddy-bot branches
-  list-branches 📋 List all buddy-bot branches and their status
+  cleanup       🧹 Clean up stale buddy branches
+  list-branches 📋 List all buddy branches and their status
 
 CONFIGURATION & SETUP:
   open-settings 🔧 Open GitHub repository and organization settings pages
 
 Examples:
-  buddy-bot setup                      # Interactive setup with migration
-  buddy-bot setup --non-interactive    # Automated setup for CI/CD
-  buddy-bot scan --verbose             # Scan for updates (npm + Composer + Dockerfiles)
-  buddy-bot rebase 17                  # Rebase PR #17
-  buddy-bot update-check               # Auto-rebase checked PRs
-  buddy-bot cleanup                    # Clean up stale branches
-  buddy-bot list-branches              # List all buddy-bot branches
-  buddy-bot info laravel/framework     # Get Composer package info
-  buddy-bot info react                 # Get npm package info
-  buddy-bot versions react --latest 5  # Show recent versions
-  buddy-bot search "test framework"    # Search packages
-  buddy-bot open-settings              # Open GitHub settings
+  buddy setup                      # Interactive setup with migration
+  buddy setup --non-interactive    # Automated setup for CI/CD
+  buddy scan --verbose             # Scan for updates (npm + Composer + Dockerfiles)
+  buddy rebase 17                  # Rebase PR #17
+  buddy update-check               # Auto-rebase checked PRs
+  buddy cleanup                    # Clean up stale branches
+  buddy list-branches              # List all buddy branches
+  buddy info laravel/framework     # Get Composer package info
+  buddy info react                 # Get npm package info
+  buddy versions react --latest 5  # Show recent versions
+  buddy search "test framework"    # Search packages
+  buddy open-settings              # Open GitHub settings
 
 Migration:
   - Automatically detects Renovate and Dependabot configurations
-  - Converts settings to Buddy Bot format with compatibility report
+  - Converts settings to Buddy format with compatibility report
   - Generates optimized GitHub Actions workflows
   - Provides migration guidance and best practices`)
 
@@ -276,15 +276,15 @@ cli
   .option('--non-interactive', 'Run setup without prompts (use defaults)')
   .option('--preset <type>', 'Workflow preset: standard|high-frequency|security|minimal|testing', { default: 'standard' })
   .option('--token-setup <type>', 'Token setup: existing-secret|new-pat|default-token', { default: 'default-token' })
-  .example('buddy-bot setup')
-  .example('buddy-bot setup --verbose')
-  .example('buddy-bot setup --non-interactive')
-  .example('buddy-bot setup --non-interactive --preset testing --verbose')
+  .example('buddy setup')
+  .example('buddy setup --verbose')
+  .example('buddy setup --non-interactive')
+  .example('buddy setup --non-interactive --preset testing --verbose')
   .action(async (options: CLIOptions & { nonInteractive?: boolean, preset?: string, tokenSetup?: string }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
 
     try {
-      console.log('🤖 Welcome to Buddy Bot Setup!')
+      console.log('🤖 Welcome to Buddy Setup!')
       console.log('Let\'s configure automated dependency updates for your project.\n')
 
       // Initialize progress tracking
@@ -307,7 +307,7 @@ cli
         const migrateResponse = await prompts({
           type: 'confirm',
           name: 'migrate',
-          message: 'Would you like to migrate existing configurations to Buddy Bot?',
+          message: 'Would you like to migrate existing configurations to Buddy?',
           initial: true,
         })
 
@@ -427,7 +427,7 @@ cli
       displayProgress(progress)
 
       console.log('\n🔑 GitHub Token Setup')
-      console.log('For full functionality, Buddy Bot needs appropriate GitHub permissions.')
+      console.log('For full functionality, Buddy needs appropriate GitHub permissions.')
       console.log('This enables workflow file updates and advanced GitHub Actions features.\n')
 
       let tokenSetup
@@ -623,12 +623,12 @@ cli
   .option('--ignore <names>', 'Comma-separated list of packages to ignore')
   .option('--respect-latest', 'Respect "latest", "*", and other dynamic version indicators (default: true)')
   .option('--no-respect-latest', 'Allow updating "latest", "*", and other dynamic version indicators')
-  .example('buddy-bot scan')
-  .example('buddy-bot scan --verbose')
-  .example('buddy-bot scan --packages "react,typescript,laravel/framework"')
-  .example('buddy-bot scan --pattern "@types/*"')
-  .example('buddy-bot scan --strategy minor')
-  .example('buddy-bot scan --no-respect-latest')
+  .example('buddy scan')
+  .example('buddy scan --verbose')
+  .example('buddy scan --packages "react,typescript,laravel/framework"')
+  .example('buddy scan --pattern "@types/*"')
+  .example('buddy scan --strategy minor')
+  .example('buddy scan --no-respect-latest')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -649,7 +649,7 @@ cli
       }
 
       // Override config with CLI options
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
         packages: {
@@ -753,10 +753,10 @@ cli
   .option('--issue-number <number>', 'Update specific issue number')
   .option('--pin', 'Pin the dashboard issue to the top of the issue list')
   .option('--no-pin', 'Unpin the dashboard issue')
-  .example('buddy-bot dashboard')
-  .example('buddy-bot dashboard --title "My Dependencies"')
-  .example('buddy-bot dashboard --issue-number 42')
-  .example('buddy-bot dashboard --pin')
+  .example('buddy dashboard')
+  .example('buddy dashboard --title "My Dependencies"')
+  .example('buddy dashboard --issue-number 42')
+  .example('buddy dashboard --pin')
   .action(async (options: CLIOptions & { pin?: boolean, title?: string, issueNumber?: string }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -767,12 +767,12 @@ cli
       // Check if repository is configured
       if (!config.repository) {
         logger.error('❌ Repository configuration required for dashboard')
-        logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         process.exit(1)
       }
 
       // Override config with CLI options
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
         dashboard: {
@@ -804,11 +804,11 @@ cli
   .option('--dry-run', 'Preview changes without making them')
   .option('--respect-latest', 'Respect "latest", "*", and other dynamic version indicators (default: true)')
   .option('--no-respect-latest', 'Allow updating "latest", "*", and other dynamic version indicators')
-  .example('buddy-bot update')
-  .example('buddy-bot update --dry-run')
-  .example('buddy-bot update --strategy patch')
-  .example('buddy-bot update --verbose')
-  .example('buddy-bot update --no-respect-latest')
+  .example('buddy update')
+  .example('buddy update --dry-run')
+  .example('buddy update --strategy patch')
+  .example('buddy update --verbose')
+  .example('buddy update --no-respect-latest')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -822,7 +822,7 @@ cli
         ignore = options.ignore.split(',').map(p => p.trim())
       }
 
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
         packages: {
@@ -864,9 +864,9 @@ cli
   .command('rebase <pr-number>', 'Rebase/retry a pull request by recreating it with latest updates')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--force', 'Force rebase even if PR appears to be up to date')
-  .example('buddy-bot rebase 17')
-  .example('buddy-bot rebase 17 --verbose')
-  .example('buddy-bot rebase 17 --force')
+  .example('buddy rebase 17')
+  .example('buddy rebase 17 --verbose')
+  .example('buddy rebase 17 --force')
   .action(async (prNumber: string, options: CLIOptions & { force?: boolean }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -877,7 +877,7 @@ cli
       // Check if repository is configured
       if (!config.repository) {
         logger.error('❌ Repository configuration required for PR operations')
-        logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         process.exit(1)
       }
 
@@ -898,8 +898,8 @@ cli
         process.exit(1)
       }
 
-      if (!pr.head.startsWith('buddy-bot/')) {
-        logger.error(`❌ PR #${prNum} is not a buddy-bot PR (branch: ${pr.head})`)
+      if (!pr.head.startsWith('buddy/')) {
+        logger.error(`❌ PR #${prNum} is not a buddy PR (branch: ${pr.head})`)
         process.exit(1)
       }
 
@@ -967,7 +967,7 @@ cli
         logger.error('❌ Could not find matching update group. This likely means the package grouping has changed.')
         logger.info(`📋 PR packages: ${packageUpdates.map(p => p.name).join(', ')}`)
         logger.info(`📋 Available groups: ${scanResult.groups.map(g => `${g.name} (${g.updates.length} packages)`).join(', ')}`)
-        logger.info(`💡 Close this PR manually and let buddy-bot create new ones with correct grouping`)
+        logger.info(`💡 Close this PR manually and let buddy create new ones with correct grouping`)
         return
       }
 
@@ -1060,12 +1060,12 @@ async function extractPackageUpdatesFromPRBody(body: string): Promise<Array<{ na
 }
 
 cli
-  .command('update-check', 'Check all open buddy-bot PRs for rebase checkbox and auto-rebase if checked')
+  .command('update-check', 'Check all open buddy PRs for rebase checkbox and auto-rebase if checked')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--dry-run', 'Check but don\'t actually rebase')
-  .example('buddy-bot update-check')
-  .example('buddy-bot update-check --verbose')
-  .example('buddy-bot update-check --dry-run')
+  .example('buddy update-check')
+  .example('buddy update-check --verbose')
+  .example('buddy update-check --dry-run')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -1074,7 +1074,7 @@ cli
       // Check if repository is configured
       if (!config.repository) {
         logger.error('❌ Repository configuration required for PR operations')
-        logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         process.exit(1)
       }
 
@@ -1104,12 +1104,12 @@ cli
         // Get all open PRs via GitHub API to access the raw body
         const openPRs = await gitProvider.getPullRequests('open')
 
-        // Filter to buddy-bot PRs (branches starting with buddy-bot/)
-        const buddyBotPRs = openPRs.filter(pr => pr.head.startsWith('buddy-bot/'))
+        // Filter to buddy PRs (branches starting with buddy/)
+        const buddyPRs = openPRs.filter(pr => pr.head.startsWith('buddy/'))
 
-        logger.info(`📋 Found ${buddyBotPRs.length} buddy-bot PRs to check for rebase requests`)
+        logger.info(`📋 Found ${buddyPRs.length} buddy PRs to check for rebase requests`)
 
-        for (const pr of buddyBotPRs) {
+        for (const pr of buddyPRs) {
           checkedPRs++
           const requestedFromDashboard = dashboardActions.rebaseAll || requestedBranches.has(pr.head)
           const hasRebaseChecked = checkRebaseCheckbox(pr.body || '') || requestedFromDashboard
@@ -1127,7 +1127,7 @@ cli
               try {
                 // Use the existing rebase command logic
                 const { spawn } = await import('node:child_process')
-                const rebaseProcess = spawn('bunx', ['buddy-bot', 'rebase', pr.number.toString()], {
+                const rebaseProcess = spawn('bunx', ['@buddysh/buddy', 'rebase', pr.number.toString()], {
                   stdio: 'inherit',
                   cwd: process.cwd(),
                 })
@@ -1275,7 +1275,7 @@ cli
  */
 async function findDashboardIssue(
   gitProvider: { getIssues: (state?: 'open' | 'closed' | 'all') => Promise<Array<{ number: number, title: string, body: string }>> },
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   logger: Logger,
 ): Promise<{ number: number, title: string, body: string } | null> {
   try {
@@ -1310,7 +1310,7 @@ cli
   .option('--run-id <id>', 'Workflow run to diagnose')
   .option('--pr <number>', 'Pull request to comment on')
   .option('--dry-run', 'Report the diagnosis without acting')
-  .example('buddy-bot fix-ci --run-id 12345')
+  .example('buddy fix-ci --run-id 12345')
   .action(async (options: CLIOptions & { runId?: string, pr?: string, dryRun?: boolean }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -1371,11 +1371,11 @@ cli
   })
 
 cli
-  .command('handle-comment', 'Handle an @buddy-bot command from a GitHub event payload')
+  .command('handle-comment', 'Handle an @buddy command from a GitHub event payload')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--payload <path>', 'Path to the event payload (default: GITHUB_EVENT_PATH)')
   .option('--dry-run', 'Report what would run without acting')
-  .example('buddy-bot handle-comment')
+  .example('buddy handle-comment')
   .action(async (options: CLIOptions & { payload?: string, dryRun?: boolean }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -1398,7 +1398,7 @@ cli
 
       const { mentionsBot, parseCommand } = await import('../src/commands')
       if (!mentionsBot(comment.body)) {
-        logger.info('ℹ️ Comment does not mention buddy-bot; nothing to do')
+        logger.info('ℹ️ Comment does not mention buddy; nothing to do')
         return
       }
 
@@ -1460,7 +1460,7 @@ cli
           rebase: async (prNumber) => {
             const { spawn } = await import('node:child_process')
             await new Promise<void>((resolve, reject) => {
-              const child = spawn('bunx', ['buddy-bot', 'rebase', String(prNumber)], { stdio: 'inherit' })
+              const child = spawn('bunx', ['@buddysh/buddy', 'rebase', String(prNumber)], { stdio: 'inherit' })
               child.on('close', code => (code === 0 ? resolve() : reject(new Error(`rebase exited ${code}`))))
             })
             return 'Rebased.'
@@ -1485,7 +1485,7 @@ cli
             // Committed on a branch and opened as a PR rather than pushed to
             // the base: a learning changes how future reviews behave, so it
             // gets the same review a code change would.
-            const branch = `buddy-bot/learning-${learning.id}`
+            const branch = `buddy/learning-${learning.id}`
             await provider.commitChanges(
               branch,
               `chore(buddy): record a learning`,
@@ -1533,9 +1533,9 @@ cli
   .option('--profile <name>', 'Review profile: chill|assertive')
   .option('--summary-only', 'Post only the summary, without inline findings')
   .option('--dry-run', 'Print the review instead of posting it')
-  .example('buddy-bot review 42')
-  .example('buddy-bot review --staged --light')
-  .example('buddy-bot review --format agent | claude')
+  .example('buddy review 42')
+  .example('buddy review --staged --light')
+  .example('buddy review --format agent | claude')
   .action(async (prNumber: string | undefined, options: CLIOptions & {
     base?: string
     staged?: boolean
@@ -1570,7 +1570,7 @@ cli
       // Local review runs without a key when only analyzers are wanted. A PR
       // review needs the model — analyzers alone cannot write a summary.
       if (!ai && (prNumber || !options.light)) {
-        logger.error('❌ AI review needs an API key, or use --light for analyzers only. See https://buddy-bot.sh/ai/providers')
+        logger.error('❌ AI review needs an API key, or use --light for analyzers only. See https://buddy.sh/ai/providers')
         process.exit(1)
       }
 
@@ -1721,8 +1721,8 @@ cli
   .command('check <packages...>', 'Check specific packages for updates')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
-  .example('buddy-bot check react typescript')
-  .example('buddy-bot check react --verbose')
+  .example('buddy check react typescript')
+  .example('buddy check react --verbose')
   .action(async (...args: any[]) => {
     // CAC passes individual arguments, then options as the last parameter
     const options: CLIOptions = args[args.length - 1]
@@ -1739,7 +1739,7 @@ cli
     try {
       checkLogger.info(`Checking specific packages: ${packages.join(', ')}`)
 
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
         packages: {
@@ -1771,9 +1771,9 @@ cli
   .command('schedule', 'Run automated dependency updates on schedule')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
-  .example('buddy-bot schedule')
-  .example('buddy-bot schedule --verbose')
-  .example('buddy-bot schedule --strategy patch')
+  .example('buddy schedule')
+  .example('buddy schedule --verbose')
+  .example('buddy schedule --strategy patch')
   .action(async (options: CLIOptions) => {
     const { Scheduler } = await import('../src/scheduler/scheduler')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -1788,7 +1788,7 @@ cli
         ignore = options.ignore.split(',').map(p => p.trim())
       }
 
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
         packages: {
@@ -1847,8 +1847,8 @@ cli
 cli
   .command('generate-workflows', 'Generate GitHub Actions workflow templates (deprecated - use "setup" instead)')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot generate-workflows')
-  .example('buddy-bot generate-workflows --verbose')
+  .example('buddy generate-workflows')
+  .example('buddy generate-workflows --verbose')
   .action(async (options: CLIOptions) => {
     const { GitHubActionsTemplate } = await import('../src/templates/github-actions')
     const { writeFileSync, mkdirSync } = await import('node:fs')
@@ -1857,10 +1857,10 @@ cli
     const config = await resolveConfig(options.config)
 
     console.log('⚠️  The "generate-workflows" command is deprecated.')
-    console.log('💡 Use "buddy-bot setup" for a better interactive experience.\n')
+    console.log('💡 Use "buddy setup" for a better interactive experience.\n')
 
     try {
-      const finalConfig: BuddyBotConfig = {
+      const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
       }
@@ -1946,7 +1946,7 @@ cli
       }
 
       if (generatedCount === 0) {
-        logger.warn('No workflows were generated. Check your configuration in buddy-bot.config.ts')
+        logger.warn('No workflows were generated. Check your configuration in buddy.config.ts')
         logger.info('Set workflows.templates to enable specific templates or add custom workflows.')
         return
       }
@@ -1956,7 +1956,7 @@ cli
       logger.info('\n💡 Next steps:')
       logger.info('  1. Review and customize the workflows for your project')
       logger.info('  2. Ensure GITHUB_TOKEN is available as a secret')
-      logger.info('  3. Configure buddy-bot.config.ts with your repository settings')
+      logger.info('  3. Configure buddy.config.ts with your repository settings')
       logger.info('  4. Enable GitHub Actions in your repository settings')
       logger.info('\n🔗 Learn more: https://docs.github.com/en/actions')
     }
@@ -1970,9 +1970,9 @@ cli
   .command('info <package>', 'Show detailed package information')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--json', 'Output in JSON format')
-  .example('buddy-bot info react')
-  .example('buddy-bot info react --json')
-  .example('buddy-bot info typescript@latest')
+  .example('buddy info react')
+  .example('buddy info react --json')
+  .example('buddy info typescript@latest')
   .action(async (packageName: string, options: CLIOptions & { json?: boolean }) => {
     const { RegistryClient } = await import('../src/registry/registry-client')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -2053,8 +2053,8 @@ cli
   .command('versions <package>', 'Show all available versions of a package')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--latest <count>', 'Show only the latest N versions', { default: '10' })
-  .example('buddy-bot versions react')
-  .example('buddy-bot versions react --latest 5')
+  .example('buddy versions react')
+  .example('buddy versions react --latest 5')
   .action(async (packageName: string, options: CLIOptions & { latest?: string }) => {
     const { RegistryClient } = await import('../src/registry/registry-client')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -2098,8 +2098,8 @@ cli
 cli
   .command('exists <package>', 'Check if a package exists in the registry')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot exists react')
-  .example('buddy-bot exists nonexistent-package-xyz')
+  .example('buddy exists react')
+  .example('buddy exists nonexistent-package-xyz')
   .action(async (packageName: string, options: CLIOptions) => {
     const { RegistryClient } = await import('../src/registry/registry-client')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -2126,8 +2126,8 @@ cli
 cli
   .command('latest <package>', 'Get the latest version of a package')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot latest react')
-  .example('buddy-bot latest @types/node')
+  .example('buddy latest react')
+  .example('buddy latest @types/node')
   .action(async (packageName: string, options: CLIOptions) => {
     const { RegistryClient } = await import('../src/registry/registry-client')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -2156,9 +2156,9 @@ cli
   .option('--dev', 'Show dev dependencies')
   .option('--peer', 'Show peer dependencies')
   .option('--all', 'Show all dependency types')
-  .example('buddy-bot deps react')
-  .example('buddy-bot deps react --dev')
-  .example('buddy-bot deps react --all')
+  .example('buddy deps react')
+  .example('buddy deps react --dev')
+  .example('buddy deps react --all')
   .action(async (packageName: string, options: CLIOptions & { dev?: boolean, peer?: boolean, all?: boolean }) => {
     const { RegistryClient } = await import('../src/registry/registry-client')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
@@ -2232,8 +2232,8 @@ cli
 cli
   .command('compare <package> <version1> <version2>', 'Compare two versions of a package')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot compare react 17.0.0 18.0.0')
-  .example('buddy-bot compare typescript 4.9.0 5.0.0')
+  .example('buddy compare react 17.0.0 18.0.0')
+  .example('buddy compare typescript 4.9.0 5.0.0')
   .action(async (packageName: string, version1: string, version2: string, options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
 
@@ -2285,8 +2285,8 @@ cli
         }
       }
 
-      console.log(`\n💡 Use 'buddy-bot versions ${packageName}' to see all available versions`)
-      console.log(`💡 Use 'buddy-bot info ${packageName}' for detailed package information`)
+      console.log(`\n💡 Use 'buddy versions ${packageName}' to see all available versions`)
+      console.log(`💡 Use 'buddy info ${packageName}' for detailed package information`)
     }
     catch (error) {
       logger.error('Failed to compare versions:', error)
@@ -2298,8 +2298,8 @@ cli
   .command('search <query>', 'Search for packages in the registry')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--limit <count>', 'Limit number of results', { default: '10' })
-  .example('buddy-bot search react')
-  .example('buddy-bot search "test framework" --limit 5')
+  .example('buddy search react')
+  .example('buddy search "test framework" --limit 5')
   .action(async (query: string, options: CLIOptions & { limit?: string }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
 
@@ -2339,14 +2339,14 @@ cli
               console.log()
             })
 
-            console.log(`✨ Use 'buddy-bot info <package>' for detailed information`)
+            console.log(`✨ Use 'buddy info <package>' for detailed information`)
           }
           catch {
             console.log('❌ Registry API search failed')
             console.log('💡 Alternative search options:')
             console.log(`   • Visit https://www.npmjs.com/search?q=${encodeURIComponent(query)}`)
             console.log('   • Use: bun add <package-name> to test if a package exists')
-            console.log('   • Use: buddy-bot exists <package-name> to check existence')
+            console.log('   • Use: buddy exists <package-name> to check existence')
           }
           return
         }
@@ -2390,7 +2390,7 @@ cli
                 console.log()
               })
 
-              console.log(`✨ Use 'buddy-bot info <package>' for detailed information`)
+              console.log(`✨ Use 'buddy info <package>' for detailed information`)
             }
             catch (error) {
               logger.error('Failed to parse search results:', error)
@@ -2411,26 +2411,26 @@ cli
   })
 
 cli
-  .command('cleanup', 'Clean up stale buddy-bot branches that don\'t have associated open PRs')
+  .command('cleanup', 'Clean up stale buddy branches that don\'t have associated open PRs')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--dry-run', 'Show what would be deleted without actually deleting')
   .option('--days <number>', 'Delete branches older than N days (default: 7)', { default: '7' })
   .option('--force', 'Force cleanup without confirmation prompt')
-  .example('buddy-bot cleanup')
-  .example('buddy-bot cleanup --dry-run')
-  .example('buddy-bot cleanup --days 14')
-  .example('buddy-bot cleanup --force')
+  .example('buddy cleanup')
+  .example('buddy cleanup --dry-run')
+  .example('buddy cleanup --days 14')
+  .example('buddy cleanup --force')
   .action(async (options: CLIOptions & { dryRun?: boolean, days?: string, force?: boolean }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
 
     try {
-      logger.info('🧹 Starting buddy-bot branch cleanup...')
+      logger.info('🧹 Starting buddy branch cleanup...')
 
       // Check if repository is configured
       if (!config.repository) {
         logger.error('❌ Repository configuration required for branch cleanup')
-        logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         process.exit(1)
       }
 
@@ -2442,18 +2442,18 @@ cli
         process.exit(1)
       }
 
-      logger.info(`🔍 Looking for buddy-bot branches older than ${days} days...`)
+      logger.info(`🔍 Looking for buddy branches older than ${days} days...`)
 
       // Get all orphaned branches
-      assertSupports(gitProvider, 'branchHousekeeping', 'getOrphanedBuddyBotBranches', 'branch cleanup')
-      const orphanedBranches = await gitProvider.getOrphanedBuddyBotBranches()
+      assertSupports(gitProvider, 'branchHousekeeping', 'getOrphanedBuddyBranches', 'branch cleanup')
+      const orphanedBranches = await gitProvider.getOrphanedBuddyBranches()
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - days)
       const staleBranches = orphanedBranches.filter(branch => branch.lastCommitDate < cutoffDate)
 
       if (staleBranches.length === 0) {
         logger.success('✅ No stale branches found!')
-        logger.info(`📊 Total buddy-bot branches: ${orphanedBranches.length}`)
+        logger.info(`📊 Total buddy branches: ${orphanedBranches.length}`)
         logger.info(`📊 Stale branches (>${days} days): 0`)
         return
       }
@@ -2510,25 +2510,25 @@ cli
   })
 
 cli
-  .command('list-branches', 'List all buddy-bot branches and their status')
+  .command('list-branches', 'List all buddy branches and their status')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--orphaned-only', 'Show only branches without associated open PRs')
   .option('--stale-only', 'Show only stale branches (older than 7 days)')
   .option('--days <number>', 'Define stale threshold in days (default: 7)', { default: '7' })
-  .example('buddy-bot list-branches')
-  .example('buddy-bot list-branches --orphaned-only')
-  .example('buddy-bot list-branches --stale-only --days 14')
+  .example('buddy list-branches')
+  .example('buddy list-branches --orphaned-only')
+  .example('buddy list-branches --stale-only --days 14')
   .action(async (options: CLIOptions & { orphanedOnly?: boolean, staleOnly?: boolean, days?: string }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
 
     try {
-      logger.info('📋 Listing buddy-bot branches...')
+      logger.info('📋 Listing buddy branches...')
 
       // Check if repository is configured
       if (!config.repository) {
         logger.error('❌ Repository configuration required for branch listing')
-        logger.info('Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts')
+        logger.info('Configure repository.provider, repository.owner, repository.name in buddy.config.ts')
         process.exit(1)
       }
 
@@ -2539,9 +2539,9 @@ cli
       cutoffDate.setDate(cutoffDate.getDate() - days)
 
       // Get all branches and PRs
-      assertSupports(gitProvider, 'branchHousekeeping', 'getBuddyBotBranches', 'branch listing')
+      assertSupports(gitProvider, 'branchHousekeeping', 'getBuddyBranches', 'branch listing')
       const [allBuddyBranches, openPRs] = await Promise.all([
-        gitProvider.getBuddyBotBranches(),
+        gitProvider.getBuddyBranches(),
         gitProvider.getPullRequests('open'),
       ])
 
@@ -2567,12 +2567,12 @@ cli
           logger.success('✅ No stale branches found!')
         }
         else {
-          logger.info('📋 No buddy-bot branches found')
+          logger.info('📋 No buddy branches found')
         }
         return
       }
 
-      console.log(`\n📊 Found ${branches.length} buddy-bot branch${branches.length !== 1 ? 'es' : ''}:\n`)
+      console.log(`\n📊 Found ${branches.length} buddy branch${branches.length !== 1 ? 'es' : ''}:\n`)
 
       // Sort by last commit date (newest first)
       branches.sort((a, b) => b.lastCommitDate.getTime() - a.lastCommitDate.getTime())
@@ -2595,13 +2595,13 @@ cli
       const staleCount = branches.filter(branch => branch.lastCommitDate < cutoffDate && !prBranches.has(branch.name)).length
 
       console.log('📊 Summary:')
-      console.log(`  📋 Total buddy-bot branches: ${allBuddyBranches.length}`)
+      console.log(`  📋 Total buddy branches: ${allBuddyBranches.length}`)
       console.log(`  🔴 With open PRs: ${allBuddyBranches.length - orphanedCount}`)
       console.log(`  🟡 Orphaned: ${orphanedCount}`)
       console.log(`  🗑️  Stale (>${days} days): ${staleCount}`)
 
       if (staleCount > 0) {
-        console.log(`\n💡 Run 'buddy-bot cleanup' to clean up stale branches`)
+        console.log(`\n💡 Run 'buddy cleanup' to clean up stale branches`)
       }
     }
     catch (error) {
@@ -2613,7 +2613,7 @@ cli
 cli
   .command('open-settings', 'Open GitHub repository and organization settings pages')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot open-settings')
+  .example('buddy open-settings')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -2648,7 +2648,7 @@ cli
 
       if (!owner || !name) {
         logger.warn('⚠️  Could not determine repository information.')
-        logger.info('💡 Please configure repository settings in buddy-bot.config.ts or run from a Git repository.')
+        logger.info('💡 Please configure repository settings in buddy.config.ts or run from a Git repository.')
         logger.info('\nFor manual setup, visit:')
         logger.info('🔗 Repository settings: https://github.com/YOUR_ORG/YOUR_REPO/settings/actions')
         logger.info('🔗 Organization settings: https://github.com/organizations/YOUR_ORG/settings/actions')
@@ -2753,8 +2753,8 @@ cli
   .option('--test-command <command>', 'Command that verifies the change')
   .option('--dry-run', 'Report what would run without acting')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot touch 42')
-  .example('buddy-bot touch 42 --name unit-tests')
+  .example('buddy touch 42')
+  .example('buddy touch 42 --name unit-tests')
   .action(async (prNumber: string, options: CLIOptions & {
     name?: string
     testCommand?: string
@@ -2790,7 +2790,7 @@ cli
       const { createAiClient } = await import('../src/ai')
       const ai = createAiClient(config, logger)
       if (!ai) {
-        logger.error('❌ Finishing touches need an API key. See https://buddy-bot.sh/ai/providers')
+        logger.error('❌ Finishing touches need an API key. See https://buddy.sh/ai/providers')
         process.exit(1)
       }
 
@@ -2824,7 +2824,7 @@ cli
       // Cleared afterwards so the next poll does not run them again — the same
       // reason the dashboard unchecks its own boxes.
       const cleared = pullRequest.body.replace(
-        /^(\s*-\s*)\[[xX]\](\s*<!--\s*buddy-bot:touch=)/gm,
+        /^(\s*-\s*)\[[xX]\](\s*<!--\s*buddy:touch=)/gm,
         '$1[ ]$2',
       )
 
@@ -2838,12 +2838,12 @@ cli
   })
 
 cli
-  .command('handle-issue', 'Post Buddy Bot quick-links on a new issue, or run a ticked action')
+  .command('handle-issue', 'Post Buddy quick-links on a new issue, or run a ticked action')
   .option('--payload <path>', 'Path to the event payload (default: GITHUB_EVENT_PATH)')
   .option('--issue <number>', 'Act on an issue directly rather than reading an event')
   .option('--dry-run', 'Report what would happen without acting')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot handle-issue')
+  .example('buddy handle-issue')
   .action(async (options: CLIOptions & {
     payload?: string
     issue?: string
@@ -2905,7 +2905,7 @@ cli
         const ai = createAiClient(config, logger)
 
         if (!ai) {
-          await provider.createComment(issueNumber, 'Buddy Bot needs an AI provider configured to act on this. See https://buddy-bot.sh/ai/providers')
+          await provider.createComment(issueNumber, 'Buddy needs an AI provider configured to act on this. See https://buddy.sh/ai/providers')
           return
         }
 
@@ -2962,7 +2962,7 @@ cli
   .command('gate <pr-number>', 'Run pre-merge gates on a pull request and publish the result')
   .option('--dry-run', 'Print the result instead of publishing a check run')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot gate 42')
+  .example('buddy gate 42')
   .action(async (prNumber: string, options: CLIOptions & { dryRun?: boolean }) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -3063,7 +3063,7 @@ cli
         return
       }
 
-      await provider.createCheckRun('buddy-bot/gates', await provider.getPullRequestHeadSha(number), summary)
+      await provider.createCheckRun('buddy/gates', await provider.getPullRequestHeadSha(number), summary)
 
       if (blocking)
         process.exit(1)
@@ -3077,7 +3077,7 @@ cli
 cli
   .command('post-merge <pr-number>', 'Run post-merge actions for a merged pull request')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot post-merge 42')
+  .example('buddy post-merge 42')
   .action(async (prNumber: string, options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
@@ -3124,8 +3124,8 @@ cli
   .option('--prompt <focus>', 'Focus for the AI narrative, when a provider is configured')
   .option('--publish', 'Publish to the repository\'s report issue')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot report --period 7d')
-  .example('buddy-bot report --prompt "focus on security posture" --publish')
+  .example('buddy report --period 7d')
+  .example('buddy report --prompt "focus on security posture" --publish')
   .action(async (options: CLIOptions & {
     period?: string
     format?: string
@@ -3254,7 +3254,7 @@ cli
 cli
   .command('doctor', 'Diagnose this environment: credentials, git state and analyzer tooling')
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot doctor')
+  .example('buddy doctor')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
 
@@ -3262,7 +3262,7 @@ cli
     // must not be the thing that stops the diagnosis from running.
     const config = await resolveConfig(options.config).catch((error) => {
       logger.warn(`⚠️ Could not load configuration: ${formatError(error)}`)
-      return {} as BuddyBotConfig
+      return {} as BuddyConfig
     })
 
     const { diagnose, renderDoctorReport } = await import('../src/doctor')
@@ -3283,8 +3283,8 @@ cli
   .option('--model <name>', 'Model override')
   .option('--retries <n>', 'Schema retries before failing', { default: '2' })
   .option('--verbose, -v', 'Enable verbose logging')
-  .example('buddy-bot run --prompt "Summarize this week\'s dependency updates"')
-  .example('buddy-bot run --prompt-file p.txt --output-schema \'{"type":"object"}\'')
+  .example('buddy run --prompt "Summarize this week\'s dependency updates"')
+  .example('buddy run --prompt-file p.txt --output-schema \'{"type":"object"}\'')
   .action(async (options: CLIOptions & {
     prompt?: string
     promptFile?: string
@@ -3330,7 +3330,7 @@ cli
       )
 
       if (!ai) {
-        process.stderr.write('❌ No AI provider configured. See https://buddy-bot.sh/ai/providers\n')
+        process.stderr.write('❌ No AI provider configured. See https://buddy.sh/ai/providers\n')
         process.exit(1)
       }
 
@@ -3368,13 +3368,13 @@ cli
     }
   })
 
-cli.command('version', 'Show the version of Buddy Bot').action(() => {
+cli.command('version', 'Show the version of Buddy').action(() => {
   console.log(version)
 })
 
 // Available on every command: each action reads `options.config` and passes it
 // to resolveConfig, which bypasses discovery when a path is given.
-cli.option('--config <path>', 'Path to a buddy-bot config file')
+cli.option('--config <path>', 'Path to a buddy config file')
 cli.version(version)
 cli.help()
 cli.parse()

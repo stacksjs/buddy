@@ -52,10 +52,10 @@ export function createSlackSink(url: string, events?: Array<keyof BuddyEvents>):
     ...(events?.length ? { events } : {}),
     async deliver(event, payload) {
       await post(url, {
-        text: `Buddy Bot: ${describeEvent(event, payload)}`,
+        text: `Buddy: ${describeEvent(event, payload)}`,
         blocks: [{
           type: 'section',
-          text: { type: 'mrkdwn', text: `*Buddy Bot*\n${describeEvent(event, payload)}` },
+          text: { type: 'mrkdwn', text: `*Buddy*\n${describeEvent(event, payload)}` },
         }],
       })
     },
@@ -70,7 +70,7 @@ export function createDiscordSink(url: string, events?: Array<keyof BuddyEvents>
     async deliver(event, payload) {
       await post(url, {
         embeds: [{
-          title: 'Buddy Bot',
+          title: 'Buddy',
           description: describeEvent(event, payload),
           color: event === 'security.advisories' || event === 'run.failed' ? 0xE0_1E_5A : 0x2E_B6_7D,
           timestamp: new Date().toISOString(),
@@ -105,7 +105,7 @@ export function createWebhookSink(
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (secret)
-        headers['x-buddy-bot-signature'] = `sha256=${sign(body, secret)}`
+        headers['x-buddy-signature'] = `sha256=${sign(body, secret)}`
 
       await post(webhook.url, body, headers)
     },

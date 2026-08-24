@@ -38,22 +38,22 @@ export interface CommandOutcome {
 /** A command implementation. */
 export type CommandHandler = (context: CommandContext) => Promise<CommandOutcome>
 
-/** Text for `@buddy-bot help`. */
-export const HELP_TEXT = `**Buddy Bot commands**
+/** Text for `@buddy help`. */
+export const HELP_TEXT = `**Buddy commands**
 
 | Command | What it does |
 |---|---|
-| \`@buddy-bot review\` | Review new changes since the last review |
-| \`@buddy-bot full-review\` | Review the whole diff again, ignoring previous findings |
-| \`@buddy-bot summary\` | Post a fresh summary without inline findings |
-| \`@buddy-bot resolve\` | Resolve the review threads this bot opened |
-| \`@buddy-bot pause\` / \`resume\` | Stop or restart reviewing this pull request |
-| \`@buddy-bot rebase\` | Rebase a dependency update pull request |
-| \`@buddy-bot merge\` | Re-check auto-merge conditions now |
-| \`@buddy-bot fix-ci\` | Diagnose and try to fix failing checks |
-| \`@buddy-bot plan\` | Produce an implementation plan for an issue |
-| \`@buddy-bot remember <text>\` | Record a durable note for future runs |
-| \`@buddy-bot help\` | Show this table |
+| \`@buddy review\` | Review new changes since the last review |
+| \`@buddy full-review\` | Review the whole diff again, ignoring previous findings |
+| \`@buddy summary\` | Post a fresh summary without inline findings |
+| \`@buddy resolve\` | Resolve the review threads this bot opened |
+| \`@buddy pause\` / \`resume\` | Stop or restart reviewing this pull request |
+| \`@buddy rebase\` | Rebase a dependency update pull request |
+| \`@buddy merge\` | Re-check auto-merge conditions now |
+| \`@buddy fix-ci\` | Diagnose and try to fix failing checks |
+| \`@buddy plan\` | Produce an implementation plan for an issue |
+| \`@buddy remember <text>\` | Record a durable note for future runs |
+| \`@buddy help\` | Show this table |
 
 Anything else after the mention is treated as a question.`
 
@@ -113,7 +113,7 @@ export async function dispatchCommand(
     return {
       handled: false,
       refusal: `no handler for ${context.command.name}`,
-      reply: `I don't know how to \`${context.command.name}\` yet. Try \`@buddy-bot help\`.`,
+      reply: `I don't know how to \`${context.command.name}\` yet. Try \`@buddy help\`.`,
     }
   }
 

@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageMetadata, PackageUpdate } from '../types'
+import type { BuddyConfig, PackageMetadata, PackageUpdate } from '../types'
 import type { Logger } from '../utils/logger'
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
@@ -106,14 +106,14 @@ function assertSafePkgArg(arg: string, label: string): void {
  * which silently degrades release-date and action-version lookups on any busy
  * runner.
  */
-function githubHeaders(config?: BuddyBotConfig): Record<string, string> {
+function githubHeaders(config?: BuddyConfig): Record<string, string> {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'buddy-bot',
+    'User-Agent': 'buddy',
   }
 
   const token = config?.repository?.token
-    || process.env.BUDDY_BOT_TOKEN
+    || process.env.BUDDY_TOKEN
     || process.env.GITHUB_TOKEN
     || process.env.GH_TOKEN
 
@@ -165,7 +165,7 @@ export class RegistryClient {
   constructor(
     private readonly projectPath: string,
     private readonly logger: Logger,
-    private readonly config: BuddyBotConfig | undefined = undefined,
+    private readonly config: BuddyConfig | undefined = undefined,
     /** Maximum concurrent registry requests. */
     private readonly concurrency: number = DEFAULT_CONCURRENCY,
   ) {}
@@ -195,7 +195,7 @@ export class RegistryClient {
 
       try {
         const response = await fetchWithTimeout(url, {
-          headers: { 'User-Agent': 'buddy-bot' },
+          headers: { 'User-Agent': 'buddy' },
           onRetry: ({ delayMs, reason }) =>
             this.logger.debug(`Retrying ${packageName} in ${Math.round(delayMs / 1000)}s (${reason})`),
         })
@@ -229,7 +229,7 @@ export class RegistryClient {
 
       try {
         const response = await fetchWithTimeout(`${registry}/packages/${packageName}.json`, {
-          headers: { 'User-Agent': 'buddy-bot' },
+          headers: { 'User-Agent': 'buddy' },
         })
 
         if (!response.ok)
@@ -909,7 +909,7 @@ export class RegistryClient {
       const url = `${registry}/-/v1/search?text=${encodedQuery}&size=${limit}`
 
       const response = await fetchWithTimeout(url, {
-        headers: { 'User-Agent': 'buddy-bot' },
+        headers: { 'User-Agent': 'buddy' },
       })
 
       if (!response.ok) {

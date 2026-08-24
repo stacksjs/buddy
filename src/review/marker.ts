@@ -11,8 +11,8 @@ export interface ReviewState {
   paused?: boolean
 }
 
-const MARKER_OPEN = '<!-- buddy-bot:review'
-const MARKER_REGEX = /<!--\s*buddy-bot:review\s+v(\d+)\s*([\s\S]*?)-->/
+const MARKER_OPEN = '<!-- buddy:review'
+const MARKER_REGEX = /<!--\s*buddy:review\s+v(\d+)\s*([\s\S]*?)-->/
 
 /** Schema version emitted by this build. */
 export const REVIEW_STATE_VERSION = 1

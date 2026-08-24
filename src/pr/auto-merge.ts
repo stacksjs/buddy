@@ -1,8 +1,8 @@
-import type { BuddyBotConfig, PackageUpdate, PRManifest } from '../types'
+import type { BuddyConfig, PackageUpdate, PRManifest } from '../types'
 import { parseManifest } from './pr-manifest'
 
-/** Branch prefix every buddy-bot pull request is opened from. */
-const BUDDY_BRANCH_PREFIX = 'buddy-bot/'
+/** Branch prefix every buddy pull request is opened from. */
+const BUDDY_BRANCH_PREFIX = 'buddy/'
 
 /** Label that suppresses auto-merge on an individual PR. */
 export const DEFAULT_OPT_OUT_LABEL = 'no-auto-merge'
@@ -38,9 +38,9 @@ export interface AutoMergeCandidate {
 /**
  * Resolved auto-merge settings, with defaults applied.
  *
- * @param config - Full buddy-bot configuration
+ * @param config - Full buddy configuration
  */
-export function resolveAutoMergeConfig(config: BuddyBotConfig): {
+export function resolveAutoMergeConfig(config: BuddyConfig): {
   enabled: boolean
   strategy: 'merge' | 'squash' | 'rebase'
   conditions: AutoMergeCondition[]
@@ -73,7 +73,7 @@ export function resolveAutoMergeConfig(config: BuddyBotConfig): {
  * polls a PR whose checks have had time to run.
  *
  * @param pr - The pull request under consideration
- * @param config - Full buddy-bot configuration
+ * @param config - Full buddy configuration
  * @param ciGreen - Whether required checks have passed, or `undefined` when not yet known
  * @returns The decision and the reason behind it
  * @example
@@ -85,7 +85,7 @@ export function resolveAutoMergeConfig(config: BuddyBotConfig): {
  */
 export function evaluateAutoMerge(
   pr: AutoMergeCandidate,
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   ciGreen?: boolean,
 ): AutoMergeDecision {
   const settings = resolveAutoMergeConfig(config)
@@ -97,7 +97,7 @@ export function evaluateAutoMerge(
     return { eligible: false, reason: 'no auto-merge conditions configured (set conditions to at least one of patch-only, minor-only, security-only, all)' }
 
   if (!pr.head.startsWith(BUDDY_BRANCH_PREFIX))
-    return { eligible: false, reason: `PR #${pr.number} is not a buddy-bot PR (branch: ${pr.head})` }
+    return { eligible: false, reason: `PR #${pr.number} is not a buddy PR (branch: ${pr.head})` }
 
   if (pr.draft)
     return { eligible: false, reason: `PR #${pr.number} is a draft` }
@@ -193,12 +193,12 @@ function parseVersion(version: string): [number, number, number] | null {
  *
  * @param updates - Updates the PR will contain
  * @param labels - Labels the PR will be created with
- * @param config - Full buddy-bot configuration
+ * @param config - Full buddy configuration
  */
 export function evaluateAutoMergeForUpdates(
   updates: PackageUpdate[],
   labels: string[],
-  config: BuddyBotConfig,
+  config: BuddyConfig,
 ): AutoMergeDecision {
   const settings = resolveAutoMergeConfig(config)
 

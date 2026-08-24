@@ -14,7 +14,7 @@ export async function audit(root: string, options: AuditOptions = {}): Promise<A
 
 /**
  * Run rules against an already-loaded set of workflows. Useful when the
- * caller (e.g. buddy-bot) has its own loader or supplies fixtures.
+ * caller (e.g. buddy) has its own loader or supplies fixtures.
  */
 export function auditParsed(workflows: ParsedWorkflow[], options: AuditOptions = {}): AuditResult {
   const rules = (options.rules ?? defaultRules).filter((r) => {

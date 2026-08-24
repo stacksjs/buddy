@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import process from 'node:process'
 import { Buddy } from '../buddy'
 import { Logger } from '../utils/logger'
@@ -21,7 +21,7 @@ export interface SchedulerJob {
   lastRun?: Date
   nextRun?: Date
   status: 'idle' | 'running' | 'error'
-  config: BuddyBotConfig
+  config: BuddyConfig
 }
 
 export class Scheduler {
@@ -336,7 +336,7 @@ export class Scheduler {
   /**
    * Create a job from configuration
    */
-  static createJobFromConfig(config: BuddyBotConfig, jobId = 'default'): SchedulerJob {
+  static createJobFromConfig(config: BuddyConfig, jobId = 'default'): SchedulerJob {
     const schedule: ScheduleConfig = {
       cron: config.schedule?.cron || '0 2 * * 1', // Default: Monday 2 AM
       timezone: config.schedule?.timezone,

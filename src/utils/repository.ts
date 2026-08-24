@@ -1,8 +1,8 @@
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import process from 'node:process'
 
 export interface RepositoryResolution {
-  /** The owner/name buddy-bot will operate on, if it could be determined. */
+  /** The owner/name buddy will operate on, if it could be determined. */
   owner?: string
   name?: string
   /** Where the value came from. */
@@ -59,12 +59,12 @@ function detectRepository(env: Record<string, string | undefined>): { owner: str
 }
 
 /**
- * Resolve the repository buddy-bot should operate on, mutating the config in place.
+ * Resolve the repository buddy should operate on, mutating the config in place.
  *
  * The CI-provided repository wins over a configured owner/name whenever the two
  * disagree — `GITHUB_REPOSITORY`, `CI_PROJECT_PATH` or `BITBUCKET_REPO_FULL_NAME`
  * depending on the platform.
- * buddy-bot commits and pushes through the local checkout's `origin`, so the API
+ * buddy commits and pushes through the local checkout's `origin`, so the API
  * target must be the repository that is actually checked out — a config pointing
  * elsewhere (commonly a value copy-pasted from another project's config) can only
  * produce 403s and updates aimed at the wrong repo.
@@ -83,7 +83,7 @@ function detectRepository(env: Record<string, string | undefined>): { owner: str
  * ```
  */
 export function resolveRepositoryConfig(
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   env: Record<string, string | undefined> = process.env,
 ): RepositoryResolution {
   if (!config.repository)
@@ -106,9 +106,9 @@ export function resolveRepositoryConfig(
     const stale = `${configured.owner}/${configured.name}`
     const warning
       = `Configured repository ${stale} does not match the checked-out repository `
-        + `${detected.owner}/${detected.name}. Using ${detected.owner}/${detected.name} — buddy-bot `
+        + `${detected.owner}/${detected.name}. Using ${detected.owner}/${detected.name} — buddy `
         + `operates on the checked-out repository. Update repository.owner/repository.name in your `
-        + `buddy-bot config to silence this warning.`
+        + `buddy config to silence this warning.`
 
     configured.owner = detected.owner
     configured.name = detected.name

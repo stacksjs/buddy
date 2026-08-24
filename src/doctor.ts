@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from './types'
+import type { BuddyConfig } from './types'
 import process from 'node:process'
 import { BUILTIN_ANALYZERS } from './analysis/engine'
 import { commandExists } from './analysis/analyzers/external'
@@ -56,7 +56,7 @@ const EXTERNAL_TOOLS: Array<[string, string]> = [
  * ```
  */
 export async function diagnose(
-  config: BuddyBotConfig,
+  config: BuddyConfig,
   environment: Partial<DoctorEnvironment> = {},
 ): Promise<DoctorReport> {
   const env = environment.env ?? process.env
@@ -82,7 +82,7 @@ export async function diagnose(
         name: 'git repository',
         status: 'fail',
         detail: `${cwd} is not a git repository`,
-        remediation: 'Run buddy-bot from inside a repository, or run `git init`.',
+        remediation: 'Run buddy from inside a repository, or run `git init`.',
       })
 
   // -- Configuration -------------------------------------------------------
@@ -94,7 +94,7 @@ export async function diagnose(
         name: 'configuration',
         status: 'fail',
         detail: `${issues.length} problem(s): ${issues.slice(0, 3).map(issue => `${issue.path} ${issue.message}`).join('; ')}`,
-        remediation: 'Fix the paths reported above in buddy-bot.config.ts.',
+        remediation: 'Fix the paths reported above in buddy.config.ts.',
       })
 
   const hasRepository = Boolean(config.repository?.owner && config.repository.name)
@@ -160,7 +160,7 @@ export async function diagnose(
   return {
     checks,
     // Warnings are absent optional capabilities, which is a normal state; only
-    // a failure means buddy-bot cannot do what it was asked to.
+    // a failure means buddy cannot do what it was asked to.
     healthy: !checks.some(check => check.status === 'fail'),
   }
 }
@@ -174,7 +174,7 @@ const ICONS: Record<DoctorCheck['status'], string> = { ok: '✅', warn: '⚠️ 
  * @returns Human-readable output
  */
 export function renderDoctorReport(report: DoctorReport): string {
-  const lines: string[] = ['', 'Buddy Bot environment', '']
+  const lines: string[] = ['', 'Buddy environment', '']
 
   for (const check of report.checks) {
     lines.push(`${ICONS[check.status]} ${check.name}: ${check.detail}`)
@@ -188,7 +188,7 @@ export function renderDoctorReport(report: DoctorReport): string {
   lines.push('')
   lines.push(report.healthy
     ? `Ready. ${warnings} optional capability/capabilities unavailable.`
-    : `${failures} problem(s) must be fixed before buddy-bot can run.`)
+    : `${failures} problem(s) must be fixed before buddy can run.`)
 
   return `${lines.join('\n')}\n`
 }

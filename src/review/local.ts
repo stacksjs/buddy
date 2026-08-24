@@ -137,7 +137,7 @@ export function formatGithub(result: ReviewResult): string {
 /**
  * Render a review as a prompt block for a coding agent.
  *
- * The point is `buddy-bot review --format agent | claude`: the output has to
+ * The point is `buddy review --format agent | claude`: the output has to
  * be an instruction, not a report, and it has to carry enough location
  * information for the agent to find each site without re-deriving it.
  */

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { mapSeverity, parseToolJson, relativize, runTool } from './external'
 
-/** A JS/TS linter buddy-bot knows how to drive. */
+/** A JS/TS linter buddy knows how to drive. */
 interface LinterSpec {
   name: string
   /** Config files whose presence means this linter is the repository's */
@@ -167,7 +167,7 @@ async function parseBiomeJson(stdout: string, root: string): Promise<ReviewFindi
 }
 
 /**
- * Linters buddy-bot can drive, in detection order.
+ * Linters buddy can drive, in detection order.
  *
  * Detection is by config file rather than by dependency, because a repository
  * with a linter in `devDependencies` but no config is one where the linter is

@@ -17,7 +17,7 @@ const UNTRUSTED_CLOSE = '</untrusted-content>'
 export interface AgentRunOptions {
   /** Mode determining the playbook and available tools */
   mode: AgentMode
-  /** The task, written by buddy-bot — never by a third party */
+  /** The task, written by buddy — never by a third party */
   task: string
   /** Workspace and repository context handed to tools */
   context: Omit<AgentContext, 'log'>

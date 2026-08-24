@@ -1,4 +1,4 @@
-/** Providers buddy-bot can talk to. */
+/** Providers buddy can talk to. */
 export type AiProviderName = 'anthropic' | 'openai' | 'google' | 'openrouter' | 'openai-compatible'
 
 /**

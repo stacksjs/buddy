@@ -1,7 +1,7 @@
 import type { Logger } from '../utils/logger'
 import { getDefaultLogger } from '../utils/logger'
 
-/** Events emitted from buddy-bot's real code paths. */
+/** Events emitted from buddy's real code paths. */
 export interface BuddyEvents {
   'scan.completed': { total: number, major: number, minor: number, patch: number }
   'pr.created': { number: number, title: string, url: string, packages: string[] }

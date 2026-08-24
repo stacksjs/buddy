@@ -21,10 +21,10 @@ export function createAnthropicProvider(options: { apiKey: string, baseUrl?: str
   /**
    * Resolve the SDK on first use, not at import time.
    *
-   * The SDK is an optional peer: it is 7 MB installed, and buddy-bot reaches
+   * The SDK is an optional peer: it is 7 MB installed, and buddy reaches
    * for Anthropic only when a run both enables AI and resolves to this
    * provider. A static import would put those bytes in every install of every
-   * project that merely has buddy-bot in its dev tooling — the overwhelmingly
+   * project that merely has buddy in its dev tooling — the overwhelmingly
    * common case, and one that never constructs a provider at all.
    */
   async function getClient(): Promise<Anthropic> {

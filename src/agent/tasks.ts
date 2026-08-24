@@ -156,7 +156,7 @@ export function renderTouchOffer(names: string[] = Object.keys(FINISHING_TOUCHES
   const lines = names
     .map(name => FINISHING_TOUCHES[name])
     .filter(Boolean)
-    .map(touch => ` - [ ] <!-- buddy-bot:touch=${touch.name} -->${touch.description}`)
+    .map(touch => ` - [ ] <!-- buddy:touch=${touch.name} -->${touch.description}`)
 
   if (lines.length === 0)
     return ''
@@ -170,7 +170,7 @@ export function parseTouchSelections(body: string | null | undefined): string[] 
     return []
 
   const selected: string[] = []
-  const pattern = /^\s*-\s*\[[xX]\]\s*<!--\s*buddy-bot:touch=([\w-]+)\s*-->/gm
+  const pattern = /^\s*-\s*\[[xX]\]\s*<!--\s*buddy:touch=([\w-]+)\s*-->/gm
 
   for (const match of body.matchAll(pattern)) {
     if (FINISHING_TOUCHES[match[1]] && !selected.includes(match[1]))

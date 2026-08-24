@@ -189,12 +189,12 @@ export async function fetchLatestActionVersion(actionName: string): Promise<stri
     // Prepare headers with authentication if available
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'buddy-bot',
+      'User-Agent': 'buddy',
     }
 
     // Authenticate when possible: anonymous GitHub API access is capped at 60
     // requests/hour, which a workflow scanning many actions exhausts quickly.
-    const token = process.env.BUDDY_BOT_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+    const token = process.env.BUDDY_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
     if (token) {
       headers.Authorization = `Bearer ${token}`
     }

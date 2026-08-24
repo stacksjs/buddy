@@ -1,5 +1,5 @@
 import type { GitProvider } from '../git/provider'
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import type { CommandContext, CommandHandler, CommandOutcome } from './dispatcher'
 import process from 'node:process'
 import { createAiClient } from '../ai'
@@ -8,7 +8,7 @@ import { serializeReviewState } from '../review/marker'
 
 /** Everything the built-in handlers need to act. */
 export interface HandlerDeps {
-  config: BuddyBotConfig
+  config: BuddyConfig
   provider: GitProvider
   /** Review a pull request and post the result */
   review: (prNumber: number, options: { full?: boolean, summaryOnly?: boolean }) => Promise<string>
@@ -60,7 +60,7 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
 
     async pause(context): Promise<CommandOutcome> {
       await setPaused(deps, context.number, true)
-      return { handled: true, reply: 'Paused. I will not review this pull request again until you say `@buddy-bot resume`.' }
+      return { handled: true, reply: 'Paused. I will not review this pull request again until you say `@buddy resume`.' }
     },
 
     async resume(context): Promise<CommandOutcome> {
@@ -106,7 +106,7 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
     async remember(context): Promise<CommandOutcome> {
       const text = context.command.args.trim()
       if (!text)
-        return { handled: false, reply: 'Tell me what to remember, e.g. `@buddy-bot remember we pin react to 17`.' }
+        return { handled: false, reply: 'Tell me what to remember, e.g. `@buddy remember we pin react to 17`.' }
 
       const reply = await deps.remember(text, context)
       return { handled: true, reply }
@@ -117,12 +117,12 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
       if (!ai) {
         return {
           handled: false,
-          reply: 'I need an AI provider configured to answer questions. See https://buddy-bot.sh/ai/providers',
+          reply: 'I need an AI provider configured to answer questions. See https://buddy.sh/ai/providers',
         }
       }
 
       const response = await ai.complete({
-        system: 'You are Buddy Bot, answering a question in a pull request or issue thread. '
+        system: 'You are Buddy, answering a question in a pull request or issue thread. '
           + 'Be brief and concrete. If you do not know, say so rather than guessing.',
         messages: [{ role: 'user', content: context.command.args }],
       })
@@ -154,6 +154,6 @@ async function setPaused(deps: HandlerDeps, prNumber: number, paused: boolean): 
     ...(paused ? { paused: true } : {}),
   })
 
-  const body = pr.body.replace(/<!--\s*buddy-bot:review[\s\S]*?-->/, '').trimEnd()
+  const body = pr.body.replace(/<!--\s*buddy:review[\s\S]*?-->/, '').trimEnd()
   await deps.provider.updatePullRequest(prNumber, { body: `${body}\n\n${marker}` })
 }

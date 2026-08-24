@@ -1,5 +1,5 @@
 import type { AiClient } from '../ai/types'
-import type { BuddyBotConfig, PackageUpdate } from '../types'
+import type { BuddyConfig, PackageUpdate } from '../types'
 import type { Logger } from '../utils/logger'
 import type { UpgradeResult } from './migrate'
 import { stripManifest } from '../pr/pr-manifest'
@@ -22,7 +22,7 @@ export interface GroupUpgradeOutcome {
 /** Everything the wiring needs to analyse a group. */
 export interface GroupUpgradeOptions {
   updates: PackageUpdate[]
-  config: BuddyBotConfig
+  config: BuddyConfig
   workspace: string
   baseBranch: string
   /** Repository-relative paths to search for usage */

@@ -53,7 +53,7 @@ export interface MetricsInput {
   now: Date
   /** Every pull request the provider reported, any state */
   pullRequests: PullRequest[]
-  /** Branch prefix identifying buddy-bot's own pull requests */
+  /** Branch prefix identifying buddy's own pull requests */
   branchPrefix?: string
   updates: Array<{
     name: string
@@ -85,7 +85,7 @@ export interface MetricsInput {
  */
 export function computeMetrics(input: MetricsInput): ReportMetrics {
   const since = new Date(input.now.getTime() - PERIOD_DAYS[input.period] * 24 * 60 * 60 * 1000)
-  const prefix = input.branchPrefix ?? 'buddy-bot/'
+  const prefix = input.branchPrefix ?? 'buddy/'
 
   const ours = input.pullRequests.filter(pr => pr.head.startsWith(prefix))
   const openedInPeriod = ours.filter(pr => pr.createdAt >= since)

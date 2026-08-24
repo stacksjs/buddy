@@ -1,6 +1,6 @@
 import type { GitProvider } from '../git/provider'
 import { assertSupports } from '../git/provider'
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import type { Logger } from '../utils/logger'
 import { createAiClient, loadLearnings, renderLearnings, selectLearnings } from '../ai'
 import { runAnalyzers } from '../analysis/engine'
@@ -13,7 +13,7 @@ import { prepareReview } from './poster'
 
 /** Inputs to a full review of a pull request. */
 export interface RunReviewOptions {
-  config: BuddyBotConfig
+  config: BuddyConfig
   provider: GitProvider
   prNumber: number
   /** Ignore previously reported findings and review the whole diff again */
@@ -28,7 +28,7 @@ export interface RunReviewOptions {
 /**
  * Review a pull request end to end and post the result.
  *
- * Shared by the CLI, the `@buddy-bot review` command and the automatic
+ * Shared by the CLI, the `@buddy review` command and the automatic
  * trigger, so all three assemble context — guidelines, learnings, analyzer
  * findings — the same way rather than drifting apart.
  *
@@ -46,7 +46,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   const state = parseReviewState(pr.body)
   if (state?.paused && !options.full)
-    return 'Reviews are paused on this pull request. Say `@buddy-bot resume` to restart them.'
+    return 'Reviews are paused on this pull request. Say `@buddy resume` to restart them.'
 
   const diff = await provider.getPullRequestDiff(prNumber)
   if (!diff.trim())

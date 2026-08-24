@@ -119,7 +119,7 @@ export function stackedBranchName(pullRequest: PullRequest, touch: string): stri
 /**
  * Run a finishing touch and deliver it as a stacked pull request.
  *
- * The delivery is what makes this safe. Buddy Bot never commits to the
+ * The delivery is what makes this safe. Buddy never commits to the
  * contributor's branch — it opens a pull request *targeting* that branch, so
  * the contributor reviews and merges it themselves. Writing directly would
  * mean agent-authored commits appearing under someone else's name on a branch
@@ -214,7 +214,7 @@ export async function runStackedTouch(options: StackedOptions): Promise<StackedR
       body: renderStackedBody(touch, pullRequest, changedFiles, verification),
       head: branch,
       base: pullRequest.head,
-      labels: ['buddy-bot', 'finishing-touch'],
+      labels: ['buddy', 'finishing-touch'],
     })
 
     return {

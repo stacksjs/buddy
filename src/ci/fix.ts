@@ -116,7 +116,7 @@ export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
       action: 'reported',
       fixed: false,
       report: report(failure, 'No AI provider is configured, so this needs a human. '
-        + 'See https://buddy-bot.sh/ai/providers to enable automatic repair.'),
+        + 'See https://buddy.sh/ai/providers to enable automatic repair.'),
     }
   }
 

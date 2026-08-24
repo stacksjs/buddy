@@ -66,7 +66,7 @@ function expandField(field: string, index: number): Set<number> | null {
 /**
  * Parse a cron expression into the window it describes.
  *
- * The minute field is parsed for validity and then discarded: a buddy-bot run
+ * The minute field is parsed for validity and then discarded: a buddy run
  * is not instantaneous, and a rule that only applied during the exact minute a
  * cron would fire would be a coin toss rather than a schedule.
  *

@@ -53,7 +53,7 @@ export async function fetchLatestZigVersion(source: ZigSource, token?: string): 
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'buddy-bot',
+      'User-Agent': 'buddy',
     }
     if (token)
       headers.Authorization = `Bearer ${token}`

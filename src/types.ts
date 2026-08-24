@@ -3,7 +3,7 @@ import type { Drift } from './scanner/resolution-drift'
 import type { LogLevel } from './utils/logger'
 
 // The provider contract lives beside its implementations in `src/git/`, and is
-// re-exported here so `import type { GitProvider } from 'buddy-bot'` keeps
+// re-exported here so `import type { GitProvider } from '@buddysh/buddy'` keeps
 // working. `IMPLEMENTED_PROVIDERS` — not the type — is what gates a name from
 // reaching a workflow run.
 export type {
@@ -20,15 +20,15 @@ export type {
 export type VulnerabilitySeverity = 'low' | 'moderate' | 'high' | 'critical'
 
 // Core configuration types
-export interface BuddyBotConfig {
+export interface BuddyConfig {
   /** Enable verbose logging. Equivalent to `logLevel: 'debug'`. */
   verbose?: boolean
 
   /**
    * How much output to emit. Overrides {@link verbose} when both are set.
    *
-   * Use `'silent'` when embedding buddy-bot in another tool that owns its own
-   * output. Can also be set with `BUDDY_BOT_LOG_LEVEL`.
+   * Use `'silent'` when embedding buddy in another tool that owns its own
+   * output. Can also be set with `BUDDY_LOG_LEVEL`.
    */
   logLevel?: LogLevel
 
@@ -141,7 +141,7 @@ export interface BuddyBotConfig {
      *
      * Rules are evaluated in order and later matches override earlier ones
      * per field, so a broad rule can set a default and a narrow one refine it.
-     * See https://buddy-bot.sh/config#package-rules
+     * See https://buddy.sh/config#package-rules
      */
     rules?: import('./rules/engine').PackageRule[]
     /**
@@ -193,7 +193,7 @@ export interface BuddyBotConfig {
   }
 
   /**
-   * Comment posted on newly opened issues, offering Buddy Bot's help.
+   * Comment posted on newly opened issues, offering Buddy's help.
    *
    * Both actions are opt-in checkboxes: an issue is a request for a
    * conversation as often as for code, and a bot that opens a pull request
@@ -264,7 +264,7 @@ export interface BuddyBotConfig {
     /**
      * Model alias or concrete ID. Aliases (`opus`, `sonnet`, `haiku`) resolve
      * to current Anthropic models; every other provider needs a concrete ID.
-     * Overridable per run with `BUDDY_BOT_MODEL`.
+     * Overridable per run with `BUDDY_MODEL`.
      */
     model?: string
     /** Reasoning depth to request (default: provider default) */
@@ -340,7 +340,7 @@ export interface BuddyBotConfig {
   }
 
   /**
-   * Where to send notifications about what buddy-bot did.
+   * Where to send notifications about what buddy did.
    *
    * Credentials are referenced by environment variable name, never inlined,
    * so a destination can be committed without committing its credential.
@@ -380,7 +380,7 @@ export interface BuddyBotConfig {
        * Require passing checks before merging (default: true).
        *
        * Only meaningful on repositories without branch protection, where
-       * buddy-bot merges directly instead of handing the PR to GitHub's own
+       * buddy merges directly instead of handing the PR to GitHub's own
        * auto-merge queue.
        */
       requireGreenCI?: boolean
@@ -491,7 +491,7 @@ export interface BuddyBotConfig {
   }
 }
 
-export type BuddyBotOptions = Partial<BuddyBotConfig>
+export type BuddyOptions = Partial<BuddyConfig>
 
 export interface PackageGroup {
   /** Group name */
@@ -779,7 +779,7 @@ export interface PRManifestUpdate {
 }
 
 /**
- * Machine-readable description of what a buddy-bot pull request changes,
+ * Machine-readable description of what a buddy pull request changes,
  * embedded in the PR body as an HTML comment.
  *
  * Rebasing and auto-closing read this instead of re-parsing the rendered

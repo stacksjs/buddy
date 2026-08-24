@@ -9,7 +9,7 @@ export interface RenovateConversion {
   warnings: string[]
 }
 
-/** Renovate manager names mapped onto buddy-bot ecosystems. */
+/** Renovate manager names mapped onto buddy ecosystems. */
 const MANAGER_ECOSYSTEMS: Record<string, RuleEcosystem> = {
   'npm': 'npm',
   'bun': 'npm',
@@ -22,7 +22,7 @@ const MANAGER_ECOSYSTEMS: Record<string, RuleEcosystem> = {
   'docker': 'docker',
 }
 
-/** Update types Renovate has that buddy-bot does not model. */
+/** Update types Renovate has that buddy does not model. */
 const UNSUPPORTED_UPDATE_TYPES = new Set([
   'pin',
   'digest',
@@ -36,7 +36,7 @@ const UNSUPPORTED_UPDATE_TYPES = new Set([
 /**
  * Convert a Renovate regex or prefix matcher into a glob.
  *
- * Renovate's `matchPackagePatterns` are regular expressions; buddy-bot's
+ * Renovate's `matchPackagePatterns` are regular expressions; buddy's
  * `matchPackages` are globs. The anchored-prefix form (`^@types/`) is by far
  * the most common and converts exactly. Anything using real regex features is
  * reported rather than mistranslated — a rule that silently matches the wrong
@@ -67,7 +67,7 @@ function patternToGlob(pattern: string): { glob: string, exact: boolean } {
 /**
  * Parse a Renovate duration into minutes.
  *
- * Renovate writes `minimumReleaseAge` as prose (`"3 days"`); buddy-bot counts
+ * Renovate writes `minimumReleaseAge` as prose (`"3 days"`); buddy counts
  * minutes.
  */
 function durationToMinutes(value: unknown): number | null {
@@ -91,7 +91,7 @@ function durationToMinutes(value: unknown): number | null {
 }
 
 /**
- * Convert Renovate `packageRules` into buddy-bot `packages.rules`.
+ * Convert Renovate `packageRules` into buddy `packages.rules`.
  *
  * The mapping is deliberately conservative: a Renovate feature with no
  * equivalent is listed in `incompatible` rather than approximated, and a
@@ -205,7 +205,7 @@ export function convertRenovateRules(packageRules: unknown): RenovateConversion 
       warnings.push(`${label}: could not parse minimumReleaseAge ${JSON.stringify(source.minimumReleaseAge)}`)
 
     // Renovate schedules are natural language ("after 10pm every weekday");
-    // buddy-bot rules take cron. Translating prose would be guessing.
+    // buddy rules take cron. Translating prose would be guessing.
     if (source.schedule !== undefined)
       incompatible.push(`${label}: schedule ${JSON.stringify(source.schedule)} must be rewritten as a cron expression`)
 

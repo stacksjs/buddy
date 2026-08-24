@@ -11,7 +11,7 @@ import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
 
-/** Bitbucket's pull request, as much of it as buddy-bot reads. */
+/** Bitbucket's pull request, as much of it as buddy reads. */
 interface BitbucketPullRequest {
   id: number
   title: string
@@ -112,7 +112,7 @@ export class BitbucketProvider implements GitProvider {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
       Accept: options.raw ? 'text/plain' : 'application/json',
-      'User-Agent': 'buddy-bot',
+      'User-Agent': 'buddy',
     }
 
     let payload: string | undefined
@@ -504,7 +504,7 @@ export class BitbucketProvider implements GitProvider {
         state: result.conclusion === 'failure' ? 'FAILED' : 'SUCCESSFUL',
         name: result.title.slice(0, 100),
         description: result.summary.slice(0, 300),
-        url: 'https://buddy-bot.sh',
+        url: 'https://buddy.sh',
       })
     }
     catch (error) {
@@ -525,14 +525,14 @@ export class BitbucketProvider implements GitProvider {
 
   // -- Housekeeping --------------------------------------------------------
 
-  async getBuddyBotBranches(): Promise<ProviderBranch[]> {
+  async getBuddyBranches(): Promise<ProviderBranch[]> {
     const branches = await this.collect<{
       name?: string
       target?: { hash?: string, date?: string }
-    }>(`/repositories/${this.slug}/refs/branches?q=${encodeURIComponent('name ~ "buddy-bot/"')}&pagelen=50`)
+    }>(`/repositories/${this.slug}/refs/branches?q=${encodeURIComponent('name ~ "buddy/"')}&pagelen=50`)
 
     return branches
-      .filter(branch => branch.name?.startsWith('buddy-bot/'))
+      .filter(branch => branch.name?.startsWith('buddy/'))
       .map(branch => ({
         name: branch.name!,
         sha: branch.target?.hash ?? '',
@@ -540,9 +540,9 @@ export class BitbucketProvider implements GitProvider {
       }))
   }
 
-  async getOrphanedBuddyBotBranches(): Promise<ProviderBranch[]> {
+  async getOrphanedBuddyBranches(): Promise<ProviderBranch[]> {
     const [branches, open] = await Promise.all([
-      this.getBuddyBotBranches(),
+      this.getBuddyBranches(),
       this.getPullRequests('open'),
     ])
 
@@ -556,7 +556,7 @@ export class BitbucketProvider implements GitProvider {
     dryRun: boolean = false,
   ): Promise<{ deleted: string[], failed: string[] }> {
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000)
-    const stale = (await this.getOrphanedBuddyBotBranches())
+    const stale = (await this.getOrphanedBuddyBranches())
       .filter(branch => branch.lastCommitDate < cutoff)
 
     if (dryRun)
@@ -611,7 +611,7 @@ export class BitbucketProvider implements GitProvider {
 
   private toIssue(issue: BitbucketIssue): Issue {
     // Bitbucket has several closed-ish states; anything not actively open is
-    // closed for buddy-bot's purposes.
+    // closed for buddy's purposes.
     const isOpen = ['new', 'open', 'on hold'].includes(issue.state)
 
     return {

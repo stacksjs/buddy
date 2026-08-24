@@ -17,7 +17,7 @@ const SEVERITY_ORDER: Record<VulnerabilitySeverity, number> = {
 }
 
 /**
- * Map a buddy-bot dependency type onto an OSV ecosystem identifier.
+ * Map a buddy dependency type onto an OSV ecosystem identifier.
  *
  * Returns `null` for dependency kinds OSV does not index (GitHub Actions,
  * Docker images, pkgx packages) so callers can skip them without a request.
@@ -68,7 +68,7 @@ interface OsvVulnerability {
 }
 
 /**
- * Normalize the several severity encodings OSV records carry into buddy-bot's
+ * Normalize the several severity encodings OSV records carry into buddy's
  * four-level scale.
  *
  * GitHub-sourced records expose a plain word under `database_specific`; others
@@ -311,7 +311,7 @@ export class SecurityAdvisoryService {
       try {
         const response = await fetchWithTimeout(`${OSV_API}/v1/querybatch`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'User-Agent': 'buddy-bot' },
+          headers: { 'Content-Type': 'application/json', 'User-Agent': 'buddy' },
           body: JSON.stringify({
             queries: batch.map(query => ({
               package: { name: query.name, ecosystem: query.ecosystem },
@@ -350,7 +350,7 @@ export class SecurityAdvisoryService {
     return this.detailCache.get(id, async () => {
       try {
         const response = await fetchWithTimeout(`${OSV_API}/v1/vulns/${encodeURIComponent(id)}`, {
-          headers: { 'User-Agent': 'buddy-bot' },
+          headers: { 'User-Agent': 'buddy' },
         })
         if (!response.ok)
           return null

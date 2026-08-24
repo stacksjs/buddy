@@ -113,7 +113,7 @@ export interface PackageInfo {
 }
 
 export class ReleaseNotesFetcher {
-  private readonly userAgent = 'Buddy-Bot/1.0.0 (https://github.com/stacksjs/buddy)'
+  private readonly userAgent = 'Buddy/1.0.0 (https://github.com/stacksjs/buddy)'
   private readonly logger: Logger
 
   /**
@@ -136,7 +136,7 @@ export class ReleaseNotesFetcher {
       'Accept': 'application/vnd.github.v3+json',
     }
 
-    const token = process.env.BUDDY_BOT_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+    const token = process.env.BUDDY_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
     if (token)
       headers.Authorization = `Bearer ${token}`
 

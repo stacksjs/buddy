@@ -72,7 +72,7 @@ export interface Rule {
   id: string
   /** Default severity if the rule fires. Reporters honour this. */
   defaultSeverity: Severity
-  /** One-line description shown by `buddy-bot security`. */
+  /** One-line description shown by `buddy security`. */
   description: string
   /** Run the rule against a single parsed workflow. */
   check: (workflow: ParsedWorkflow) => Finding[]
@@ -81,7 +81,7 @@ export interface Rule {
 export interface AuditOptions {
   /**
    * Rules to run. Defaults to the full built-in set. Pass a subset to
-   * narrow scope (e.g. when wiring buddy-bot to a focused security gate).
+   * narrow scope (e.g. when wiring buddy to a focused security gate).
    */
   rules?: Rule[]
   /**

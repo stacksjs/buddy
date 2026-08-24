@@ -117,7 +117,7 @@ export function checkDescription(
  * Check the dependencies a change introduces.
  *
  * Runs with no API key and no model: the vulnerability, deprecation and
- * license facts all come from data buddy-bot already collects, which makes
+ * license facts all come from data buddy already collects, which makes
  * this the gate a repository gets for free.
  *
  * @param dependencies - Dependencies introduced or updated

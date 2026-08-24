@@ -2,7 +2,7 @@ import type { PackageContext } from './enrichment'
 import { findMentionedPackages, renderPackageContext } from './enrichment'
 
 /** Marker identifying the quick-links comment, so it updates rather than repeats. */
-export const QUICK_LINKS_MARKER = '<!-- buddy-bot:quick-links -->'
+export const QUICK_LINKS_MARKER = '<!-- buddy:quick-links -->'
 
 /** An action a maintainer can request by ticking a box. */
 export interface QuickAction {
@@ -94,9 +94,9 @@ export function renderQuickLinks(options: {
   const lines: string[] = [
     QUICK_LINKS_MARKER,
     '',
-    '### Buddy Bot',
+    '### Buddy',
     '',
-    'Tick a box to have Buddy Bot pick this up:',
+    'Tick a box to have Buddy pick this up:',
     '',
   ]
 

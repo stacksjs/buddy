@@ -53,15 +53,15 @@ export function stripNonCommandContext(body: string): string {
  * Find a command addressed to the bot in a comment body.
  *
  * @param body - Comment body
- * @param mention - Mention that addresses the bot (default: `@buddy-bot`)
+ * @param mention - Mention that addresses the bot (default: `@buddy`)
  * @returns The command, or `null` when the comment does not address the bot
  * @example
  * ```ts
- * parseCommand('@buddy-bot review please') // => { name: 'review', args: 'please' }
- * parseCommand('use `@buddy-bot review`')  // => null (documentation, not a command)
+ * parseCommand('@buddy review please') // => { name: 'review', args: 'please' }
+ * parseCommand('use `@buddy review`')  // => null (documentation, not a command)
  * ```
  */
-export function parseCommand(body: string | null | undefined, mention = '@buddy-bot'): ParsedCommand | null {
+export function parseCommand(body: string | null | undefined, mention = '@buddy'): ParsedCommand | null {
   if (!body)
     return null
 
@@ -107,6 +107,6 @@ export function isReadOnlyCommand(name: string): boolean {
  * @param body - Comment body
  * @param mention - Mention that addresses the bot
  */
-export function mentionsBot(body: string | null | undefined, mention = '@buddy-bot'): boolean {
+export function mentionsBot(body: string | null | undefined, mention = '@buddy'): boolean {
   return Boolean(body?.toLowerCase().includes(mention.toLowerCase()))
 }

@@ -9,7 +9,7 @@ const ONELINE = /^(.+?):(\d+):(\d+):\s*(.*?)\s*\[([\w-]+)\]$/
  * actionlint, for GitHub Actions workflows.
  *
  * Complements the native workflow audit rather than duplicating it: those six
- * rules are security properties buddy-bot cares about specifically (unpinned
+ * rules are security properties buddy cares about specifically (unpinned
  * actions, `pull_request_target` misuse, script injection), while actionlint
  * type-checks expressions, `runs-on` labels, matrix shapes and shell syntax
  * inside `run:` blocks — everything that only fails once the workflow runs.

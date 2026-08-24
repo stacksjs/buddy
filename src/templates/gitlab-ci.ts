@@ -13,7 +13,7 @@ export const DEFAULT_SCHEDULE: PipelineSchedule = {
 }
 
 /**
- * Generate a `.gitlab-ci.yml` fragment that runs Buddy Bot.
+ * Generate a `.gitlab-ci.yml` fragment that runs Buddy.
  *
  * GitLab has no equivalent of a workflow's `schedule:` block — pipeline
  * schedules are configured in the project UI and surface to the job as
@@ -31,7 +31,7 @@ export const DEFAULT_SCHEDULE: PipelineSchedule = {
  */
 export function generateGitLabPipeline(options: { review?: boolean } = {}): string {
   const lines = [
-    '# Buddy Bot — dependency updates for GitLab',
+    '# Buddy — dependency updates for GitLab',
     '#',
     '# GitLab schedules live in the project UI, not in this file:',
     '#   Settings → CI/CD → Pipeline schedules → New schedule',
@@ -43,46 +43,46 @@ export function generateGitLabPipeline(options: { review?: boolean } = {}): stri
     '# Set GITLAB_TOKEN as a masked CI/CD variable with `api` scope. The',
     '# ambient CI_JOB_TOKEN cannot open merge requests.',
     '',
-    '.buddy-bot:',
+    '.buddy:',
     '  image: oven/bun:latest',
     '  before_script:',
     '    - bun install --frozen-lockfile',
     '',
     'buddy:update:',
-    '  extends: .buddy-bot',
+    '  extends: .buddy',
     '  rules:',
     '    - if: $CI_PIPELINE_SOURCE == "schedule" && $BUDDY_JOB == "update"',
     '    - if: $CI_PIPELINE_SOURCE == "web" && $BUDDY_JOB == "update"',
     '  script:',
-    '    - bunx buddy-bot update --verbose',
+    '    - bunx @buddysh/buddy update --verbose',
     '',
     'buddy:dashboard:',
-    '  extends: .buddy-bot',
+    '  extends: .buddy',
     '  rules:',
     '    - if: $CI_PIPELINE_SOURCE == "schedule" && $BUDDY_JOB == "dashboard"',
     '    - if: $CI_PIPELINE_SOURCE == "web" && $BUDDY_JOB == "dashboard"',
     '  script:',
-    '    - bunx buddy-bot dashboard --pin',
+    '    - bunx @buddysh/buddy dashboard --pin',
     '',
     'buddy:check:',
-    '  extends: .buddy-bot',
+    '  extends: .buddy',
     '  rules:',
     '    # Runs on merge request events so a ticked rebase box is picked up',
     '    # without waiting for the next schedule.',
     '    - if: $CI_PIPELINE_SOURCE == "merge_request_event"',
     '  script:',
-    '    - bunx buddy-bot update-check --verbose',
+    '    - bunx @buddysh/buddy update-check --verbose',
   ]
 
   if (options.review) {
     lines.push(
       '',
       'buddy:review:',
-      '  extends: .buddy-bot',
+      '  extends: .buddy',
       '  rules:',
       '    - if: $CI_PIPELINE_SOURCE == "merge_request_event"',
       '  script:',
-      '    - bunx buddy-bot review $CI_MERGE_REQUEST_IID --verbose',
+      '    - bunx @buddysh/buddy review $CI_MERGE_REQUEST_IID --verbose',
     )
   }
 
@@ -90,7 +90,7 @@ export function generateGitLabPipeline(options: { review?: boolean } = {}): stri
 }
 
 /**
- * Generate a `bitbucket-pipelines.yml` that runs Buddy Bot.
+ * Generate a `bitbucket-pipelines.yml` that runs Buddy.
  *
  * Bitbucket's scheduled pipelines are also configured in the UI, and they can
  * only run a *branch* pipeline — a schedule cannot target a custom pipeline
@@ -102,7 +102,7 @@ export function generateGitLabPipeline(options: { review?: boolean } = {}): stri
  */
 export function generateBitbucketPipeline(options: { review?: boolean } = {}): string {
   const lines = [
-    '# Buddy Bot — dependency updates for Bitbucket Cloud',
+    '# Buddy — dependency updates for Bitbucket Cloud',
     '#',
     '# Bitbucket schedules live in the UI, not in this file:',
     '#   Repository settings → Pipelines → Schedules',
@@ -130,28 +130,28 @@ export function generateBitbucketPipeline(options: { review?: boolean } = {}): s
     '          name: Dependency updates',
     '          script:',
     '            - bun install --frozen-lockfile',
-    '            - bunx buddy-bot update --verbose',
+    '            - bunx @buddysh/buddy update --verbose',
     '',
     '    buddy-dashboard:',
     '      - step:',
     '          name: Dependency dashboard',
     '          script:',
     '            - bun install --frozen-lockfile',
-    '            - bunx buddy-bot dashboard --pin',
+    '            - bunx @buddysh/buddy dashboard --pin',
     '',
     '  pull-requests:',
     '    \'**\':',
     '      - step:',
-    '          name: Buddy Bot check',
+    '          name: Buddy check',
     '          script:',
     '            - bun install --frozen-lockfile',
-    '            - bunx buddy-bot update-check --verbose',
+    '            - bunx @buddysh/buddy update-check --verbose',
   ]
 
   if (options.review) {
     lines.push(
       '          # Reviews the pull request this pipeline is running for.',
-      '            - bunx buddy-bot review $BITBUCKET_PR_ID --verbose',
+      '            - bunx @buddysh/buddy review $BITBUCKET_PR_ID --verbose',
     )
   }
 

@@ -14,7 +14,7 @@ interface HadolintMessage {
 /**
  * Hadolint, for Dockerfiles.
  *
- * Pairs with buddy-bot's Docker base-image updates: the bot proposes the new
+ * Pairs with buddy's Docker base-image updates: the bot proposes the new
  * tag, and this catches the pinning and layer mistakes that make that tag not
  * mean what the Dockerfile thinks it means.
  */

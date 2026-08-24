@@ -22,7 +22,7 @@ function sanitizeStderr(stderr: string, token?: string): string {
   return out
 }
 
-// Minimal shapes for the GitHub REST responses buddy-bot consumes. These exist
+// Minimal shapes for the GitHub REST responses buddy consumes. These exist
 // to replace scattered `as any` casts with narrowed types at the API boundary.
 interface GitHubUser { login: string }
 interface GitHubLabel { name: string }
@@ -207,7 +207,7 @@ export class GitHubProvider implements GitProvider {
       if (workflowFiles.length > 0 && !this.hasWorkflowPermissions) {
         this.logger.warn(`⚠️ Detected ${workflowFiles.length} workflow file(s). These require elevated permissions.`)
         this.logger.warn(`⚠️ Workflow files: ${workflowFiles.map(f => f.path).join(', ')}`)
-        this.logger.warn(`ℹ️ Workflow files will be skipped in this commit. BUDDY_BOT_TOKEN not detected or lacks workflow permissions.`)
+        this.logger.warn(`ℹ️ Workflow files will be skipped in this commit. BUDDY_TOKEN not detected or lacks workflow permissions.`)
 
         // If we have non-workflow files, commit just those
         if (nonWorkflowFiles.length > 0) {
@@ -216,7 +216,7 @@ export class GitHubProvider implements GitProvider {
         }
         else {
           this.logger.warn(`⚠️ All files are workflow files. No files will be committed in this PR.`)
-          this.logger.warn(`💡 To update workflow files, ensure BUDDY_BOT_TOKEN is set with workflow:write permissions.`)
+          this.logger.warn(`💡 To update workflow files, ensure BUDDY_TOKEN is set with workflow:write permissions.`)
           // Don't return early - we'll create an empty commit to avoid "No commits between branches" error
           this.logger.info(`📝 Creating empty commit to avoid "No commits between branches" error...`)
           try {
@@ -231,7 +231,7 @@ export class GitHubProvider implements GitProvider {
               const readmeFile = Bun.file(readmePath)
               if (await readmeFile.exists()) {
                 const content = await readmeFile.text()
-                const updatedContent = `${content}\n\n<!-- Updated by Buddy Bot -->\n`
+                const updatedContent = `${content}\n\n<!-- Updated by Buddy -->\n`
                 await Bun.write(readmePath, updatedContent)
                 await this.runCommand('git', ['add', readmePath])
                 await this.runCommand('git', ['commit', '-m', 'Update README for workflow-only PR'])
@@ -800,7 +800,7 @@ export class GitHubProvider implements GitProvider {
     }
 
     try {
-      // GitHub caps per_page at 100. Repos with many buddy-bot PRs would
+      // GitHub caps per_page at 100. Repos with many buddy PRs would
       // silently truncate at the first page, causing duplicate-PR creation
       // because lookup misses existing entries. Walk pages until we get a
       // short one, or cap after 20 pages (2000 PRs) as a sanity stop.
@@ -1108,7 +1108,7 @@ export class GitHubProvider implements GitProvider {
           headers: {
             'Authorization': `Bearer ${this.token}`,
             'Accept': 'application/vnd.github+json',
-            'User-Agent': 'buddy-bot',
+            'User-Agent': 'buddy',
           },
         },
       )
@@ -1209,7 +1209,7 @@ export class GitHubProvider implements GitProvider {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Accept': 'application/vnd.github.v3.diff',
-          'User-Agent': 'buddy-bot',
+          'User-Agent': 'buddy',
         },
       },
     )
@@ -1369,7 +1369,7 @@ export class GitHubProvider implements GitProvider {
       headers: {
         'Authorization': `Bearer ${this.token}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'buddy-bot',
+        'User-Agent': 'buddy',
       },
       body: JSON.stringify({ query, variables }),
     })
@@ -1414,9 +1414,9 @@ export class GitHubProvider implements GitProvider {
   }
 
   /**
-   * Get all buddy-bot branches from the repository using local git commands
+   * Get all buddy branches from the repository using local git commands
    */
-  async getBuddyBotBranches(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
+  async getBuddyBranches(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
     try {
       // Use local git to get all remote branches
       const remoteBranchesOutput = await this.runCommand('git', ['branch', '-r', '--format=%(refname:short) %(objectname) %(committerdate:iso8601)'])
@@ -1432,15 +1432,15 @@ export class GitHubProvider implements GitProvider {
         if (parts.length < 3)
           continue
 
-        const fullBranchName = parts[0] // e.g., "origin/buddy-bot/update-deps"
+        const fullBranchName = parts[0] // e.g., "origin/buddy/update-deps"
         const sha = parts[1]
         const dateStr = parts.slice(2).join(' ') // Join back in case date has spaces
 
         // Extract just the branch name without remote prefix
         const branchName = fullBranchName.replace(/^origin\//, '')
 
-        // Only include buddy-bot branches
-        if (!branchName.startsWith('buddy-bot/'))
+        // Only include buddy branches
+        if (!branchName.startsWith('buddy/'))
           continue
 
         try {
@@ -1461,21 +1461,21 @@ export class GitHubProvider implements GitProvider {
         }
       }
 
-      this.logger.info(`🔍 Found ${branches.length} buddy-bot branches using local git`)
+      this.logger.info(`🔍 Found ${branches.length} buddy branches using local git`)
       return branches
     }
     catch (error) {
-      this.logger.warn('⚠️ Failed to fetch buddy-bot branches via git, falling back to API:', error)
+      this.logger.warn('⚠️ Failed to fetch buddy branches via git, falling back to API:', error)
 
       // Fallback to API method if git fails
-      return this.getBuddyBotBranchesViaAPI()
+      return this.getBuddyBranchesViaAPI()
     }
   }
 
   /**
-   * Fallback method to get buddy-bot branches via API (original implementation)
+   * Fallback method to get buddy branches via API (original implementation)
    */
-  private async getBuddyBotBranchesViaAPI(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
+  private async getBuddyBranchesViaAPI(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
     try {
       // Fetch all branches with pagination
       let allBranches: any[] = []
@@ -1501,9 +1501,9 @@ export class GitHubProvider implements GitProvider {
 
       this.logger.info(`🔍 Found ${allBranches.length} total branches in repository`)
 
-      // Filter for buddy-bot branches
-      const buddyBranches = allBranches.filter((branch: any) => branch.name.startsWith('buddy-bot/'))
-      this.logger.info(`🤖 Found ${buddyBranches.length} buddy-bot branches`)
+      // Filter for buddy branches
+      const buddyBranches = allBranches.filter((branch: any) => branch.name.startsWith('buddy/'))
+      this.logger.info(`🤖 Found ${buddyBranches.length} buddy branches`)
 
       // Get detailed info for each branch including last commit date
       const branchDetails = await Promise.all(
@@ -1530,17 +1530,17 @@ export class GitHubProvider implements GitProvider {
       return branchDetails
     }
     catch (error) {
-      this.logger.warn('⚠️ Failed to fetch buddy-bot branches:', error)
+      this.logger.warn('⚠️ Failed to fetch buddy branches:', error)
       return []
     }
   }
 
   /**
-   * Get all buddy-bot branches that don't have associated open PRs
+   * Get all buddy branches that don't have associated open PRs
    */
-  async getOrphanedBuddyBotBranches(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
+  async getOrphanedBuddyBranches(): Promise<Array<{ name: string, sha: string, lastCommitDate: Date }>> {
     try {
-      const buddyBranches = await this.getBuddyBotBranches()
+      const buddyBranches = await this.getBuddyBranches()
 
       const prBranches = await this.getOpenPRBranches()
 
@@ -1563,7 +1563,7 @@ export class GitHubProvider implements GitProvider {
   private prDetectionSuccessful = false
 
   /**
-   * Get the set of buddy-bot branches that currently have open PRs.
+   * Get the set of buddy branches that currently have open PRs.
    *
    * Uses the GitHub REST API as the authoritative source. Earlier versions
    * scraped the PR HTML page for `State--open` CSS classes, which silently
@@ -1579,10 +1579,10 @@ export class GitHubProvider implements GitProvider {
       const protectedBranches = new Set<string>(
         openPRs
           .map(pr => pr.head)
-          .filter(head => head.startsWith('buddy-bot/')),
+          .filter(head => head.startsWith('buddy/')),
       )
 
-      this.logger.info(`🔍 GitHub API reports ${openPRs.length} open PR(s); ${protectedBranches.size} are buddy-bot branches`)
+      this.logger.info(`🔍 GitHub API reports ${openPRs.length} open PR(s); ${protectedBranches.size} are buddy branches`)
       this.logger.info(`🛡️ Protecting ${protectedBranches.size} branches with confirmed open PRs`)
       this.prDetectionSuccessful = true
       return protectedBranches
@@ -1592,7 +1592,7 @@ export class GitHubProvider implements GitProvider {
 
       // Conservative fallback: protect branches less than 30 days old
       try {
-        const allBuddyBranches = await this.getBuddyBotBranches()
+        const allBuddyBranches = await this.getBuddyBranches()
         const thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -1616,13 +1616,13 @@ export class GitHubProvider implements GitProvider {
   }
 
   /**
-   * Clean up orphaned buddy-bot branches (with optional age filter for fallback scenarios)
+   * Clean up orphaned buddy branches (with optional age filter for fallback scenarios)
    */
   async cleanupStaleBranches(olderThanDays = 7, dryRun = false): Promise<{ deleted: string[], failed: string[] }> {
-    this.logger.info(`🔍 Looking for buddy-bot branches without open PRs...`)
+    this.logger.info(`🔍 Looking for buddy branches without open PRs...`)
 
-    const orphanedBranches = await this.getOrphanedBuddyBotBranches()
-    this.logger.info(`🔍 Found ${orphanedBranches.length} orphaned buddy-bot branches (no associated open PRs)`)
+    const orphanedBranches = await this.getOrphanedBuddyBranches()
+    this.logger.info(`🔍 Found ${orphanedBranches.length} orphaned buddy branches (no associated open PRs)`)
 
     // When PR detection succeeded authoritatively, every orphan is a true orphan.
     // If detection fell back to age-based protection, only delete branches older
@@ -1638,7 +1638,7 @@ export class GitHubProvider implements GitProvider {
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
       branchesToDelete = orphanedBranches.filter(branch => branch.lastCommitDate < cutoffDate)
       this.logger.info(`⚠️ PR detection failed - only deleting branches older than ${olderThanDays} days`)
-      this.logger.info(`🔍 Found ${branchesToDelete.length} stale buddy-bot branches (older than ${olderThanDays} days)`)
+      this.logger.info(`🔍 Found ${branchesToDelete.length} stale buddy branches (older than ${olderThanDays} days)`)
     }
 
     // Show some examples of what we found
@@ -1739,7 +1739,7 @@ export class GitHubProvider implements GitProvider {
         'Authorization': `Bearer ${effectiveToken}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
-        'User-Agent': 'buddy-bot',
+        'User-Agent': 'buddy',
       },
     }
 
@@ -1758,7 +1758,7 @@ export class GitHubProvider implements GitProvider {
       const errorBody = await response.text()
       const tokenHint = effectiveToken
         ? 'token present ([REDACTED])'
-        : 'NO TOKEN — ensure GITHUB_TOKEN or BUDDY_BOT_TOKEN is set'
+        : 'NO TOKEN — ensure GITHUB_TOKEN or BUDDY_TOKEN is set'
       throw new GitHubApiError(
         `GitHub API error: ${response.status} ${response.statusText}\n`
         + `  URL: ${method} ${url}\n`

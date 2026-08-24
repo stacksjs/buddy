@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../types'
+import type { BuddyConfig } from '../types'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -34,12 +34,12 @@ function firstNonEmpty(...candidates: Array<string | undefined>): string | undef
  *
  * Precedence is explicit config, then `GITHUB_API_URL` — which GitHub Actions
  * sets automatically on both github.com and GitHub Enterprise Server runners —
- * then the public host. This is what lets buddy-bot run unmodified on GHES.
+ * then the public host. This is what lets buddy run unmodified on GHES.
  *
  * @param config - Optional loaded configuration
  * @returns Base URL with no trailing slash, e.g. `https://github.acme.com/api/v3`
  */
-export function getGitHubApiUrl(config?: BuddyBotConfig): string {
+export function getGitHubApiUrl(config?: BuddyConfig): string {
   return normalizeBase(firstNonEmpty(
     config?.repository?.apiUrl,
     process.env.GITHUB_API_URL,
@@ -53,7 +53,7 @@ export function getGitHubApiUrl(config?: BuddyBotConfig): string {
  * @param config - Optional loaded configuration
  * @returns Base URL with no trailing slash
  */
-export function getGitHubServerUrl(config?: BuddyBotConfig): string {
+export function getGitHubServerUrl(config?: BuddyConfig): string {
   return normalizeBase(firstNonEmpty(
     config?.repository?.serverUrl,
     process.env.GITHUB_SERVER_URL,
@@ -70,7 +70,7 @@ interface NpmrcRegistries {
  * Locate the user's home directory the way npm does.
  *
  * npm resolves `~/.npmrc` through `$HOME` (or `%USERPROFILE%` on Windows)
- * rather than the passwd entry, so honouring those first keeps buddy-bot
+ * rather than the passwd entry, so honouring those first keeps buddy
  * reading the same file npm would — including under `sudo`, in containers, and
  * anywhere else the environment deliberately relocates home.
  */
@@ -85,7 +85,7 @@ const npmrcCache = new Map<string, NpmrcRegistries>()
  * files that apply to a project, nearest file winning.
  *
  * Only registry directives are read — auth tokens and other settings are left
- * to the package manager, which buddy-bot shells out to for installs.
+ * to the package manager, which buddy shells out to for installs.
  */
 function readNpmrcRegistries(cwd: string): NpmrcRegistries {
   const cached = npmrcCache.get(cwd)
@@ -165,7 +165,7 @@ export function clearNpmrcCache(): void {
  */
 export function getNpmRegistryUrl(
   packageName?: string,
-  config?: BuddyBotConfig,
+  config?: BuddyConfig,
   cwd: string = process.cwd(),
 ): string {
   const scope = packageName?.startsWith('@') ? packageName.split('/')[0] : undefined
@@ -187,7 +187,7 @@ export function getNpmRegistryUrl(
  * @param config - Optional loaded configuration
  * @returns Base URL with no trailing slash
  */
-export function getComposerRegistryUrl(config?: BuddyBotConfig): string {
+export function getComposerRegistryUrl(config?: BuddyConfig): string {
   return normalizeBase(firstNonEmpty(
     config?.registries?.composer,
     process.env.COMPOSER_REGISTRY_URL,
