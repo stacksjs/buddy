@@ -1,11 +1,11 @@
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   repository: {
     owner: 'stacksjs',
-    name: 'buddy-bot',
+    name: 'buddy',
     provider: 'github',
-    // token: process.env.BUDDY_BOT_TOKEN,
+    // token: process.env.BUDDY_TOKEN,
   },
   dashboard: {
     enabled: true,

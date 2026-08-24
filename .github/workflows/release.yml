@@ -53,11 +53,11 @@ jobs:
           release-changelog: CHANGELOG.md
           release-checksums: 'true'
           release-files: |
-            ./bin/buddy-bot-linux-x64.zip
-            ./bin/buddy-bot-linux-arm64.zip
-            ./bin/buddy-bot-windows-x64.zip
-            ./bin/buddy-bot-darwin-x64.zip
-            ./bin/buddy-bot-darwin-arm64.zip
+            ./bin/buddy-linux-x64.zip
+            ./bin/buddy-linux-arm64.zip
+            ./bin/buddy-windows-x64.zip
+            ./bin/buddy-darwin-x64.zip
+            ./bin/buddy-darwin-arm64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,7 +76,7 @@ jobs:
         run: |
           set -uo pipefail
 
-          PRUNABLE="buddy-bot-linux-x64.zip buddy-bot-linux-arm64.zip buddy-bot-windows-x64.zip buddy-bot-darwin-x64.zip buddy-bot-darwin-arm64.zip checksums.txt release-manifest.json"
+          PRUNABLE="buddy-linux-x64.zip buddy-linux-arm64.zip buddy-windows-x64.zip buddy-darwin-x64.zip buddy-darwin-arm64.zip checksums.txt release-manifest.json"
 
           for tag in $(gh release list --limit 30 --json tagName --jq '.[].tagName'); do
             [ "$tag" = "$CURRENT_TAG" ] && continue

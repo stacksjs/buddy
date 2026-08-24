@@ -19,11 +19,11 @@ interface Target {
  * a published asset — anything scripted against the old name breaks.
  */
 export const TARGETS: Target[] = [
-  { target: 'bun-linux-x64', name: 'buddy-bot-linux-x64', suffix: '' },
-  { target: 'bun-linux-arm64', name: 'buddy-bot-linux-arm64', suffix: '' },
-  { target: 'bun-windows-x64', name: 'buddy-bot-windows-x64', suffix: '.exe' },
-  { target: 'bun-darwin-x64', name: 'buddy-bot-darwin-x64', suffix: '' },
-  { target: 'bun-darwin-arm64', name: 'buddy-bot-darwin-arm64', suffix: '' },
+  { target: 'bun-linux-x64', name: 'buddy-linux-x64', suffix: '' },
+  { target: 'bun-linux-arm64', name: 'buddy-linux-arm64', suffix: '' },
+  { target: 'bun-windows-x64', name: 'buddy-windows-x64', suffix: '.exe' },
+  { target: 'bun-darwin-x64', name: 'buddy-darwin-x64', suffix: '' },
+  { target: 'bun-darwin-arm64', name: 'buddy-darwin-arm64', suffix: '' },
 ]
 
 const OUT_DIR = 'bin'

@@ -1,4 +1,4 @@
-name: Buddy Bot
+name: Buddy
 
 on:
   # Rebase checkbox: fires instantly when a PR body is edited (e.g. checkbox ticked).
@@ -67,10 +67,10 @@ on:
 env:
   # Use the built-in GITHUB_TOKEN for commits and PRs — contributions are attributed
   # to github-actions[bot] instead of a personal account.
-  # BUDDY_BOT_TOKEN (a PAT with 'repo' and 'workflow' scopes) is only used when
+  # BUDDY_TOKEN (a PAT with 'repo' and 'workflow' scopes) is only used when
   # workflow file updates are needed. Create one at: https://github.com/settings/tokens
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}
+  BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}
 
 permissions:
   contents: write
@@ -84,7 +84,7 @@ permissions:
 # on the same branches/PRs. cancel-in-progress: false lets the currently
 # running job finish cleanly instead of being killed mid-commit.
 concurrency:
-  group: buddy-bot-${{ github.ref }}
+  group: buddy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -106,20 +106,20 @@ jobs:
           echo "run_dashboard=false" >> $GITHUB_OUTPUT
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # PR body was edited — check if it's a buddy-bot PR with rebase checkbox
+            # PR body was edited — check if it's a buddy PR with rebase checkbox
             # Only run the check job (lightweight: just scans for the checkbox and rebases)
             ACTOR="${{ github.actor }}"
             BRANCH="${{ github.event.pull_request.head.ref }}"
 
             # Skip if the edit was made by a bot (prevents cascade loops where
-            # buddy-bot updates a PR body → fires edited event → re-triggers workflow)
-            if [[ "$ACTOR" == *"[bot]"* ]] || [[ "$ACTOR" == "github-actions[bot]" ]] || [[ "$ACTOR" == "buddy-bot" ]]; then
+            # buddy updates a PR body → fires edited event → re-triggers workflow)
+            if [[ "$ACTOR" == *"[bot]"* ]] || [[ "$ACTOR" == "github-actions[bot]" ]] || [[ "$ACTOR" == "buddy" ]]; then
               echo "ℹ️ Skipping — PR edit was made by bot actor: $ACTOR"
-            elif [[ "$BRANCH" == buddy-bot/* ]]; then
+            elif [[ "$BRANCH" == buddy/* ]]; then
               echo "run_check=true" >> $GITHUB_OUTPUT
-              echo "ℹ️ buddy-bot PR edited by user — running rebase check for branch: $BRANCH"
+              echo "ℹ️ buddy PR edited by user — running rebase check for branch: $BRANCH"
             else
-              echo "ℹ️ Non-buddy-bot PR edited — skipping (branch: $BRANCH)"
+              echo "ℹ️ Non-buddy PR edited — skipping (branch: $BRANCH)"
             fi
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             JOB="${{ github.event.inputs.job || 'all' }}"
@@ -208,14 +208,14 @@ jobs:
 
       - name: Check token permissions
         run: |
-          if [ -z "${{ secrets.BUDDY_BOT_TOKEN }}" ]; then
+          if [ -z "${{ secrets.BUDDY_TOKEN }}" ]; then
             echo "⚠️ Using GITHUB_TOKEN (limited permissions)"
             echo "💡 For full workflow file update support:"
             echo "   1. Create a Personal Access Token with 'repo' and 'workflow' scopes"
-            echo "   2. Add it as repository secret 'BUDDY_BOT_TOKEN'"
+            echo "   2. Add it as repository secret 'BUDDY_TOKEN'"
             echo "   3. Re-run this workflow"
           else
-            echo "✅ Using BUDDY_BOT_TOKEN (full permissions)"
+            echo "✅ Using BUDDY_TOKEN (full permissions)"
           fi
 
       - name: Check for PRs that need attention
@@ -233,15 +233,15 @@ jobs:
 
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             echo "📋 Running in DRY RUN mode..."
-            bunx buddy-bot update-check --dry-run --verbose
+            bunx @buddysh/buddy update-check --dry-run --verbose
           else
             echo "🔄 Running in LIVE mode..."
-            bunx buddy-bot update-check --verbose
+            bunx @buddysh/buddy update-check --verbose
           fi
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}
 
       - name: Create check summary
         if: always()
@@ -302,7 +302,7 @@ jobs:
 
       - name: Display update configuration
         run: |
-          echo "🧪 **Buddy Bot Update Mode**"
+          echo "🧪 **Buddy Update Mode**"
           echo "Strategy: ${{ github.event.inputs.strategy || 'patch' }}"
           echo "Dry Run: ${{ github.event.inputs.dry_run || 'false' }}"
           echo "Packages: ${{ github.event.inputs.packages || 'all' }}"
@@ -326,21 +326,21 @@ jobs:
 
           if [ "$PACKAGES" != "" ]; then
             if [ "$VERBOSE" = "true" ]; then
-              bunx buddy-bot update --packages "$PACKAGES" --verbose
+              bunx @buddysh/buddy update --packages "$PACKAGES" --verbose
             else
-              bunx buddy-bot update --packages "$PACKAGES"
+              bunx @buddysh/buddy update --packages "$PACKAGES"
             fi
           else
             if [ "$VERBOSE" = "true" ]; then
-              bunx buddy-bot update --strategy "$STRATEGY" --verbose
+              bunx @buddysh/buddy update --strategy "$STRATEGY" --verbose
             else
-              bunx buddy-bot update --strategy "$STRATEGY"
+              bunx @buddysh/buddy update --strategy "$STRATEGY"
             fi
           fi
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}
 
       - name: Dry run notification
         if: ${{ github.event.inputs.dry_run == 'true' }}
@@ -393,7 +393,7 @@ jobs:
 
       - name: Display dashboard configuration
         run: |
-          echo "📊 **Buddy Bot Dashboard Management**"
+          echo "📊 **Buddy Dashboard Management**"
           echo "Pin Dashboard: ${{ github.event.inputs.pin || 'true' }}"
           echo "Custom Title: ${{ github.event.inputs.title || 'default' }}"
           echo "Issue Number: ${{ github.event.inputs.issue_number || 'auto-detect' }}"
@@ -417,7 +417,7 @@ jobs:
               echo "⚠️ WARNING: Multiple dashboard issues detected!"
               gh issue list --label "dashboard,dependencies" --state open --json number,title,url --jq '.[] | "  - #\(.number): \(.title) - \(.url)"' 2>/dev/null || true
               echo ""
-              echo "🔧 Buddy Bot will attempt to update the most recent one and may close duplicates"
+              echo "🔧 Buddy will attempt to update the most recent one and may close duplicates"
             elif [ "$EXISTING_DASHBOARDS" -eq 1 ]; then
               DASHBOARD_INFO=$(gh issue list --label "dashboard,dependencies" --state open --json number,title,url --jq '.[0] | "#\(.number): \(.title) - \(.url)"' 2>/dev/null || echo "Found 1 dashboard")
               echo "✅ Found existing dashboard: $DASHBOARD_INFO"
@@ -447,7 +447,7 @@ jobs:
           set -e  # Exit on any error
 
           # Build the command
-          COMMAND="bunx buddy-bot dashboard"
+          COMMAND="bunx @buddysh/buddy dashboard"
 
           if [ "$TITLE" != "" ]; then
             COMMAND="$COMMAND --title \"$TITLE\""
@@ -470,9 +470,9 @@ jobs:
             # Run scan to show what would be included
             echo "🔍 Scanning for dependencies that would be included:"
             if [ "$VERBOSE" = "true" ]; then
-              bunx buddy-bot scan --verbose
+              bunx @buddysh/buddy scan --verbose
             else
-              bunx buddy-bot scan
+              bunx @buddysh/buddy scan
             fi
           else
             echo "🚀 Executing dashboard update:"
@@ -483,7 +483,7 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}
+          BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}
 
       - name: Dry run notification
         if: ${{ github.event.inputs.dry_run == 'true' }}

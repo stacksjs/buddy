@@ -7,7 +7,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "buddy-bot": ["./src/index.ts"]
+      "buddy": ["./src/index.ts"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
