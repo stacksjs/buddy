@@ -14,11 +14,11 @@ hero:
       text: Get Started
       link: /guide/getting-started
     - theme: alt
-      text: Why Buddy?
-      link: /intro
+      text: Browse the features
+      link: /features/
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/stacksjs/buddy
+      text: Compare Buddy
+      link: /compare/
   code:
     - file: "buddy"
       lang: "ascii"
@@ -206,6 +206,17 @@ More in [pull request generation](/features/pull-requests), [the dashboard](/fea
 | Local pre-push review | Yes | — | — | — |
 | Config | TypeScript, JSON or YAML | YAML | JSON / JS | YAML |
 | Migration in | From Renovate and Dependabot | — | — | — |
+
+The full matrix — including Greptile, Qodo Merge, Graphite, Sourcery and Snyk —
+is in [the comparisons](/compare/), where each page also says plainly where the
+other tool is the better choice.
+
+## Find your own situation
+
+[Open source maintainers](/use-cases/open-source) · [startups](/use-cases/startups) ·
+[platform teams](/use-cases/platform-teams) · [agencies](/use-cases/agencies) ·
+[monorepos](/use-cases/monorepos) · [security and compliance](/use-cases/security-compliance) ·
+[migrating off Renovate](/use-cases/migrating) · [working with AI coding agents](/use-cases/ai-coding-agents)
 
 ## Coming from Renovate or Dependabot
 
