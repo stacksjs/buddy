@@ -61,25 +61,46 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Binaries live only on the latest release: they are ~150 MB a version,
-      # and an older release's copies are superseded the moment this one
-      # publishes. Only the names this workflow produces are pruned, so an
-      # asset somebody attached by hand is never touched.
+      # Binaries are ~150 MB a version, so old ones are pruned — but not down to
+      # only the newest. The pantry recipe (packages/ts-pantry/src/recipes/buddy.sh.ts
+      # in pantry-pm/pantry) builds its package by downloading these assets, and
+      # its build farm works through several recent versions per run. Keeping
+      # only the newest meant every version but one 404'd at build time.
+      #
+      # KEEP_RELEASES is therefore a contract with that build farm, not just a
+      # storage preference: lowering it below pantry's max-versions breaks
+      # installs of anything but the very latest.
+      #
+      # Only names this workflow produces are pruned, so an asset somebody
+      # attached by hand is never touched. The buddy-bot-* names are the
+      # pre-rename spelling, left stranded on releases up to v0.10.5.
       #
       # Housekeeping, so it must not fail a release that already succeeded —
       # the package is on npm and the release exists by this point.
-      - name: Keep binaries only on the latest release
+      - name: Prune binaries from older releases
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CURRENT_TAG: ${{ github.ref_name }}
+          KEEP_RELEASES: '3'
         run: |
           set -uo pipefail
 
-          PRUNABLE="buddy-linux-x64.zip buddy-linux-arm64.zip buddy-windows-x64.zip buddy-darwin-x64.zip buddy-darwin-arm64.zip checksums.txt release-manifest.json"
+          PLATFORMS="linux-x64 linux-arm64 windows-x64 darwin-x64 darwin-arm64"
+          PRUNABLE="checksums.txt release-manifest.json"
+          for platform in $PLATFORMS; do
+            PRUNABLE="$PRUNABLE buddy-${platform}.zip buddy-bot-${platform}.zip"
+          done
+
+          # Releases newest-first, minus the ones whose binaries stay.
+          KEPT=$(gh release list --limit 30 --json tagName --jq '.[].tagName' | head -n "$KEEP_RELEASES")
+          echo "Keeping binaries on: $(echo "$KEPT" | tr '\n' ' ')"
 
           for tag in $(gh release list --limit 30 --json tagName --jq '.[].tagName'); do
             [ "$tag" = "$CURRENT_TAG" ] && continue
+            if echo "$KEPT" | grep -qxF "$tag"; then
+              continue
+            fi
 
             for asset in $(gh release view "$tag" --json assets --jq '.assets[].name'); do
               case " $PRUNABLE " in
