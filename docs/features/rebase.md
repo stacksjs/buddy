@@ -1,10 +1,10 @@
 # Rebase Functionality
 
-Buddy Bot's rebase feature allows you to update existing pull requests with the latest dependency versions, ensuring your PRs stay current with the newest available updates.
+Buddy's rebase feature allows you to update existing pull requests with the latest dependency versions, ensuring your PRs stay current with the newest available updates.
 
 ## Overview
 
-Similar to Renovate's rebase functionality, Buddy Bot monitors pull requests for rebase requests and automatically updates them with fresh dependency scans. This is especially useful when:
+Similar to Renovate's rebase functionality, Buddy monitors pull requests for rebase requests and automatically updates them with fresh dependency scans. This is especially useful when:
 
 - New versions are released after your PR was created
 - You want to refresh a stale PR with latest updates
@@ -15,7 +15,7 @@ Similar to Renovate's rebase functionality, Buddy Bot monitors pull requests for
 
 ### 1. Update / Rebase Checkbox
 
-Every Buddy Bot pull request includes an interactive checkbox:
+Every Buddy pull request includes an interactive checkbox:
 
 ```markdown
 ---
@@ -30,14 +30,14 @@ Every Buddy Bot pull request includes an interactive checkbox:
 A GitHub Actions workflow (`.github/workflows/buddy-check.yml`) runs every minute and:
 
 1. Scans all open pull requests
-2. Identifies Buddy Bot PRs with checked rebase boxes
+2. Identifies Buddy PRs with checked rebase boxes
 3. Triggers a fresh dependency scan
 4. Updates the PR with latest versions
 5. Unchecks the box when complete
 
 ### 3. Complete Update Process
 
-During rebase, Buddy Bot:
+During rebase, Buddy:
 
 - **Re-scans dependencies**: Finds the latest available versions
 - **Updates all files**: package.json, lock files, dependency files, workflows
@@ -49,7 +49,7 @@ During rebase, Buddy Bot:
 
 ### Interactive Rebase
 
-1. **Open any Buddy Bot PR**
+1. **Open any Buddy PR**
 2. **Scroll to the bottom** of the PR description
 3. **Check the rebase checkbox**: `- [x] If you want to update/retry this PR, check this box`
 4. **Wait for automation**: The workflow will detect and process the request within 1 minute
@@ -59,16 +59,16 @@ During rebase, Buddy Bot:
 
 ```bash
 # Check for PRs with rebase checkbox enabled
-buddy-bot update-check
+buddy update-check
 
 # Preview what would be rebased (dry run)
-buddy-bot update-check --dry-run
+buddy update-check --dry-run
 
 # Run with detailed logging
-buddy-bot update-check --verbose
+buddy update-check --verbose
 
 # Combine options
-buddy-bot update-check --dry-run --verbose
+buddy update-check --dry-run --verbose
 ```
 
 ### Manual Trigger via GitHub Actions
@@ -84,7 +84,7 @@ buddy-bot update-check --dry-run --verbose
 
 ### Workflow Setup
 
-The rebase workflow is automatically created when you run `buddy-bot setup`. It includes:
+The rebase workflow is automatically created when you run `buddy setup`. It includes:
 
 ```yaml
 name: Buddy Check
@@ -119,12 +119,12 @@ For complete functionality including workflow file updates:
 2. **Select scopes**:
    - `repo` (Full repository access)
    - `workflow` (Update GitHub Actions workflows)
-3. **Add secret**: Repository Settings → Secrets → Add `BUDDY*BOT*TOKEN`
+3. **Add secret**: Repository Settings → Secrets → Add `BUDDY_TOKEN`
 4. **Automatic detection**: Workflow uses PAT when available
 
 #### Option 2: Default GitHub Token (Limited)
 
-Uses the built-in `GITHUB*TOKEN` with these limitations:
+Uses the built-in `GITHUB_TOKEN` with these limitations:
 
 - ✅ Updates package.json and dependency files
 - ✅ Updates lock files
@@ -135,24 +135,24 @@ Uses the built-in `GITHUB*TOKEN` with these limitations:
 
 ```bash
 # Required for PR operations
-GITHUB*TOKEN=<your-token>
+GITHUB_TOKEN=<your-token>
 
 # For rebase functionality
-BUDDY*BOT*TOKEN=<your-pat> # Optional, fallback to GITHUB*TOKEN
+BUDDY_TOKEN=<your-pat> # Optional, fallback to GITHUB_TOKEN
 ```
 
 ## What Gets Updated
 
 ### File Types
 
-During rebase, Buddy Bot updates:
+During rebase, Buddy updates:
 
 | File Type | Examples | Token Required |
 |-----------|----------|----------------|
-| **Package files** | package.json | GITHUB*TOKEN |
-| **Lock files** | package-lock.json, yarn.lock, bun.lockb | GITHUB*TOKEN |
-| **Dependency files** | deps.yaml, dependencies.yaml, pkgx.yaml | GITHUB*TOKEN |
-| **GitHub Actions** | .github/workflows/*.yml | BUDDY*BOT*TOKEN |
+| **Package files** | package.json | GITHUB_TOKEN |
+| **Lock files** | package-lock.json, yarn.lock, bun.lockb | GITHUB_TOKEN |
+| **Dependency files** | deps.yaml, dependencies.yaml, pkgx.yaml | GITHUB_TOKEN |
+| **GitHub Actions** | .github/workflows/*.yml | BUDDY_TOKEN |
 
 ### PR Content
 
@@ -170,10 +170,10 @@ During rebase, Buddy Bot updates:
 
 **Error**: `refusing to allow a GitHub App to create or update workflow`
 
-**Solution**: Add `BUDDY*BOT*TOKEN` with `workflow` scope:
+**Solution**: Add `BUDDY_TOKEN` with `workflow` scope:
 ```bash
 # 1. Create PAT with 'repo' and 'workflow' scopes
-# 2. Add as repository secret 'BUDDY*BOT*TOKEN'
+# 2. Add as repository secret 'BUDDY_TOKEN'
 # 3. Re-run the rebase workflow
 ```
 
@@ -193,15 +193,15 @@ During rebase, Buddy Bot updates:
 
 #### 3. No PRs Found
 
-**Error**: `No buddy-bot PRs found`
+**Error**: `No buddy PRs found`
 
 **Cause**: Workflow looks for PRs created by:
 
-- Branch names starting with `buddy-bot/`
+- Branch names starting with `buddy/`
 - Author `github-actions[bot]`
 - Author containing `buddy`
 
-**Solution**: Ensure PRs were created by Buddy Bot
+**Solution**: Ensure PRs were created by Buddy
 
 #### 4. Rebase Not Triggered
 
@@ -226,7 +226,7 @@ on:
 
 # Custom PR detection
 env:
-  CUSTOM*AUTHOR*FILTER: 'my-custom-bot'
+  CUSTOM_AUTHOR_FILTER: 'my-custom-bot'
 ```
 
 ### Integration with Other Tools

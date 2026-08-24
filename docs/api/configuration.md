@@ -1,15 +1,15 @@
 # Configuration Types
 
-TypeScript interfaces and types for buddy-bot configuration.
+TypeScript interfaces and types for buddy configuration.
 
 ## Core Configuration
 
-### `BuddyBotConfig`
+### `BuddyConfig`
 
-Main configuration interface for buddy-bot.
+Main configuration interface for buddy.
 
 ```typescript
-interface BuddyBotConfig {
+interface BuddyConfig {
   /** Repository configuration */
   repository?: RepositoryConfig
 
@@ -770,7 +770,7 @@ type ConditionalConfig<T> = T | ((context: any) => T)
 Validate configuration object.
 
 ```typescript
-function validateConfig(config: BuddyBotConfig): ValidationResult
+function validateConfig(config: BuddyConfig): ValidationResult
 
 interface ValidationResult {
   /** Is configuration valid */
@@ -800,9 +800,9 @@ interface ValidationError {
 ### Basic Configuration
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   repository: {
     owner: 'myorg',
     name: 'myproject'
@@ -827,9 +827,9 @@ export default config
 ### Advanced Configuration
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   packages: {
     strategy: 'minor',
     groups: [

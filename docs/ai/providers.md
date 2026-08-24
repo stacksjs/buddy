@@ -1,6 +1,6 @@
 # AI Providers
 
-Buddy Bot's AI features are **bring-your-own-key**. You choose the provider and model; nothing is proxied through a third party, and no AI runs unless you configure a key.
+Buddy's AI features are **bring-your-own-key**. You choose the provider and model; nothing is proxied through a third party, and no AI runs unless you configure a key.
 
 With no key configured, every AI feature is a no-op and the dependency bot works exactly as it always has.
 
@@ -10,7 +10,7 @@ With no key configured, every AI feature is a no-op and the dependency bot works
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-That's the whole setup — Buddy Bot picks up the key and uses a current Claude model by default.
+That's the whole setup — Buddy picks up the key and uses a current Claude model by default.
 
 ## Supported providers
 
@@ -22,15 +22,15 @@ That's the whole setup — Buddy Bot picks up the key and uses a current Claude 
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | *(specify one)* |
 | OpenAI-compatible | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY` | *(specify one)* |
 
-Only Anthropic has a built-in default model. For the others you must name a model — Buddy Bot won't guess at another vendor's catalogue and silently route your requests to a model you didn't choose.
+Only Anthropic has a built-in default model. For the others you must name a model — Buddy won't guess at another vendor's catalogue and silently route your requests to a model you didn't choose.
 
 ## Configuration
 
 ```ts
-// buddy-bot.config.ts
-import type { BuddyBotConfig } from 'buddy-bot'
+// buddy.config.ts
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   ai: {
     provider: 'anthropic',
     model: 'opus',
@@ -69,15 +69,15 @@ Anything that isn't an alias is passed through unchanged, so a model released af
 
 ## Auto-selection
 
-With no `provider` set, Buddy Bot uses the first provider that has a key available, in the order **anthropic → openai → google → openrouter**. A blank or whitespace-only key counts as absent.
+With no `provider` set, Buddy uses the first provider that has a key available, in the order **anthropic → openai → google → openrouter**. A blank or whitespace-only key counts as absent.
 
 ## Per-run overrides
 
 ```bash
-BUDDY_BOT_MODEL=haiku buddy-bot scan
+BUDDY_MODEL=haiku buddy scan
 ```
 
-`BUDDY_BOT_MODEL` overrides the configured model for a single run — useful for testing a cheaper model without touching config.
+`BUDDY_MODEL` overrides the configured model for a single run — useful for testing a cheaper model without touching config.
 
 ## Gateways and self-hosted endpoints
 
@@ -102,12 +102,12 @@ For Anthropic behind a corporate gateway, set `baseUrl` to the gateway's origin.
 
 - Keys are read from the environment and never written to config, logs, or PR bodies.
 - Everything the AI layer logs passes through a redaction filter that masks provider keys, bearer tokens, GitHub tokens, and assignment-shaped secrets. Provider errors frequently echo request headers back, so this matters in practice.
-- Buddy Bot never sends your source to a provider unless a feature you enabled explicitly does so.
+- Buddy never sends your source to a provider unless a feature you enabled explicitly does so.
 
 ## Programmatic use
 
 ```ts
-import { createAiClient } from 'buddy-bot'
+import { createAiClient } from '@buddysh/buddy'
 
 const ai = createAiClient(config)
 if (!ai) {

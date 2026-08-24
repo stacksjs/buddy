@@ -1,23 +1,23 @@
 # Migration Guide
 
-This guide helps you migrate from existing dependency management tools like Renovate and Dependabot to Buddy Bot.
+This guide helps you migrate from existing dependency management tools like Renovate and Dependabot to Buddy.
 
 ## Quick Migration
 
-Buddy Bot includes automated migration capabilities to ease the transition from other tools.
+Buddy includes automated migration capabilities to ease the transition from other tools.
 
 ### Interactive Migration
 
 Run the setup command to automatically detect and migrate existing configurations:
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 This will:
 
 - 🔍 **Detect** existing Renovate and Dependabot configurations
-- ⚙️ **Convert** settings to Buddy Bot format
+- ⚙️ **Convert** settings to Buddy format
 - 📋 **Generate** migration report with compatibility notes
 - 🚀 **Setup** new workflows and configuration
 
@@ -33,7 +33,7 @@ This will:
 For detailed migration instructions, see the dedicated guides:
 
 - **[📝 Renovate Migration →](./migration/renovate)** - Comprehensive guide for migrating from Renovate
-- **[📝 Dependabot Migration →](./migration/dependabot)** - Complete Dependabot to Buddy Bot migration
+- **[📝 Dependabot Migration →](./migration/dependabot)** - Complete Dependabot to Buddy migration
 
 ## Quick Examples
 
@@ -50,12 +50,12 @@ For detailed migration instructions, see the dedicated guides:
 ```
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   schedule: { cron: '0 4 * * *', timezone: 'UTC' },
   packages: { strategy: 'all', ignore: ['react'] },
   pullRequest: { autoMerge: { enabled: true, strategy: 'squash' } }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Basic Dependabot Migration
@@ -73,18 +73,18 @@ updates:
 ```
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   schedule: { cron: '0 2 * * 1', timezone: 'UTC' },
   packages: { strategy: 'all' }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Migration Mapping
 
 ### Schedule Conversion
 
-| Renovate | Dependabot | Buddy Bot | Description |
+| Renovate | Dependabot | Buddy | Description |
 |----------|------------|-----------|-------------|
 | `"before 6am"` | `daily` | `0 4 * * *` | Daily at 4 AM |
 | `"every weekend"` | `weekly` | `0 2 * * 6` | Saturday 2 AM |
@@ -92,7 +92,7 @@ export default {
 
 ### Update Strategy Mapping
 
-| Renovate | Dependabot | Buddy Bot | Notes |
+| Renovate | Dependabot | Buddy | Notes |
 |----------|------------|-----------|-------|
 | `automergeType: "patch"` | N/A | `strategy: "patch"` | Patch updates only |
 | `separatePatchReleases: false` | N/A | `strategy: "minor"` | Minor + patch |
@@ -100,7 +100,7 @@ export default {
 
 ### Grouping & Patterns
 
-| Renovate | Buddy Bot | Example |
+| Renovate | Buddy | Example |
 |----------|-----------|---------|
 | `matchPackagePatterns` | `patterns` | `["^@types/", "^eslint"]` |
 | `matchPackageNames` | `packages` | `["react", "typescript"]` |
@@ -135,7 +135,7 @@ export default {
     reviewers: ['@team-leads'],
     labels: ['dependencies', 'review-required']
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Aggressive Migration
@@ -177,18 +177,18 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Workflow Migration
 
 ### GitHub Actions Setup
 
-Buddy Bot automatically generates optimized GitHub Actions workflows:
+Buddy automatically generates optimized GitHub Actions workflows:
 
 ```bash
 # Run setup to generate workflows
-buddy-bot setup
+buddy setup
 
 # Generated files
 # .github/workflows/buddy-dashboard.yml
@@ -219,17 +219,17 @@ Test your configuration before going live:
 
 ```bash
 # Preview what would be updated
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Test update process without creating PRs
-buddy-bot update --dry-run
+buddy update --dry-run
 ```
 
 ### Gradual Rollout
 
-1. **Week 1**: Setup Buddy Bot alongside existing tool
+1. **Week 1**: Setup Buddy alongside existing tool
 2. **Week 2**: Compare PR quality and timing
-3. **Week 3**: Disable old tool, monitor Buddy Bot
+3. **Week 3**: Disable old tool, monitor Buddy
 4. **Week 4**: Remove old configurations
 
 ## Troubleshooting
@@ -243,12 +243,12 @@ Solution: Review migration report warnings and manually configure advanced featu
 
 **❌ Schedule conflicts**
 ```
-Solution: Disable old tool first, then setup Buddy Bot schedules
+Solution: Disable old tool first, then setup Buddy schedules
 ```
 
 **❌ PR format differences**
 ```
-Solution: Customize PR templates in buddy-bot.config.ts
+Solution: Customize PR templates in buddy.config.ts
 ```
 
 ### Getting Help
@@ -263,7 +263,7 @@ Solution: Customize PR templates in buddy-bot.config.ts
 
 - Run migration during low-activity periods
 - Test with dry-run first
-- Keep old configurations until Buddy Bot is proven stable
+- Keep old configurations until Buddy is proven stable
 - Monitor first few weeks closely
 - Document any custom configurations needed
 
@@ -285,4 +285,4 @@ After migration:
 4. 📈 **Monitor**: Track update frequency and PR quality
 5. 🎯 **Optimize**: Adjust strategies based on team workflow
 
-The migration process ensures a smooth transition while maintaining your existing dependency management practices and improving upon them with Buddy Bot's advanced features.
+The migration process ensures a smooth transition while maintaining your existing dependency management practices and improving upon them with Buddy's advanced features.

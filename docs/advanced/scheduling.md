@@ -21,7 +21,7 @@ export default {
     // Maximum execution time
     timeout: 3600 // 1 hour
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Common Patterns
@@ -75,7 +75,7 @@ export default {
       labels: ['major-update', 'breaking-changes']
     }
   ]
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## GitHub Actions Integration
@@ -106,10 +106,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
       - run: bun install
-      - run: bunx buddy-bot update
+      - run: bunx @buddysh/buddy update
 
         env:
-          GITHUB*TOKEN: ${{ secrets.GITHUB*TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Advanced Workflow with Matrix
@@ -151,13 +151,13 @@ jobs:
       - run: bun install
       - run: |
 
-          bunx buddy-bot update \
+          bunx @buddysh/buddy update \
             --strategy ${{ matrix.strategy }} \
             --labels "${{ matrix.labels }}" \
             ${{ matrix.reviewers && format('--reviewers "{0}"', matrix.reviewers) || '' }} \
             ${{ matrix.auto-merge && '--auto-merge' || '' }}
         env:
-          GITHUB*TOKEN: ${{ secrets.GITHUB*TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Conditional Scheduling
@@ -188,7 +188,7 @@ export default {
       }
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Trigger-Based Updates
@@ -400,14 +400,14 @@ const dashboardConfig = {
       integrations: {
         grafana: {
           endpoint: 'https://grafana.company.com',
-          apiKey: process.env.GRAFANA*API*KEY
+          apiKey: process.env.GRAFANA_API_KEY
         },
         slack: {
-          webhook: process.env.SLACK*WEBHOOK,
+          webhook: process.env.SLACK_WEBHOOK,
           channel: '#dependency-updates'
         },
         teams: {
-          webhook: process.env.TEAMS*WEBHOOK
+          webhook: process.env.TEAMS_WEBHOOK
         }
       }
     }
@@ -423,38 +423,38 @@ Manage schedules via command line interface.
 
 ```bash
 # List active schedules
-buddy-bot schedule list
+buddy schedule list
 
 # Create new schedule
-buddy-bot schedule create --name "security" --cron "0 */6 * * *" --strategy patch
+buddy schedule create --name "security" --cron "0 */6 * * *" --strategy patch
 
 # Update existing schedule
-buddy-bot schedule update security --cron "0 */4 * * *"
+buddy schedule update security --cron "0 */4 * * *"
 
 # Disable schedule
-buddy-bot schedule disable security
+buddy schedule disable security
 
 # Test schedule
-buddy-bot schedule test security --dry-run
+buddy schedule test security --dry-run
 
 # Manual trigger
-buddy-bot schedule run security --force
+buddy schedule run security --force
 ```
 
 ### Schedule Analysis
 
 ```bash
 # Analyze schedule performance
-buddy-bot schedule analyze --since "7 days ago"
+buddy schedule analyze --since "7 days ago"
 
 # Check next execution times
-buddy-bot schedule next
+buddy schedule next
 
 # Validate cron expressions
-buddy-bot schedule validate "0 2 * * 1"
+buddy schedule validate "0 2 * * 1"
 
 # Optimize schedules
-buddy-bot schedule optimize --suggest
+buddy schedule optimize --suggest
 ```
 
 ## Integration Examples
@@ -493,7 +493,7 @@ export default {
     pauseDuringIncidents: true,
     teamCapacityThreshold: 0.8
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 See [GitHub Actions Integration](/features/github-actions) for more workflow examples.

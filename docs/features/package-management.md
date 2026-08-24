@@ -151,7 +151,7 @@ export default {
       'build/**/package.json'
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Package Analysis
@@ -162,29 +162,29 @@ Buddy provides detailed package analysis and information retrieval.
 
 ```bash
 # Get detailed package information
-buddy-bot info react
+buddy info react
 
 # Check if package exists
-buddy-bot exists @types/unknown-package
+buddy exists @types/unknown-package
 
 # Get all available versions
-buddy-bot versions typescript
+buddy versions typescript
 
 # Get latest version only
-buddy-bot latest vue
+buddy latest vue
 ```
 
 ### Dependency Analysis
 
 ```bash
 # Show package dependencies
-buddy-bot deps react
+buddy deps react
 
 # Compare versions
-buddy-bot compare react 17.0.0 18.0.0
+buddy compare react 17.0.0 18.0.0
 
 # Search for packages
-buddy-bot search "state management"
+buddy search "state management"
 ```
 
 ### Registry Integration
@@ -321,7 +321,7 @@ export default {
       'babel-_' // All Babel packages
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Include/Exclude by Scope
@@ -372,7 +372,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Pattern-Based Groups
@@ -424,7 +424,7 @@ export default {
       '@angular/core': '^16.0.0 || ^17.0.0' // Multiple ranges
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Version Prefix Preservation
@@ -503,7 +503,7 @@ export default {
       }
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Cross-Workspace Dependencies
@@ -664,29 +664,29 @@ All package management features are available via CLI.
 
 ```bash
 # Check package updates
-buddy-bot check react vue typescript
+buddy check react vue typescript
 
 # Get package information
-buddy-bot info @types/node --detailed
+buddy info @types/node --detailed
 
 # Search packages
-buddy-bot search "ui component" --limit 10
+buddy search "ui component" --limit 10
 
 # Analyze dependencies
-buddy-bot deps react --depth 2
+buddy deps react --depth 2
 ```
 
 ### Batch Operations
 
 ```bash
 # Update multiple packages
-buddy-bot update --packages react,vue,typescript
+buddy update --packages react,vue,typescript
 
 # Update by pattern
-buddy-bot update --pattern "@types/_"
+buddy update --pattern "@types/_"
 
 # Update by group
-buddy-bot update --group "React Ecosystem"
+buddy update --group "React Ecosystem"
 ```
 
 See [CLI Package Commands](/cli/package) for complete CLI reference.

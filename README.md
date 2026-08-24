@@ -6,13 +6,13 @@
 <!-- [![npm downloads][npm-downloads-src]][npm-downloads-href] -->
 <!-- [![Codecov][codecov-src]][codecov-href] -->
 
-# 🐶 Buddy Bot
+# 🐶 Buddy
 
 > The fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects _(and PHP, Zig)_.
 
-Buddy Bot is a lightning-fast alternative to Dependabot and Renovate, purpose-built for modern JavaScript, TypeScript, PHP, and Zig ecosystems. It intelligently scans your projects, detects outdated & deprecated dependencies across multiple package managers, and creates beautifully formatted pull requests with comprehensive changelogs and metadata.
+Buddy is a lightning-fast alternative to Dependabot and Renovate, purpose-built for modern JavaScript, TypeScript, PHP, and Zig ecosystems. It intelligently scans your projects, detects outdated & deprecated dependencies across multiple package managers, and creates beautifully formatted pull requests with comprehensive changelogs and metadata.
 
-![Buddy Bot Pull Request Example](.github/art/screenshot.png)
+![Buddy Pull Request Example](.github/art/screenshot.png)
 
 ## Features
 
@@ -56,7 +56,7 @@ Buddy Bot is a lightning-fast alternative to Dependabot and Renovate, purpose-bu
 - **Zero Configuration**: _Works immediately with intelligent defaults_
 - **Interactive Setup**: _Renovate-like guided configuration with validation_
 - **Migration Tools**: _Seamless import from existing Renovate and Dependabot setups_
-- **TypeScript Config**: _Full type safety with `buddy-bot.config.ts`_
+- **TypeScript Config**: _Full type safety with `buddy.config.ts`_
 
 ### 🔌 **Extensible Integration**
 
@@ -69,19 +69,19 @@ Buddy Bot is a lightning-fast alternative to Dependabot and Renovate, purpose-bu
 
 ```bash
 # Install globally
-bun add -g buddy-bot
+bun add -g @buddysh/buddy
 
 # Interactive setup (recommended)
-buddy-bot setup
+buddy setup
 
 # Non-interactive setup for CI/CD
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Non-interactive with specific preset
-buddy-bot setup --non-interactive --preset testing --verbose
+buddy setup --non-interactive --preset testing --verbose
 
 # Or run directly for scanning only
-buddy-bot scan
+buddy scan
 ```
 
 ## Usage
@@ -91,7 +91,7 @@ buddy-bot scan
 The easiest way to get started is with the interactive setup command:
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 This comprehensive setup wizard will guide you through configuring automated dependency updates for your project in a Renovate-like experience.
@@ -102,13 +102,13 @@ For CI/CD pipelines and automated deployments, use the non-interactive mode:
 
 ```bash
 # Basic non-interactive setup (uses defaults)
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Specify preset and token setup
-buddy-bot setup --non-interactive --preset testing --token-setup existing-secret --verbose
+buddy setup --non-interactive --preset testing --token-setup existing-secret --verbose
 
 # Production setup with security focus
-buddy-bot setup --non-interactive --preset security --token-setup existing-secret
+buddy setup --non-interactive --preset security --token-setup existing-secret
 ```
 
 **Available options:**
@@ -188,7 +188,7 @@ Choose from several carefully crafted presets with smart recommendations:
 
 #### 📝 Step 7: Enhanced Configuration Generation
 
-- Creates `buddy-bot.config.json` with repository-specific settings
+- Creates `buddy.config.json` with repository-specific settings
 - **Project-aware defaults** - Configuration optimized for detected project type
 - **Ecosystem integration** - Includes detected package managers and dependency files
 - Includes sensible defaults and customization options
@@ -256,12 +256,12 @@ buddy help
 
 ### Configuration
 
-Create a `buddy-bot.config.ts` file in your project root:
+Create a `buddy.config.ts` file in your project root:
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   verbose: false,
 
   // Repository settings for PR creation
@@ -324,7 +324,7 @@ export default config
 
 ## Configuration Migration
 
-Buddy Bot can automatically migrate your existing dependency management configurations from Renovate and Dependabot, making the transition seamless.
+Buddy can automatically migrate your existing dependency management configurations from Renovate and Dependabot, making the transition seamless.
 
 ### Supported Migration Sources
 
@@ -334,16 +334,16 @@ Buddy Bot can automatically migrate your existing dependency management configur
 ### Migration Process
 
 1. **Automatic Detection** - Scans for existing configuration files
-2. **Smart Conversion** - Maps settings to Buddy Bot equivalents
+2. **Smart Conversion** - Maps settings to Buddy equivalents
 3. **Compatibility Check** - Identifies unsupported features
 4. **Migration Report** - Provides detailed conversion summary
 
 ```bash
 # Migration happens automatically during setup
-buddy-bot setup
+buddy setup
 
 # Or use programmatically
-import { ConfigurationMigrator } from 'buddy-bot/setup'
+import { ConfigurationMigrator } from '@buddysh/buddy/setup'
 
 const migrator = new ConfigurationMigrator()
 const tools = await migrator.detectExistingTools()
@@ -352,7 +352,7 @@ const result = await migrator.migrateFromRenovate('renovate.json')
 
 ### Migrated Settings
 
-| Renovate | Dependabot | Buddy Bot | Notes |
+| Renovate | Dependabot | Buddy | Notes |
 |----------|------------|-----------|-------|
 | `schedule` | `schedule.interval` | Workflow presets | Mapped to Standard/High-Frequency/Minimal |
 | `packageRules` | `ignore` | Package groups & ignore lists | Preserves grouping logic |
@@ -361,7 +361,7 @@ const result = await migrator.migrateFromRenovate('renovate.json')
 
 ## Integration Ecosystem
 
-Buddy Bot includes an extensible plugin system that enables integrations with popular collaboration and project management tools.
+Buddy includes an extensible plugin system that enables integrations with popular collaboration and project management tools.
 
 ### Built-in Integrations
 
@@ -457,10 +457,10 @@ Create custom integrations by defining plugins in `.buddy/plugins/`:
 ### Programmatic Usage
 
 ```typescript
-import { Buddy, ConfigManager } from 'buddy-bot'
+import { Buddy, getConfig } from '@buddysh/buddy'
 
 // Load configuration
-const config = await ConfigManager.loadConfig()
+const config = await getConfig()
 
 // Create Buddy instance
 const buddy = new Buddy(config)
@@ -497,11 +497,11 @@ The dependency dashboard provides a centralized view of all your repository's de
 
 ## Rebase Functionality
 
-Buddy Bot includes powerful rebase functionality that allows you to update existing pull requests with the latest dependency versions, similar to Renovate's rebase feature.
+Buddy includes powerful rebase functionality that allows you to update existing pull requests with the latest dependency versions, similar to Renovate's rebase feature.
 
 ### How It Works
 
-All Buddy Bot pull requests include a rebase checkbox at the bottom:
+All Buddy pull requests include a rebase checkbox at the bottom:
 
 ```markdown
 ---
@@ -513,7 +513,7 @@ All Buddy Bot pull requests include a rebase checkbox at the bottom:
 
 ### Using the Rebase Feature
 
-1. **Check the box**: In any Buddy Bot PR, check the rebase checkbox
+1. **Check the box**: In any Buddy PR, check the rebase checkbox
 2. **Automatic detection**: The rebase workflow runs every minute to detect checked boxes
 3. **Updates applied**: The PR is automatically updated with the latest dependency versions
 4. **Checkbox unchecked**: After successful rebase, the checkbox is automatically unchecked
@@ -524,21 +524,21 @@ You can also trigger rebase manually using the CLI:
 
 ```bash
 # Check for PRs with rebase checkbox enabled and update them
-buddy-bot update-check
+buddy update-check
 
 # Dry run to see what would be rebased
-buddy-bot update-check --dry-run
+buddy update-check --dry-run
 
 # With verbose output
-buddy-bot update-check --verbose
+buddy update-check --verbose
 ```
 
 ### Automated Rebase Workflow
 
-Buddy Bot includes a pre-built GitHub Actions workflow (`.github/workflows/buddy-check.yml`) that:
+Buddy includes a pre-built GitHub Actions workflow (`.github/workflows/buddy-check.yml`) that:
 
 - **🕐 Runs every minute**: Automatically checks for rebase requests
-- **🔍 Scans all PRs**: Finds Buddy Bot PRs with checked rebase boxes
+- **🔍 Scans all PRs**: Finds Buddy PRs with checked rebase boxes
 - **📦 Updates dependencies**: Re-scans for latest versions and updates files
 - **📝 Updates PR content**: Refreshes PR title, body, and file changes
 - **✅ Maintains workflow files**: Updates GitHub Actions workflows (requires proper permissions)
@@ -550,7 +550,7 @@ For the rebase functionality to update GitHub Actions workflow files, you need p
 #### Option 1: Personal Access Token (Recommended)
 
 1. Create a [Personal Access Token](https://github.com/settings/tokens) with `repo` and `workflow` scopes
-2. Add it as a repository secret named `BUDDY_BOT_TOKEN`
+2. Add it as a repository secret named `BUDDY_TOKEN`
 3. The workflow automatically uses it when available
 
 #### Option 2: Default GitHub Token (Limited)
@@ -572,15 +572,15 @@ For the rebase functionality to update GitHub Actions workflow files, you need p
 
 ```bash
 # Create basic dashboard
-buddy-bot dashboard
+buddy dashboard
 
 # Create dashboard with custom title
-buddy-bot dashboard --title "My Dependencies"
+buddy dashboard --title "My Dependencies"
 ```
 
 ### Automated Dashboard Updates
 
-Buddy Bot includes a pre-built GitHub workflow (`.github/workflows/buddy-dashboard.yml`) that automatically updates your dependency dashboard:
+Buddy includes a pre-built GitHub workflow (`.github/workflows/buddy-dashboard.yml`) that automatically updates your dependency dashboard:
 
 - **📅 Scheduled**: Runs Monday, Wednesday, Friday at 9 AM UTC
 - **🖱️ Manual**: Trigger from Actions tab with custom options
@@ -596,8 +596,8 @@ The dashboard automatically organizes your dependencies and shows:
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
-- [&nbsp;] <!-- rebase-branch=buddy-bot/update-react-18 -->[chore(deps): update react to v18](../pull/123) (`react`)
-- [&nbsp;] <!-- rebase-branch=buddy-bot/update-types -->[chore(deps): update @types/node](../pull/124) (`@types/node`)
+- [&nbsp;] <!-- rebase-branch=buddy/update-react-18 -->[chore(deps): update react to v18](../pull/123) (`react`)
+- [&nbsp;] <!-- rebase-branch=buddy/update-types -->[chore(deps): update @types/node](../pull/124) (`@types/node`)
 
 ## Detected dependencies
 
@@ -629,7 +629,7 @@ The following updates have all been created. To force a retry/rebase of any, cli
 
 ## How It Works
 
-Buddy Bot's intelligent workflow delivers unmatched speed and accuracy:
+Buddy's intelligent workflow delivers unmatched speed and accuracy:
 
 1. **⚡ Lightning-Fast Scanning**: Leverages `bun outdated` and parallel API calls for instant dependency analysis
 2. **🔍 Universal Detection**: Automatically discovers and parses all dependency files across your entire project
@@ -738,7 +738,7 @@ Each table is followed by detailed release notes, changelogs, and package statis
 Buddy supports configurable auto-merge for pull requests to reduce manual overhead:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   pullRequest: {
     autoMerge: {
       enabled: true,
@@ -797,7 +797,7 @@ When running manually, you can customize:
 - 🔧 Debugging dependency issues
 - 📈 Monitoring update frequency
 - 🚀 Validating workflow changes
-- 📋 Learning how Buddy Bot works
+- 📋 Learning how Buddy works
 
 ## Package Grouping
 
@@ -869,12 +869,12 @@ This PR contains the following updates:
 
 ---
 
-This PR was generated by [Buddy](https://github.com/stacksjs/buddy-bot).
+This PR was generated by [Buddy](https://github.com/stacksjs/buddy).
 ```
 
-## Why Choose Buddy Bot
+## Why Choose Buddy
 
-| Feature | Buddy Bot | Dependabot | Renovate |
+| Feature | Buddy | Dependabot | Renovate |
 |---------|-----------|------------|----------|
 | **Performance** | ⚡ Lightning fast (Bun-native) | 🐌 | 🐌 |
 | **Package Ecosystem** | 🌟 Universal (8+ managers) | 📦 Limited scope | 📦 Limited scope |
@@ -923,14 +923,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install
-      - run: bunx buddy-bot scan --strategy ${{ github.event.inputs.strategy || 'patch' }} --verbose
+      - run: bunx @buddysh/buddy scan --strategy ${{ github.event.inputs.strategy || 'patch' }} --verbose
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - if: ${{ github.event.inputs.dry_run != 'true' }}
 
-        run: bunx buddy-bot update --strategy ${{ github.event.inputs.strategy || 'patch' }} --verbose
+        run: bunx @buddysh/buddy update --strategy ${{ github.event.inputs.strategy || 'patch' }} --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -1060,8 +1060,8 @@ The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
 Made with 💙
 
 <!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/buddy-bot?style=flat-square
-[npm-version-href]: https://npmjs.com/package/buddy-bot
+[npm-version-src]: https://img.shields.io/npm/v/buddy?style=flat-square
+[npm-version-href]: https://npmjs.com/package/buddy
 [github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/buddy/ci.yml?style=flat-square&branch=main
 [github-actions-href]: https://github.com/stacksjs/buddy/actions?query=workflow%3Aci
 

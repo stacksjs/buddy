@@ -9,7 +9,7 @@ Scan for dependency updates without making any changes.
 ### Usage
 
 ```bash
-buddy-bot scan [options]
+buddy scan [options]
 ```
 
 ### Options
@@ -24,22 +24,22 @@ buddy-bot scan [options]
 
 ```bash
 # Basic scan
-buddy-bot scan
+buddy scan
 
 # Verbose output
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Scan specific packages
-buddy-bot scan --packages "react,typescript"
+buddy scan --packages "react,typescript"
 
 # Use glob patterns
-buddy-bot scan --pattern "@types/*"
+buddy scan --pattern "@types/*"
 
 # Scan with strategy filter
-buddy-bot scan --strategy minor
+buddy scan --strategy minor
 
 # Ignore specific packages
-buddy-bot scan --ignore "eslint,prettier"
+buddy scan --ignore "eslint,prettier"
 ```
 
 ### Output
@@ -64,7 +64,7 @@ Update dependencies and create pull requests.
 ### Usage
 
 ```bash
-buddy-bot update [options]
+buddy update [options]
 ```
 
 ### Options
@@ -78,19 +78,19 @@ buddy-bot update [options]
 
 ```bash
 # Update all dependencies
-buddy-bot update
+buddy update
 
 # Preview what would be updated
-buddy-bot update --dry-run
+buddy update --dry-run
 
 # Update only patch versions
-buddy-bot update --strategy patch
+buddy update --strategy patch
 
 # Verbose output
-buddy-bot update --verbose
+buddy update --verbose
 
 # Ignore specific packages
-buddy-bot update --ignore "@types/node,eslint"
+buddy update --ignore "@types/node,eslint"
 ```
 
 ### Dry Run Output
@@ -118,7 +118,7 @@ Rebase/retry a pull request with latest updates.
 ### Usage
 
 ```bash
-buddy-bot rebase <pr-number> [options]
+buddy rebase <pr-number> [options]
 ```
 
 ### Parameters
@@ -134,18 +134,18 @@ buddy-bot rebase <pr-number> [options]
 
 ```bash
 # Rebase PR #17
-buddy-bot rebase 17
+buddy rebase 17
 
 # Verbose rebase
-buddy-bot rebase 17 --verbose
+buddy rebase 17 --verbose
 
 # Force rebase even if up to date
-buddy-bot rebase 17 --force
+buddy rebase 17 --force
 ```
 
 ### Process
 
-1. **Validation**: Checks if PR exists and is a buddy-bot PR
+1. **Validation**: Checks if PR exists and is a buddy PR
 2. **Analysis**: Extracts current package updates from PR body
 3. **Comparison**: Scans for latest versions
 4. **Update**: Updates existing PR in-place (preserves PR number)
@@ -156,7 +156,7 @@ buddy-bot rebase 17 --force
 ```bash
 🔄 Rebasing/retrying PR #17...
 📋 Found PR: chore(deps): update dependencies
-🌿 Branch: buddy-bot/update-dependencies-1704123456789
+🌿 Branch: buddy/update-dependencies-1704123456789
 📦 Found 2 packages to update
 🔍 Checking if rebase is needed...
 🔄 Updating PR with latest updates...
@@ -171,7 +171,7 @@ Auto-detect and rebase PRs with checked rebase boxes.
 ### Usage
 
 ```bash
-buddy-bot update-check [options]
+buddy update-check [options]
 ```
 
 ### Options
@@ -183,13 +183,13 @@ buddy-bot update-check [options]
 
 ```bash
 # Check and rebase marked PRs
-buddy-bot update-check
+buddy update-check
 
 # Preview what would be rebased
-buddy-bot update-check --dry-run
+buddy update-check --dry-run
 
 # Verbose output
-buddy-bot update-check --verbose
+buddy update-check --verbose
 ```
 
 ### Rebase Checkbox Format
@@ -214,7 +214,7 @@ When checked (marked with `x`):
 
 ### Process
 
-1. **Discovery**: Finds all open buddy-bot PRs
+1. **Discovery**: Finds all open buddy PRs
 2. **Detection**: Scans PR bodies for checked rebase boxes
 3. **Validation**: Extracts package updates from PR content
 4. **Rebase**: Updates each marked PR with latest versions
@@ -224,7 +224,7 @@ When checked (marked with `x`):
 
 ```bash
 🔍 Checking for PRs with rebase checkbox enabled...
-📋 Found 3 buddy-bot PR(s)
+📋 Found 3 buddy PR(s)
 🔄 PR #17 has rebase checkbox checked: chore(deps): update dependencies
 🔄 Rebasing PR #17...
 ✅ Successfully rebased PR #17
@@ -236,7 +236,7 @@ When checked (marked with `x`):
 
 ## Configuration Integration
 
-All update commands respect configuration from `buddy-bot.config.ts`:
+All update commands respect configuration from `buddy.config.ts`:
 
 ### Strategy Override
 
@@ -251,7 +251,7 @@ export default {
 
 ```bash
 # Override config strategy
-buddy-bot update --strategy minor
+buddy update --strategy minor
 ```
 
 ### Ignore Lists
@@ -267,7 +267,7 @@ export default {
 
 ```bash
 # Additional ignores for this run
-buddy-bot update --ignore "eslint,prettier"
+buddy update --ignore "eslint,prettier"
 # Result: ignores @types/node, eslint, and prettier
 ```
 
@@ -278,7 +278,7 @@ buddy-bot update --ignore "eslint,prettier"
 **Repository not configured:**
 ```bash
 ❌ Repository configuration required for PR creation
-Configure repository.provider, repository.owner, repository.name in buddy-bot.config.ts
+Configure repository.provider, repository.owner, repository.name in buddy.config.ts
 ```
 
 **Missing GitHub token:**
@@ -296,9 +296,9 @@ Configure repository.provider, repository.owner, repository.name in buddy-bot.co
 ❌ Could not find open PR #17
 ```
 
-**Not a buddy-bot PR:**
+**Not a buddy PR:**
 ```bash
-❌ PR #17 is not a buddy-bot PR (branch: feature/custom-update)
+❌ PR #17 is not a buddy PR (branch: feature/custom-update)
 ```
 
 ### Troubleshooting
@@ -313,7 +313,7 @@ Configure repository.provider, repository.owner, repository.name in buddy-bot.co
 
 - Verify GitHub token has correct permissions
 - Check repository settings allow Actions to create PRs
-- Use `buddy-bot open-settings` for quick access
+- Use `buddy open-settings` for quick access
 
 **Rebase fails:**
 
@@ -364,13 +364,13 @@ jobs:
 
       - name: Update dependencies
 
-        run: bunx buddy-bot update --strategy patch --verbose
+        run: bunx @buddysh/buddy update --strategy patch --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-rebase existing PRs
 
-        run: bunx buddy-bot update-check --verbose
+        run: bunx @buddysh/buddy update-check --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```

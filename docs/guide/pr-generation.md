@@ -1,6 +1,6 @@
 # PR Generation
 
-Buddy Bot creates beautifully formatted pull requests with comprehensive information about dependency updates.
+Buddy creates beautifully formatted pull requests with comprehensive information about dependency updates.
 
 ## PR Structure
 
@@ -107,7 +107,7 @@ pullRequest: {
 
 ### Dynamic Labels
 
-Buddy Bot automatically adds contextual labels:
+Buddy automatically adds contextual labels:
 
 | Label | Condition |
 |-------|-----------|
@@ -209,12 +209,12 @@ Every PR includes a rebase checkbox:
 ### Manual Trigger
 
 ```bash
-buddy-bot update-check --verbose
+buddy update-check --verbose
 ```
 
 ## Release Notes
 
-Buddy Bot includes detailed release notes:
+Buddy includes detailed release notes:
 
 ```markdown
 ### Release Notes
@@ -278,7 +278,7 @@ Ignore: Close this PR to ignore this update.
 Preview PRs without creating them:
 
 ```bash
-buddy-bot update --dry-run
+buddy update --dry-run
 ```
 
 Output shows:
@@ -292,9 +292,9 @@ Output shows:
 Create PRs programmatically:
 
 ```typescript
-import { Buddy, ConfigManager } from 'buddy-bot'
+import { Buddy, getConfig } from '@buddysh/buddy'
 
-const config = await ConfigManager.loadConfig()
+const config = await getConfig()
 const buddy = new Buddy(config)
 
 // Scan for updates

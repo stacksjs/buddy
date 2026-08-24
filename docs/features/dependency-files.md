@@ -159,7 +159,7 @@ dependencies:
 ### Global Settings
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   packages: {
     strategy: 'patch', // Apply to all file types
@@ -184,7 +184,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### File-Specific Configuration
@@ -199,7 +199,7 @@ export default {
       '.deps.yaml': 'all' // Hidden config files
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Pull Request Integration
@@ -249,7 +249,7 @@ export default {
       'default': 'chore(deps): update {fileType} dependencies'
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Monorepo Support
@@ -301,7 +301,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## CLI Commands
@@ -310,26 +310,26 @@ export default {
 
 ```bash
 # Scan only package.json files
-buddy-bot scan --file-type package.json
+buddy scan --file-type package.json
 
 # Scan only dependency files
-buddy-bot scan --file-type deps.yaml
+buddy scan --file-type deps.yaml
 
 # Scan specific files
-buddy-bot scan --files "deps.yaml,package.json"
+buddy scan --files "deps.yaml,package.json"
 ```
 
 ### Update Specific Formats
 
 ```bash
 # Update only npm dependencies
-buddy-bot update --package-manager npm
+buddy update --package-manager npm
 
 # Update only pkgx dependencies
-buddy-bot update --package-manager pkgx
+buddy update --package-manager pkgx
 
 # Update with different strategies per type
-buddy-bot update --strategy package.json:minor,deps.yaml:patch
+buddy update --strategy package.json:minor,deps.yaml:patch
 ```
 
 ## Troubleshooting
@@ -365,10 +365,10 @@ yamllint deps.yaml
 
 ```bash
 # Enable verbose logging for dependency files
-buddy-bot scan --verbose --debug dependency-files
+buddy scan --verbose --debug dependency-files
 
 # Show file detection process
-buddy-bot scan --show-files
+buddy scan --show-files
 ```
 
 ## Best Practices

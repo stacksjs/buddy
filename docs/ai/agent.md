@@ -1,6 +1,6 @@
 # Agent Runtime
 
-The agent runtime executes multi-step AI tasks inside your own GitHub Actions runner. Nothing is sent to a Buddy Bot server; the loop, the tools, and the workspace are all yours.
+The agent runtime executes multi-step AI tasks inside your own GitHub Actions runner. Nothing is sent to a Buddy server; the loop, the tools, and the workspace are all yours.
 
 It is the foundation the AI review, fix-CI, planning, and migration features run on.
 
@@ -79,7 +79,7 @@ Every run produces a structured transcript of model turns, tool calls, and error
 ## Programmatic use
 
 ```ts
-import { createAiClient, getAgentMode, runAgent } from 'buddy-bot'
+import { createAiClient, getAgentMode, runAgent } from '@buddysh/buddy'
 
 const ai = createAiClient(config)
 if (!ai)
@@ -91,7 +91,7 @@ const result = await runAgent(ai, {
   context: {
     workspace: process.cwd(),
     baseBranch: 'main',
-    branch: 'buddy-bot/update-react',
+    branch: 'buddy/update-react',
   },
 })
 
@@ -102,7 +102,7 @@ console.log(result.stopReason) // completed | max_tool_calls | timeout | budget 
 ### Custom tools
 
 ```ts
-import type { AgentTool } from 'buddy-bot'
+import type { AgentTool } from '@buddysh/buddy'
 
 const fetchAdvisory: AgentTool = {
   name: 'fetch_advisory',

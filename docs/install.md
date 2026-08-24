@@ -1,6 +1,6 @@
 # Installation
 
-Installing `buddy-bot` is easy. Simply pull it in via your package manager of choice, or download the binary directly.
+Installing `buddy` is easy. Simply pull it in via your package manager of choice, or download the binary directly.
 
 ## Package Managers
 
@@ -9,55 +9,55 @@ Choose your package manager of choice:
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev buddy-bot
-# npm i -d buddy-bot
+npm install --save-dev @buddysh/buddy
+# npm i -d @buddysh/buddy
 
 # or, install globally via
-npm i -g buddy-bot
+npm i -g @buddysh/buddy
 ```
 
 ```sh [bun]
-bun install --dev buddy-bot
-# bun add --dev buddy-bot
-# bun i -d buddy-bot
+bun install --dev buddy
+# bun add --dev @buddysh/buddy
+# bun i -d buddy
 
 # or, install globally via
-bun add --global buddy-bot
+bun add --global @buddysh/buddy
 ```
 
 ```sh [pnpm]
-pnpm add --save-dev buddy-bot
-# pnpm i -d buddy-bot
+pnpm add --save-dev @buddysh/buddy
+# pnpm i -d @buddysh/buddy
 
 # or, install globally via
-pnpm add --global buddy-bot
+pnpm add --global @buddysh/buddy
 ```
 
 ```sh [yarn]
-yarn add --dev buddy-bot
-# yarn i -d buddy-bot
+yarn add --dev @buddysh/buddy
+# yarn i -d buddy
 
 # or, install globally via
-yarn global add buddy-bot
+yarn global add buddy
 ```
 
 ```sh [brew]
-brew install buddy-bot # coming soon
+brew install buddy # coming soon
 ```
 
 ```sh [pkgx]
-pkgx buddy-bot # coming soon
+pkgx buddy # coming soon
 ```
 
 ::: tip Dependency File Support
-Buddy-bot automatically detects and updates pkgx dependency files (`deps.yaml`, `pkgx.yaml`) and Launchpad dependency files that use the same registry format. No additional configuration required!
+Buddy automatically detects and updates pkgx dependency files (`deps.yaml`, `pkgx.yaml`) and Launchpad dependency files that use the same registry format. No additional configuration required!
 :::
 
 :::
 
 ## Prerequisites
 
-Buddy-bot requires:
+Buddy requires:
 
 - **Bun** - The fast package manager and runtime
 - **Node.js** 18+ (for compatibility)
@@ -91,67 +91,67 @@ Choose the binary that matches your platform and architecture:
 
 ```sh [macOS (arm64)]
 # Download the binary
-curl -L https://github.com/stacksjs/buddy-bot/releases/download/v0.9.1/buddy-bot-darwin-arm64 -o buddy-bot
+curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-darwin-arm64 -o buddy
 
 # Make it executable
-chmod +x buddy-bot
+chmod +x buddy
 
 # Move it to your PATH
-mv buddy-bot /usr/local/bin/buddy-bot
+mv buddy /usr/local/bin/buddy
 ```
 
 ```sh [macOS (x64)]
 # Download the binary
-curl -L https://github.com/stacksjs/buddy-bot/releases/download/v0.9.1/buddy-bot-darwin-x64 -o buddy-bot
+curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-darwin-x64 -o buddy
 
 # Make it executable
-chmod +x buddy-bot
+chmod +x buddy
 
 # Move it to your PATH
-mv buddy-bot /usr/local/bin/buddy-bot
+mv buddy /usr/local/bin/buddy
 ```
 
 ```sh [Linux (arm64)]
 # Download the binary
-curl -L https://github.com/stacksjs/buddy-bot/releases/download/v0.9.1/buddy-bot-linux-arm64 -o buddy-bot
+curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-linux-arm64 -o buddy
 
 # Make it executable
-chmod +x buddy-bot
+chmod +x buddy
 
 # Move it to your PATH
-mv buddy-bot /usr/local/bin/buddy-bot
+mv buddy /usr/local/bin/buddy
 ```
 
 ```sh [Linux (x64)]
 # Download the binary
-curl -L https://github.com/stacksjs/buddy-bot/releases/download/v0.9.1/buddy-bot-linux-x64 -o buddy-bot
+curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-linux-x64 -o buddy
 
 # Make it executable
-chmod +x buddy-bot
+chmod +x buddy
 
 # Move it to your PATH
-mv buddy-bot /usr/local/bin/buddy-bot
+mv buddy /usr/local/bin/buddy
 ```
 
 ```sh [Windows (x64)]
 # Download the binary
-curl -L https://github.com/stacksjs/buddy-bot/releases/download/v0.9.1/buddy-bot-windows-x64.exe -o buddy-bot.exe
+curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-windows-x64.exe -o buddy.exe
 
 # Move it to your PATH (adjust the path as needed)
-move buddy-bot.exe C:\Windows\System32\buddy-bot.exe
+move buddy.exe C:\Windows\System32\buddy.exe
 ```
 
 :::
 
 ::: tip
-You can also find the `buddy-bot` binaries in GitHub [releases](https://github.com/stacksjs/buddy-bot/releases).
+You can also find the `buddy` binaries in GitHub [releases](https://github.com/stacksjs/buddy/releases).
 :::
 
 ## GitHub Setup
 
 ### For GitHub Actions (Recommended)
 
-When using buddy-bot in GitHub Actions, you don't need a personal token. Just configure proper workflow permissions:
+When using buddy in GitHub Actions, you don't need a personal token. Just configure proper workflow permissions:
 
 ```yaml
 name: Dependency Updates
@@ -172,17 +172,17 @@ jobs:
 
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
-      - run: bunx buddy-bot update
+      - run: bunx @buddysh/buddy update
 
         env:
-          GITHUB*TOKEN: ${{ secrets.GITHUB*TOKEN }} # Built-in token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Built-in token
 ```
 
-The `GITHUB*TOKEN` is automatically provided by GitHub Actions with the permissions you specify.
+The `GITHUB_TOKEN` is automatically provided by GitHub Actions with the permissions you specify.
 
 ### For Local Development (Optional)
 
-If you want to run buddy-bot locally to create PRs, you'll need a personal access token:
+If you want to run buddy locally to create PRs, you'll need a personal access token:
 
 #### Personal Access Token (Classic)
 
@@ -194,7 +194,7 @@ If you want to run buddy-bot locally to create PRs, you'll need a personal acces
 4. Set as environment variable:
 
 ```bash
-export GITHUB*TOKEN=ghp*xxxxxxxxxxxxxxxxxxxx
+export GITHUB_TOKEN=ghp*xxxxxxxxxxxxxxxxxxxx
 ```
 
 #### Fine-grained Personal Access Token
@@ -211,13 +211,13 @@ Verify your installation:
 
 ```bash
 # Check version
-buddy-bot --version
+buddy --version
 
 # Test GitHub authentication
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Generate sample configuration
-buddy-bot init
+buddy init
 ```
 
 ## IDE Integration
@@ -232,15 +232,15 @@ code --install-extension oven.bun-vscode
 
 ### Configuration Files
 
-Buddy-bot will automatically detect and use:
+Buddy will automatically detect and use:
 
-- `buddy-bot.config.ts` (TypeScript)
-- `buddy-bot.config.js` (JavaScript)
-- `buddy-bot.config.json` (JSON)
+- `buddy.config.ts` (TypeScript)
+- `buddy.config.js` (JavaScript)
+- `buddy.config.json` (JSON)
 
 ## Docker Support
 
-Run buddy-bot in a container:
+Run buddy in a container:
 
 ```dockerfile
 FROM oven/bun:latest
@@ -250,9 +250,9 @@ COPY package.json bun.lockb ./
 RUN bun install
 
 COPY . .
-RUN bun install -g buddy-bot
+RUN bun install -g buddy
 
-CMD ["buddy-bot", "scan"]
+CMD ["buddy", "scan"]
 ```
 
 ## CI/CD Setup
@@ -274,10 +274,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
       - run: bun install
-      - run: bunx buddy-bot update
+      - run: bunx @buddysh/buddy update
 
         env:
-          GITHUB*TOKEN: ${{ secrets.GITHUB*TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### GitLab CI
@@ -288,14 +288,14 @@ dependency-updates:
   script:
 
     - bun install
-    - bunx buddy-bot update
+    - bunx @buddysh/buddy update
 
   only:
 
     - schedules
 
   variables:
-    GITLAB*TOKEN: $CI*JOB*TOKEN
+    GITLAB_TOKEN: $CI_JOB_TOKEN
 ```
 
 ## Troubleshooting
@@ -331,7 +331,7 @@ After installation, the fastest way to get started is with the interactive setup
 
 ```bash
 # Run interactive setup (recommended)
-buddy-bot setup
+buddy setup
 ```
 
 This comprehensive setup wizard will:
@@ -350,18 +350,18 @@ If you prefer manual configuration, you can start with scanning:
 
 ```bash
 # Scan for outdated dependencies
-buddy-bot scan
+buddy scan
 
 # Create dependency dashboard
-buddy-bot dashboard
+buddy dashboard
 
 # Update dependencies with pull requests
-buddy-bot update
+buddy update
 ```
 
 ## Next Steps
 
 - **[Complete Setup Guide](/cli/setup)** - Detailed setup documentation
-- **[Usage Examples](/usage)** - How to use buddy-bot effectively
-- **[Configuration](/config)** - Customize buddy-bot behavior
+- **[Usage Examples](/usage)** - How to use buddy effectively
+- **[Configuration](/config)** - Customize buddy behavior
 - **[CLI Reference](/cli/)** - Complete command documentation

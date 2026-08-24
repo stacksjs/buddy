@@ -1,19 +1,19 @@
 # Migrating from Renovate
 
-This guide provides detailed instructions for migrating from Renovate to Buddy Bot, including configuration mappings and best practices.
+This guide provides detailed instructions for migrating from Renovate to Buddy, including configuration mappings and best practices.
 
 ## Automated Migration
 
-Buddy Bot can automatically detect and migrate most Renovate configurations:
+Buddy can automatically detect and migrate most Renovate configurations:
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 The migration process will:
 
 - 🔍 Detect Renovate config files (`renovate.json`, `.renovaterc`, `package.json`)
-- ⚙️ Convert settings to Buddy Bot format
+- ⚙️ Convert settings to Buddy format
 - ⚠️ Identify incompatible features
 - 📋 Generate detailed migration report
 
@@ -21,7 +21,7 @@ The migration process will:
 
 ### Basic Settings
 
-| Renovate Setting | Buddy Bot Equivalent | Notes |
+| Renovate Setting | Buddy Equivalent | Notes |
 |-----------------|---------------------|-------|
 | `extends` | N/A | Use explicit configuration instead |
 | `schedule` | `schedule.cron` | Converted to cron expressions |
@@ -42,7 +42,7 @@ The migration process will:
   "schedule": ["before 6am"]
 }
 
-// Buddy Bot
+// Buddy
 {
   schedule: {
     cron: '0 4 * * *', // 4 AM daily
@@ -53,7 +53,7 @@ The migration process will:
 
 **Common Schedule Mappings:**
 
-| Renovate | Buddy Bot Cron | Description |
+| Renovate | Buddy Cron | Description |
 |----------|---------------|-------------|
 | `"before 6am"` | `0 4 * * *` | Daily at 4 AM |
 | `"every weekend"` | `0 2 * * 6` | Saturday 2 AM |
@@ -76,7 +76,7 @@ The migration process will:
   ]
 }
 
-// Buddy Bot
+// Buddy
 {
   packages: {
     groups: [
@@ -104,7 +104,7 @@ The migration process will:
   ]
 }
 
-// Buddy Bot
+// Buddy
 {
   packages: {
     groups: [
@@ -138,7 +138,7 @@ The migration process will:
   ]
 }
 
-// Buddy Bot
+// Buddy
 {
   packages: {
     strategy: 'minor', // Excludes major updates
@@ -165,7 +165,7 @@ The migration process will:
   "dependencyDashboardTitle": "Dependency Updates"
 }
 
-// Buddy Bot
+// Buddy
 {
   dashboard: {
     enabled: true,
@@ -196,7 +196,7 @@ The migration process will:
   ]
 }
 
-// Buddy Bot
+// Buddy
 {
   pullRequest: {
     autoMerge: {
@@ -225,7 +225,7 @@ The migration process will:
 
 ## Incompatible Features
 
-Some Renovate features don't have direct equivalents in Buddy Bot:
+Some Renovate features don't have direct equivalents in Buddy:
 
 ### ❌ Not Supported
 
@@ -233,7 +233,7 @@ Some Renovate features don't have direct equivalents in Buddy Bot:
 - **Regex Managers** (`regexManagers`): Manual configuration needed
 - **Custom Datasources**: Limited to npm, Composer, GitHub Actions
 - **Complex Scheduling Logic**: Use cron expressions instead
-- **Branch Prefix Customization**: Fixed `buddy-bot/` prefix
+- **Branch Prefix Customization**: Fixed `buddy/` prefix
 
 ### ⚠️ Requires Manual Setup
 
@@ -267,7 +267,7 @@ export default {
     reviewers: ['@team-leads'],
     labels: ['dependencies']
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Advanced Setup
@@ -328,7 +328,7 @@ export default {
     includePackageJson: true,
     includeGitHubActions: true
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Step-by-Step Migration
@@ -345,7 +345,7 @@ jq '.renovate' package.json > renovate-config.backup.json
 ### 2. Run Automated Migration
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 Review the migration report and note any warnings or incompatible features.
@@ -354,10 +354,10 @@ Review the migration report and note any warnings or incompatible features.
 
 ```bash
 # Test scanning
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Test update process (dry run)
-buddy-bot update --dry-run
+buddy update --dry-run
 ```
 
 ### 4. Validate Generated Workflows
@@ -370,9 +370,9 @@ Check the generated GitHub Actions workflows:
 
 ### 5. Gradual Transition
 
-1. **Week 1**: Run both Renovate and Buddy Bot in parallel
+1. **Week 1**: Run both Renovate and Buddy in parallel
 2. **Week 2**: Compare PR quality and timing
-3. **Week 3**: Disable Renovate, monitor Buddy Bot
+3. **Week 3**: Disable Renovate, monitor Buddy
 4. **Week 4**: Remove Renovate configuration
 
 ### 6. Cleanup
@@ -406,7 +406,7 @@ npm pkg delete renovate
 
 **Custom managers not working:**
 ```typescript
-// Buddy Bot focuses on standard package managers
+// Buddy focuses on standard package managers
 // For custom files, consider manual updates
 ```
 
@@ -435,4 +435,4 @@ npm pkg delete renovate
 - Skip dry-run testing
 - Forget to update team documentation
 
-Renovate's flexibility comes with complexity. Buddy Bot aims for simplicity while maintaining power - your migration might be a good opportunity to simplify your dependency management strategy.
+Renovate's flexibility comes with complexity. Buddy aims for simplicity while maintaining power - your migration might be a good opportunity to simplify your dependency management strategy.

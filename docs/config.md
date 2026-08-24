@@ -1,16 +1,16 @@
 # Configuration
 
-Buddy can be configured using a `buddy-bot.config.ts` _(or `buddy-bot.config.js`)_ file and it will be automatically loaded when running buddy commands.
+Buddy can be configured using a `buddy.config.ts` _(or `buddy.config.js`)_ file and it will be automatically loaded when running buddy commands.
 
 Buddy automatically detects and updates multiple dependency file formats including `package.json`, pkgx dependency files (`deps.yaml`, `pkgx.yaml`), Launchpad dependency files that use the same registry format, and GitHub Actions workflow dependencies.
 
 ## Basic Configuration
 
 ```typescript
-// buddy-bot.config.ts
-import type { BuddyBotConfig } from 'buddy-bot'
+// buddy.config.ts
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   // Enable verbose logging
   verbose: true,
 
@@ -85,7 +85,7 @@ All dependency files are parsed using the `ts-pkgx` library and updates are appl
 Organize related packages for coordinated updates:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   packages: {
     strategy: 'all',
     groups: [
@@ -229,7 +229,7 @@ rules: [
 
 #### Migrating from Renovate
 
-`buddy-bot setup` converts Renovate `packageRules` automatically.
+`buddy setup` converts Renovate `packageRules` automatically.
 `matchPackageNames`, `matchPackagePrefixes`, `matchDepTypes`, `matchFileNames`,
 `matchManagers`, `matchCurrentVersion`, `automerge`, `labels`, `reviewers`,
 `assignees`, `groupName`, `prPriority` and `minimumReleaseAge` all map across.
@@ -239,9 +239,9 @@ approximating it:
 
 - **Renovate schedules** are natural language (`"after 10pm every weekday"`);
 
-  buddy-bot rules take cron. Translating prose would be guessing.
+  buddy rules take cron. Translating prose would be guessing.
 
-- **Update types** Renovate has and buddy-bot does not — `digest`, `pin`,
+- **Update types** Renovate has and buddy does not — `digest`, `pin`,
 
   `lockFileMaintenance`, `rollback`, `replacement`.
 
@@ -256,7 +256,7 @@ approximating it:
 Customize pull request formatting:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   pullRequest: {
     titleFormat: 'chore(deps): {updateType} {packages}',
     commitMessageFormat: 'chore(deps): update {packages}',
@@ -284,7 +284,7 @@ const config: BuddyBotConfig = {
 Configure GitHub Actions workflow generation:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   workflows: {
     enabled: true,
     outputDir: '.github/workflows',
@@ -340,12 +340,12 @@ const config: BuddyBotConfig = {
 | `verbose` | `boolean` | Shorthand for `logLevel: 'debug'` | `false` |
 | `logLevel` | `'silent' \| 'error' \| 'warn' \| 'info' \| 'debug'` | How much output to emit. Overrides `verbose` | `'info'` |
 
-Set `logLevel: 'silent'` when embedding Buddy Bot in another tool that owns its
-own output. `BUDDY_BOT_LOG_LEVEL` sets the same value from the environment.
+Set `logLevel: 'silent'` when embedding Buddy in another tool that owns its
+own output. `BUDDY_LOG_LEVEL` sets the same value from the environment.
 
 ### Registry Settings
 
-For private or self-hosted package registries. When unset, Buddy Bot reads
+For private or self-hosted package registries. When unset, Buddy reads
 `registry=` and `@scope:registry=` from the project and home `.npmrc`, matching
 what npm itself would resolve.
 
@@ -356,7 +356,7 @@ what npm itself would resolve.
 | `registries.composer` | `string` | Composer/Packagist base URL | `<https://packagist.org>` |
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   registries: {
     npm: 'https://npm.internal.acme.com',
     npmScopes: {
@@ -368,7 +368,7 @@ const config: BuddyBotConfig = {
 
 ### Security Settings
 
-Buddy Bot checks every dependency against the [OSV.dev](https://osv.dev)
+Buddy checks every dependency against the [OSV.dev](https://osv.dev)
 advisory database and annotates updates that resolve a known vulnerability.
 
 | Option | Type | Description | Default |
@@ -453,7 +453,7 @@ GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 GH_TOKEN=ghp_xxxxxxxxxxxx
 
 # Optional: alternative token, preferred when set (needs `workflow` scope)
-BUDDY_BOT_TOKEN=ghp_xxxxxxxxxxxx
+BUDDY_TOKEN=ghp_xxxxxxxxxxxx
 
 # Optional: GitHub Enterprise Server. GitHub Actions sets both automatically
 GITHUB_API_URL=https://github.acme.com/api/v3
@@ -469,7 +469,7 @@ COMPOSER_REGISTRY_URL=https://packagist.acme.com
 DOCKERHUB_TOKEN=dckr_pat_xxxxxxxxxxxx
 
 # Optional: output verbosity (silent|error|warn|info|debug)
-BUDDY_BOT_LOG_LEVEL=info
+BUDDY_LOG_LEVEL=info
 
 # Optional: per-request HTTP timeout in milliseconds (default: 30000)
 BUDDY_HTTP_TIMEOUT_MS=30000
@@ -480,12 +480,12 @@ BUN_CONFIG_NO_CACHE=false
 
 ## GitHub Enterprise Server
 
-Buddy Bot runs unmodified against GitHub Enterprise Server. On a GHES runner,
+Buddy runs unmodified against GitHub Enterprise Server. On a GHES runner,
 GitHub Actions exports `GITHUB_API_URL` and `GITHUB_SERVER_URL` automatically,
 so no configuration is needed. Outside Actions, set them explicitly:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   repository: {
     provider: 'github',
     owner: 'acme',
@@ -498,15 +498,15 @@ const config: BuddyBotConfig = {
 
 ## Configuration Validation
 
-Buddy Bot validates your configuration when it loads, before any network or git
+Buddy validates your configuration when it loads, before any network or git
 work happens, and reports every problem it finds at once:
 
 ```bash
-buddy-bot scan
+buddy scan
 ```
 
 ```text
-Invalid buddy-bot configuration (2 issues):
+Invalid buddy configuration (2 issues):
   • packages.strategy: expected one of "major", "minor", "patch", "all", got "minr"
   • packages.groups[0].patterns: expected a non-empty array of patterns, got []
 ```
@@ -518,7 +518,7 @@ and API URLs, severities, log levels, and the numeric bounds on
 You can also run it yourself:
 
 ```typescript
-import { formatConfigIssues, validateConfig } from 'buddy-bot'
+import { formatConfigIssues, validateConfig } from '@buddysh/buddy'
 
 const issues = validateConfig(config)
 if (issues.length > 0)
@@ -530,11 +530,11 @@ if (issues.length > 0)
 For different environments or workflows:
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 const isDev = process.env.NODE_ENV === 'development'
 const isCI = process.env.CI === 'true'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   verbose: isDev,
   packages: {
     strategy: isCI ? 'patch' : 'all',
@@ -556,10 +556,10 @@ export default config
 Full TypeScript support with type checking:
 
 ```typescript
-import type { BuddyBotConfig, PackageGroup } from 'buddy-bot'
+import type { BuddyConfig, PackageGroup } from '@buddysh/buddy'
 
 // Type-safe configuration
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   // TypeScript will validate all options
   packages: {
     strategy: 'patch', // ✅ Valid
@@ -591,7 +591,7 @@ export default {
     reviewers: ['tech-lead'],
     autoMerge: { enabled: false }, // Manual review required
   },
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Aggressive Updates
@@ -615,13 +615,13 @@ export default {
       conditions: ['patch-only'],
     },
   },
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 _Then run:_
 
 ```bash
-buddy-bot update
+buddy update
 ```
 
 ## Supported Dependency Types
@@ -683,7 +683,7 @@ steps:
 #### Ignore Specific Packages
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   packages: {
     ignore: [
       // npm packages
@@ -707,7 +707,7 @@ const config: BuddyBotConfig = {
 Update strategies apply to all dependency types:
 
 ```typescript
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   packages: {
     strategy: 'patch', // Applies to npm, pkgx, AND GitHub Actions
   },

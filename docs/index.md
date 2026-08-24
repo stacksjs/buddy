@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-  name: "buddy-bot"
+  name: "buddy"
   text: "Intelligent Dependency Management"
   tagline: "Keep your dependencies up-to-date with automated pull requests."
   image: /images/logo-white.png
@@ -16,7 +16,7 @@ hero:
       link: /intro
     - theme: alt
       text: View on GitHub
-      link: https://github.com/stacksjs/buddy-bot
+      link: https://github.com/stacksjs/buddy
 
 features:
   - title: "Smart Scanning"

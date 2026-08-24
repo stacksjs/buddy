@@ -18,22 +18,22 @@ The dependency dashboard provides a comprehensive overview of your repository's 
 Create or update your dependency dashboard:
 
 ```bash
-buddy-bot dashboard
+buddy dashboard
 ```
 
 ### With Options
 
 ```bash
 # Use custom title
-buddy-bot dashboard --title "My Project Dependencies"
+buddy dashboard --title "My Project Dependencies"
 
 # Update specific issue
-buddy-bot dashboard --issue-number 42
+buddy dashboard --issue-number 42
 ```
 
 ## Configuration
 
-Configure the dashboard in your `buddy-bot.config.ts`:
+Configure the dashboard in your `buddy.config.ts`:
 
 ```typescript
 export default {
@@ -90,7 +90,7 @@ Example:
 
 The following updates have all been created. To force a retry/rebase of any, click on a checkbox below.
 
-- [&nbsp;] <!-- rebase-branch=buddy-bot/update-react-18 -->[chore(deps): update dependency react to v18](../pull/123) (`react`)
+- [&nbsp;] <!-- rebase-branch=buddy/update-react-18 -->[chore(deps): update dependency react to v18](../pull/123) (`react`)
 
 ```
 
@@ -125,7 +125,7 @@ When a package is already at the newest version every declared range allows, upd
 
 | Package | Installed | Reachable | Latest | Capped by |
 |---|---|---|---|---|
-| `ts-pantry` | `0.10.56` | `0.10.56` | `0.11.19` | `buddy-bot` (`^0.10.11`) |
+| `ts-pantry` | `0.10.56` | `0.10.56` | `0.11.19` | `buddy` (`^0.10.11`) |
 ```
 
 Disable with `packages.detectResolutionDrift: false`. The analysis reads `node_modules`, so it reports nothing before an install.
@@ -138,7 +138,7 @@ Check the box next to any PR to trigger a retry/rebase:
 
 ```markdown
 
- - [x] <!-- rebase-branch=buddy-bot/update-react-18 -->[chore(deps): update dependency react to v18](../pull/123)
+ - [x] <!-- rebase-branch=buddy/update-react-18 -->[chore(deps): update dependency react to v18](../pull/123)
 
 ```
 
@@ -152,7 +152,7 @@ Ticking a box edits the issue, which fires the workflow's `issues: [edited]` tri
 
 ### Rebase All
 
-The box below the PR list applies the same rebase to every open Buddy Bot PR at once:
+The box below the PR list applies the same rebase to every open Buddy PR at once:
 
 ```markdown
 
@@ -166,11 +166,11 @@ Use the manual trigger at the bottom to force a full repository scan, which crea
 
 ```markdown
 
-- [x] <!-- manual job -->Check this box to trigger a request for Buddy Bot to run again on this repository
+- [x] <!-- manual job -->Check this box to trigger a request for Buddy to run again on this repository
 
 ```
 
-All three controls are handled by `buddy-bot update-check`; run it with `--dry-run` to see what a tick would do without acting on it.
+All three controls are handled by `buddy update-check`; run it with `--dry-run` to see what a tick would do without acting on it.
 
 ## Automation
 
@@ -195,12 +195,12 @@ jobs:
       - run: bun install
       - name: Update Dashboard
 
-        run: bunx buddy-bot dashboard
+        run: bunx @buddysh/buddy dashboard
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**💡 Ready-to-use workflow**: Buddy Bot includes a pre-built dashboard workflow at `.github/workflows/buddy-dashboard.yml` that you can use directly. It includes manual triggering, dry-run mode, and customizable options.
+**💡 Ready-to-use workflow**: Buddy includes a pre-built dashboard workflow at `.github/workflows/buddy-dashboard.yml` that you can use directly. It includes manual triggering, dry-run mode, and customizable options.
 
 ### Auto-Update
 
@@ -254,7 +254,7 @@ Set up automated dashboard updates in your CI/CD:
 ```bash
 # In your GitHub Actions workflow
 
-- run: buddy-bot dashboard
+- run: buddy dashboard
 
 ```
 
@@ -316,7 +316,7 @@ dashboard: {
 
 **Solution**:
 
-- Set `dashboard.pin: true` in your config, or run `buddy-bot dashboard --pin`
+- Set `dashboard.pin: true` in your config, or run `buddy dashboard --pin`
 - GitHub allows at most **three** pinned issues per repository — unpin another issue first
 - The token needs `issues: write`
 - Pinning is cosmetic: failures are logged and never fail the run
@@ -326,7 +326,7 @@ dashboard: {
 ### Basic Dashboard
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   repository: {
     provider: 'github',
@@ -342,7 +342,7 @@ export default {
 ### Advanced Configuration
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   dashboard: {
     enabled: true,
@@ -362,7 +362,7 @@ export default {
 ### Minimal Dashboard
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   dashboard: {
     enabled: true,

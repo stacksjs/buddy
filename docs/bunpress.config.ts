@@ -2,7 +2,7 @@ import type { BunPressConfig } from '@stacksjs/bunpress'
 
 const config: BunPressConfig = {
   verbose: false,
-  title: 'buddy-bot',
+  title: 'buddy',
   description: 'The fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects',
 
   markdown: {},
@@ -16,7 +16,7 @@ const config: BunPressConfig = {
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'PR Generation', link: '/guide/pr-generation' },
-      { text: 'GitHub', link: 'https://github.com/stacksjs/buddy-bot' },
+      { text: 'GitHub', link: 'https://github.com/stacksjs/buddy' },
     ],
 
     sidebar: {

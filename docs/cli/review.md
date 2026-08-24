@@ -1,11 +1,11 @@
 # Local Review
 
-`buddy-bot review` reviews your changes before you push them. With no pull
+`buddy review` reviews your changes before you push them. With no pull
 request number it reads the working tree, so there is nothing to open and
 nothing to wait for.
 
 ```bash
-buddy-bot review
+buddy review
 ```
 
 ## What gets reviewed
@@ -28,7 +28,7 @@ installed. It needs no key and no network, which makes it usable in a
 pre-commit hook:
 
 ```bash
-buddy-bot review --staged --light --fail-on major
+buddy review --staged --light --fail-on major
 ```
 
 `--fail-on <severity>` exits non-zero when something at or above that severity
@@ -40,9 +40,9 @@ reports everything rather than you running two and merging them by hand.
 ## Output formats
 
 ```bash
-buddy-bot review --format json     # machine-readable
-buddy-bot review --format github   # ::error annotations for Actions
-buddy-bot review --format agent    # a prompt block for a coding agent
+buddy review --format json     # machine-readable
+buddy review --format github   # ::error annotations for Actions
+buddy review --format agent    # a prompt block for a coding agent
 ```
 
 Every format except `pretty` owns stdout completely — diagnostics are
@@ -54,7 +54,7 @@ middle of a JSON document.
 `--format agent` emits an instruction rather than a report:
 
 ```bash
-buddy-bot review --format agent | claude
+buddy review --format agent | claude
 ```
 
 The block tells the agent to change only what each finding asks for, and
@@ -64,8 +64,8 @@ that mechanically applies a wrong finding is worse than one that pushes back.
 ## Applying suggestions
 
 ```bash
-buddy-bot review --fix          # confirm each suggestion
-buddy-bot review --fix --yes    # apply without asking
+buddy review --fix          # confirm each suggestion
+buddy review --fix --yes    # apply without asking
 ```
 
 Findings are applied bottom-up within each file, so replacing one line cannot
@@ -81,8 +81,8 @@ batch unseen is how a review turns into an unreviewed commit.
 Pass a number to review a PR and post the result:
 
 ```bash
-buddy-bot review 42
-buddy-bot review 42 --dry-run    # print it instead of posting
+buddy review 42
+buddy review 42 --dry-run    # print it instead of posting
 ```
 
 This needs a token; local review does not.
@@ -90,7 +90,7 @@ This needs a token; local review does not.
 ## Diagnosing setup
 
 ```bash
-buddy-bot doctor
+buddy doctor
 ```
 
 Reports credentials, git state, configuration validity and which analyzer

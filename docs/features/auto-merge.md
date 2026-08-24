@@ -1,14 +1,14 @@
 # Auto-Merge
 
-Buddy Bot can merge its own dependency PRs without review once they qualify, so routine patch updates stop needing a human click.
+Buddy can merge its own dependency PRs without review once they qualify, so routine patch updates stop needing a human click.
 
 ## Enabling
 
 ```ts
-// buddy-bot.config.ts
-import type { BuddyBotConfig } from 'buddy-bot'
+// buddy.config.ts
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   pullRequest: {
     autoMerge: {
       enabled: true,
@@ -32,7 +32,7 @@ A PR qualifies when **any** listed condition accepts it.
 | `patch-only` | Every update in the PR is a patch bump |
 | `minor-only` | Every update is minor or patch (no majors) |
 | `security-only` | The PR carries the configured `security.label` |
-| `all` | Any Buddy Bot PR, including major upgrades |
+| `all` | Any Buddy PR, including major upgrades |
 
 Unknown condition names are rejected by config validation rather than ignored, so a typo like `patch_only` fails loudly instead of widening what merges unreviewed.
 
@@ -43,12 +43,12 @@ Update types are read from the metadata manifest embedded in each PR body, not f
 Two mechanisms, picked automatically:
 
 1. **GitHub's own auto-merge queue** — used when the PR is created. GitHub waits for required checks and merges without another workflow run. This needs auto-merge enabled on the repository and at least one required check via branch protection.
-2. **Direct merge during `update-check`** — repositories without required checks cannot use the queue, so `buddy-bot update-check` re-evaluates open PRs once their checks have reported and merges the ones that pass.
+2. **Direct merge during `update-check`** — repositories without required checks cannot use the queue, so `buddy update-check` re-evaluates open PRs once their checks have reported and merges the ones that pass.
 
 Nothing is required of you to choose between them: if GitHub refuses to queue a PR, `update-check` picks it up on its next run.
 
 ```bash
-buddy-bot update-check --dry-run --verbose
+buddy update-check --dry-run --verbose
 ```
 
 `--dry-run` reports what would merge and why, without merging.
@@ -57,7 +57,7 @@ buddy-bot update-check --dry-run --verbose
 
 A PR is skipped when any of these hold:
 
-- it wasn't opened by Buddy Bot (branch not under `buddy-bot/`)
+- it wasn't opened by Buddy (branch not under `buddy/`)
 - it is a draft
 - it carries the opt-out label (`no-auto-merge` by default)
 - its checks are failing or still running, unless `requireGreenCI` is off

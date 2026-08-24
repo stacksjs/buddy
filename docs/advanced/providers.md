@@ -1,13 +1,13 @@
 # Git Providers
 
-Buddy Bot talks to a hosting platform through one interface, `GitProvider`.
+Buddy talks to a hosting platform through one interface, `GitProvider`.
 GitHub, GitLab and Bitbucket Cloud are all implemented. This page describes the
 contract so adding another is mechanical rather than exploratory.
 
 ## Configuration
 
 ```ts
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   repository: {
     provider: 'gitlab',
     // GitLab: the full group path, subgroups included
@@ -25,30 +25,30 @@ the provider encodes them as one segment.
 
 ## Tokens
 
-Tokens are resolved from the environment by provider convention. Buddy Bot
+Tokens are resolved from the environment by provider convention. Buddy
 never reads a token from configuration files by default — pass one explicitly
 with `repository.token` if you have a reason to.
 
 | Provider  | Variables, in order                                |
 | --------- | -------------------------------------------------- |
-| GitHub    | `GITHUB_TOKEN`, `BUDDY_BOT_TOKEN`                  |
-| GitLab    | `CI_JOB_TOKEN`, `GITLAB_TOKEN`, `BUDDY_BOT_TOKEN`  |
-| Bitbucket | `BITBUCKET_TOKEN`, `BUDDY_BOT_TOKEN`               |
+| GitHub    | `GITHUB_TOKEN`, `BUDDY_TOKEN`                  |
+| GitLab    | `CI_JOB_TOKEN`, `GITLAB_TOKEN`, `BUDDY_TOKEN`  |
+| Bitbucket | `BITBUCKET_TOKEN`, `BUDDY_TOKEN`               |
 
 The ambient CI token comes first on purpose. On GitHub it attributes pull
 requests to `github-actions[bot]` rather than to a maintainer's personal
-token. `BUDDY_BOT_TOKEN` is not a "better" `GITHUB_TOKEN` — it is passed
+token. `BUDDY_TOKEN` is not a "better" `GITHUB_TOKEN` — it is passed
 *separately* as the workflow token, supplying the elevated `workflow` scope
 needed to write files under `.github/workflows/`. A run with only
 `GITHUB_TOKEN` works fine; it just skips workflow-file updates and says so.
 
 ## Capabilities
 
-Buddy Bot's feature surface is wider than any single platform's API, so
+Buddy's feature surface is wider than any single platform's API, so
 features degrade against declared capabilities rather than assuming GitHub:
 
 ```ts
-import { supports } from 'buddy-bot'
+import { supports } from '@buddysh/buddy'
 
 if (supports(provider, 'pinIssues', 'pinIssue'))
   await provider.pinIssue(dashboard.number)
@@ -66,7 +66,7 @@ if (supports(provider, 'pinIssues', 'pinIssue'))
 | `teamReviewers`        | Requesting review from a team                |
 | `draftPullRequests`    | Opening a pull request as a draft            |
 | `permissionLookup`     | `hasWriteAccess`                             |
-| `branchHousekeeping`   | `getBuddyBotBranches`, `cleanupStaleBranches` |
+| `branchHousekeeping`   | `getBuddyBranches`, `cleanupStaleBranches` |
 | `reopenPullRequests`   | `reopenPullRequest`                          |
 | `labels`               | Labels on pull requests and issues           |
 
@@ -99,7 +99,7 @@ and a caller that does not gets a `TypeError` at the point of the mistake.
 that declares a capability it did not implement is treated as not having it
 rather than producing a `TypeError` at the call site.
 
-Where a capability *is* the command — `buddy-bot cleanup` on a provider that
+Where a capability *is* the command — `buddy cleanup` on a provider that
 cannot enumerate branches — use `assertSupports()` instead. There is nothing
 to degrade to, and a clear reason beats a silent success.
 

@@ -1,15 +1,15 @@
 # Configuration
 
-Buddy Bot can be configured through a TypeScript configuration file for full type safety.
+Buddy can be configured through a TypeScript configuration file for full type safety.
 
 ## Configuration File
 
-Create a `buddy-bot.config.ts` file in your project root:
+Create a `buddy.config.ts` file in your project root:
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   verbose: false,
 
   repository: {
@@ -46,7 +46,7 @@ export default config
 
 ## Repository Settings
 
-Configure how Buddy Bot interacts with your repository:
+Configure how Buddy interacts with your repository:
 
 ```typescript
 repository: {
@@ -57,7 +57,7 @@ repository: {
   owner: 'stacksjs',
 
   // Repository name
-  name: 'buddy-bot',
+  name: 'buddy',
 
   // GitHub token for API access
   token: process.env.GITHUB_TOKEN,
@@ -203,7 +203,7 @@ Choose from predefined workflow configurations:
 ### Standard (Default)
 
 ```bash
-buddy-bot setup --preset standard
+buddy setup --preset standard
 ```
 
 - Dashboard updates 3x/week
@@ -212,7 +212,7 @@ buddy-bot setup --preset standard
 ### High Frequency
 
 ```bash
-buddy-bot setup --preset high-frequency
+buddy setup --preset high-frequency
 ```
 
 - Updates multiple times per day
@@ -221,7 +221,7 @@ buddy-bot setup --preset high-frequency
 ### Security Focused
 
 ```bash
-buddy-bot setup --preset security
+buddy setup --preset security
 ```
 
 - Frequent security patches
@@ -230,7 +230,7 @@ buddy-bot setup --preset security
 ### Minimal
 
 ```bash
-buddy-bot setup --preset minimal
+buddy setup --preset minimal
 ```
 
 - Weekly checks only
@@ -239,7 +239,7 @@ buddy-bot setup --preset minimal
 ### Testing
 
 ```bash
-buddy-bot setup --preset testing
+buddy setup --preset testing
 ```
 
 - Every 5 minutes
@@ -250,14 +250,14 @@ buddy-bot setup --preset testing
 
 ### From Renovate
 
-Buddy Bot automatically migrates settings from:
+Buddy automatically migrates settings from:
 
 - `renovate.json`
 - `.renovaterc`
 - `package.json` renovate config
 
 ```bash
-buddy-bot setup
+buddy setup
 # Detects and offers to migrate Renovate config
 ```
 
@@ -330,7 +330,7 @@ Override settings via environment:
 export GITHUB_TOKEN="ghp_..."
 
 # For updating workflow files
-export BUDDY_BOT_TOKEN="ghp_..."
+export BUDDY_TOKEN="ghp_..."
 
 # Verbose output
 export BUDDY_VERBOSE=true

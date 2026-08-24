@@ -24,7 +24,7 @@ export default {
       ]
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Manual Configuration
@@ -433,35 +433,35 @@ Monorepo-specific CLI commands for workspace management.
 
 ```bash
 # List all workspaces
-buddy-bot workspaces list
+buddy workspaces list
 
 # Scan specific workspace
-buddy-bot scan --workspace packages/ui
+buddy scan --workspace packages/ui
 
 # Update specific workspace
-buddy-bot update --workspace apps/web
+buddy update --workspace apps/web
 
 # Update workspace group
-buddy-bot update --workspace-group frontend
+buddy update --workspace-group frontend
 
 # Cross-workspace updates
-buddy-bot update --cascade --from packages/ui
+buddy update --cascade --from packages/ui
 ```
 
 ### Dependency Analysis
 
 ```bash
 # Analyze workspace dependencies
-buddy-bot deps --workspace packages/ui --include-internal
+buddy deps --workspace packages/ui --include-internal
 
 # Check for version mismatches
-buddy-bot check-versions --workspace-wide
+buddy check-versions --workspace-wide
 
 # Validate workspace integrity
-buddy-bot validate --workspaces
+buddy validate --workspaces
 
 # Generate dependency graph
-buddy-bot graph --workspaces --output deps.json
+buddy graph --workspaces --output deps.json
 ```
 
 ## Example Configurations
@@ -510,7 +510,7 @@ export default {
       }
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 See [Package Management](/features/package-management) for more details on package handling strategies.

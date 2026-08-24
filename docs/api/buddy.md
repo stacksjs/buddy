@@ -6,19 +6,19 @@ The `Buddy` class is the main entry point for programmatic dependency management
 
 ```typescript
 interface BuddyConstructor {
-  new(config: BuddyBotConfig, projectPath?: string): Buddy
+  new(config: BuddyConfig, projectPath?: string): Buddy
 }
 ```
 
 ### Parameters
 
-- **config** (`BuddyBotConfig`): Configuration object
+- **config** (`BuddyConfig`): Configuration object
 - **projectPath** (`string`, optional): Project root path (defaults to `process.cwd()`)
 
 ### Example
 
 ```typescript
-import { Buddy } from 'buddy-bot'
+import { Buddy } from '@buddysh/buddy'
 
 const buddy = new Buddy({
   verbose: true,
@@ -199,13 +199,13 @@ Returns the current configuration.
 
 ```typescript
 interface BuddyConfigMethods {
-  getConfig: () => BuddyBotConfig
+  getConfig: () => BuddyConfig
 }
 ```
 
 #### Returns
 
-The current `BuddyBotConfig` object
+The current `BuddyConfig` object
 
 #### Example
 
@@ -216,12 +216,12 @@ console.log(`Strategy: ${config.packages?.strategy}`)
 
 ## Types
 
-### BuddyBotConfig
+### BuddyConfig
 
 Main configuration interface:
 
 ```typescript
-interface BuddyBotConfig {
+interface BuddyConfig {
   verbose?: boolean
   repository?: {
     provider: 'github' | 'gitlab' | 'bitbucket'
@@ -395,7 +395,7 @@ if (patchUpdates.length > 0) {
 ### Integration with CI/CD
 
 ```typescript
-import { Buddy } from 'buddy-bot'
+import { Buddy } from '@buddysh/buddy'
 
 async function updateDependencies() {
   const buddy = new Buddy({

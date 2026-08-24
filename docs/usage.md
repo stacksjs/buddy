@@ -1,6 +1,6 @@
 # Get Started
 
-There are multiple ways to use buddy-bot: _as a CLI tool, library, or GitHub Action._
+There are multiple ways to use buddy: _as a CLI tool, library, or GitHub Action._
 
 Buddy automatically detects and updates multiple dependency file formats including traditional `package.json` files, modern dependency files used by pkgx and Launchpad ecosystems, and GitHub Actions workflow dependencies.
 
@@ -11,11 +11,11 @@ Buddy automatically detects and updates multiple dependency file formats includi
 The fastest way to get started is with the interactive setup:
 
 ```bash
-# Install buddy-bot
-bun add -g buddy-bot
+# Install buddy
+bun add -g @buddysh/buddy
 
 # Run interactive setup
-buddy-bot setup
+buddy setup
 ```
 
 The setup wizard will automatically:
@@ -34,13 +34,13 @@ For CI/CD pipelines or automated deployments:
 
 ```bash
 # Basic non-interactive setup (uses defaults)
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Non-interactive with specific preset and token setup
-buddy-bot setup --non-interactive --preset testing --token-setup existing-secret --verbose
+buddy setup --non-interactive --preset testing --token-setup existing-secret --verbose
 
 # Production setup
-buddy-bot setup --non-interactive --preset security --token-setup existing-secret
+buddy setup --non-interactive --preset security --token-setup existing-secret
 ```
 
 Non-interactive mode:
@@ -58,20 +58,20 @@ Non-interactive mode:
 
 If you prefer manual setup:
 
-1. **Install buddy-bot** _(see [Installation](/install))_
+1. **Install buddy** _(see [Installation](/install))_
 2. **Set up GitHub Actions permissions** for PR creation
 3. **Create configuration** _(optional)_
 4. **Run dependency scan**
 
 ```bash
 # Quick scan for outdated packages
-buddy-bot scan
+buddy scan
 
 # Create pull requests for updates
-buddy-bot update
+buddy update
 
 # Rebase an existing PR
-buddy-bot rebase 123
+buddy rebase 123
 ```
 
 ## CLI Usage
@@ -80,55 +80,55 @@ buddy-bot rebase 123
 
 ```bash
 # Scan for outdated packages
-buddy-bot scan
-buddy-bot scan --verbose
-buddy-bot scan --strategy patch
+buddy scan
+buddy scan --verbose
+buddy scan --strategy patch
 
 # Create update pull requests
-buddy-bot update
-buddy-bot update --dry-run
-buddy-bot update --assignee username
+buddy update
+buddy update --dry-run
+buddy update --assignee username
 
 # Rebase/retry a specific PR
-buddy-bot rebase 123
-buddy-bot rebase 123 --force
+buddy rebase 123
+buddy rebase 123 --force
 
 # Check if PR has rebase checkbox
-buddy-bot update-check 123
+buddy update-check 123
 ```
 
 ### Package Analysis
 
 ```bash
 # Check specific package
-buddy-bot check cac
-buddy-bot check @types/bun
+buddy check cac
+buddy check @types/bun
 
 # Get package information
-buddy-bot info typescript
-buddy-bot versions react
-buddy-bot latest vue
+buddy info typescript
+buddy versions react
+buddy latest vue
 
 # Dependency analysis
-buddy-bot deps package-name
-buddy-bot compare package-name 1.0.0 2.0.0
-buddy-bot search "ui library"
+buddy deps package-name
+buddy compare package-name 1.0.0 2.0.0
+buddy search "ui library"
 ```
 
 ### Configuration & Utilities
 
 ```bash
 # Generate configuration file
-buddy-bot init
-buddy-bot init --template comprehensive
+buddy init
+buddy init --template comprehensive
 
 # Generate GitHub Actions workflows
-buddy-bot workflow daily
-buddy-bot workflow security
+buddy workflow daily
+buddy workflow security
 
 # Utility commands
-buddy-bot help
-buddy-bot --version
+buddy help
+buddy --version
 ```
 
 ## Supported File Types
@@ -174,7 +174,7 @@ steps:
 ### Basic Integration
 
 ```typescript
-import { Buddy } from 'buddy-bot'
+import { Buddy } from '@buddysh/buddy'
 
 const buddy = new Buddy({
   repository: {
@@ -200,10 +200,10 @@ console.log(`Created ${prs.length} pull requests`)
 ### Advanced Configuration
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
-import { Buddy } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
+import { Buddy } from '@buddysh/buddy'
 
-const config: BuddyBotConfig = {
+const config: BuddyConfig = {
   verbose: true,
 
   repository: {
@@ -323,7 +323,7 @@ jobs:
 
       - name: Update dependencies
 
-        run: bunx buddy-bot update
+        run: bunx @buddysh/buddy update
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Built-in token
 ```
@@ -331,7 +331,7 @@ jobs:
 ### Automated Setup in CI/CD
 
 ```yaml
-name: Setup Buddy Bot
+name: Setup Buddy
 on:
   workflow_dispatch:
     inputs:
@@ -349,7 +349,7 @@ on:
           - testing
 
 jobs:
-  setup-buddy-bot:
+  setup-buddy:
     runs-on: ubuntu-latest
     steps:
 
@@ -361,10 +361,10 @@ jobs:
 
         uses: oven-sh/setup-bun@v2
 
-      - name: Setup Buddy Bot
+      - name: Setup Buddy
 
         run: |
-          bunx buddy-bot setup \
+          bunx @buddysh/buddy setup \
             --non-interactive \
             --preset ${{ github.event.inputs.preset || 'standard' }} \
             --token-setup existing-secret \
@@ -378,7 +378,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Add Buddy Bot workflows and configuration" || exit 0
+          git commit -m "Add Buddy workflows and configuration" || exit 0
           git push
 ```
 
@@ -402,7 +402,7 @@ jobs:
       - name: Security updates only
 
         run: |
-          bunx buddy-bot update \
+          bunx @buddysh/buddy update \
             --strategy patch \
             --labels security,dependencies \
             --auto-merge
@@ -434,7 +434,7 @@ jobs:
       - name: Update ${{ matrix.strategy }}
 
         run: |
-          bunx buddy-bot update \
+          bunx @buddysh/buddy update \
             --strategy ${{ matrix.strategy }} \
             --labels ${{ matrix.strategy }}-updates
         env:
@@ -443,13 +443,13 @@ jobs:
 
 ## Configuration Files
 
-Buddy-bot automatically detects configuration files:
+Buddy automatically detects configuration files:
 
 ### TypeScript Configuration
 
 ```typescript
-// buddy-bot.config.ts
-import type { BuddyBotConfig } from 'buddy-bot'
+// buddy.config.ts
+import type { BuddyConfig } from '@buddysh/buddy'
 
 export default {
   repository: {
@@ -465,7 +465,7 @@ export default {
     reviewers: ['team-lead'],
     labels: ['dependencies'],
   },
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### JSON Configuration
@@ -504,7 +504,7 @@ export NPM_REGISTRY_URL=https://registry.npmjs.org
 export BUN_CONFIG_NO_CACHE=false
 
 # Optional: Debug mode
-export DEBUG=buddy-bot:_
+export DEBUG=buddy:_
 ```
 
 ## Workflow Examples
@@ -515,7 +515,7 @@ export DEBUG=buddy-bot:_
 # !/bin/bash
 # daily-updates.sh
 
-buddy-bot update \
+buddy update \
   --strategy patch \
   --auto-merge \
   --labels security,patch-updates
@@ -527,7 +527,7 @@ buddy-bot update \
 # !/bin/bash
 # weekly-updates.sh
 
-buddy-bot update \
+buddy update \
   --strategy all \
   --reviewers team-lead,senior-dev \
   --assignees maintainer \
@@ -540,7 +540,7 @@ buddy-bot update \
 # !/bin/bash
 # security-update.sh
 
-buddy-bot update \
+buddy update \
   --strategy patch \
   --packages-only security \
   --auto-merge \
@@ -609,7 +609,7 @@ dependencies:
 For monorepos with multiple `package.json` and dependency files:
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   packages: {
     workspaces: [
@@ -631,20 +631,20 @@ export default {
       },
     ],
   },
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Testing
 
 ```bash
 # Test configuration
-buddy-bot scan --dry-run --verbose
+buddy scan --dry-run --verbose
 
 # Test GitHub authentication
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Test package detection
-buddy-bot check typescript
+buddy check typescript
 ```
 
 ## Performance Tips
@@ -676,7 +676,7 @@ gh auth status
 **PR creation failed:**
 ```bash
 # Verbose mode for detailed error information
-buddy-bot update --verbose
+buddy update --verbose
 ```
 
 **Package registry issues:**

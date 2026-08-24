@@ -1,19 +1,19 @@
 # Getting Started
 
-Buddy Bot is the fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects. This guide will help you set up automated dependency updates.
+Buddy is the fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects. This guide will help you set up automated dependency updates.
 
 ## Installation
 
-Install Buddy Bot globally:
+Install Buddy globally:
 
 ::: code-group
 
 ```bash [bun]
-bun add -g buddy-bot
+bun add -g @buddysh/buddy
 ```
 
 ```bash [npm]
-npm install -g buddy-bot
+npm install -g @buddysh/buddy
 ```
 
 :::
@@ -25,7 +25,7 @@ npm install -g buddy-bot
 The easiest way to get started:
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 This wizard will guide you through:
@@ -41,10 +41,10 @@ For CI/CD pipelines:
 
 ```bash
 # Basic setup with defaults
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # With specific preset
-buddy-bot setup --non-interactive --preset security --verbose
+buddy setup --non-interactive --preset security --verbose
 ```
 
 **Available presets:**
@@ -63,16 +63,16 @@ Check for outdated dependencies:
 
 ```bash
 # Basic scan
-buddy-bot scan
+buddy scan
 
 # Verbose output
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Specific packages
-buddy-bot scan --packages "react,typescript,@types/node"
+buddy scan --packages "react,typescript,@types/node"
 
 # Pattern matching
-buddy-bot scan --pattern "@types/*"
+buddy scan --pattern "@types/*"
 ```
 
 ### Update Dependencies
@@ -81,13 +81,13 @@ Create pull requests for updates:
 
 ```bash
 # Dry run first
-buddy-bot update --dry-run
+buddy update --dry-run
 
 # Apply updates
-buddy-bot update
+buddy update
 
 # Specific strategy
-buddy-bot update --strategy minor
+buddy update --strategy minor
 ```
 
 ### Check for Rebase Requests
@@ -95,8 +95,8 @@ buddy-bot update --strategy minor
 Process PR update requests:
 
 ```bash
-buddy-bot update-check
-buddy-bot update-check --verbose
+buddy update-check
+buddy update-check --verbose
 ```
 
 ## Update Strategies
@@ -110,7 +110,7 @@ buddy-bot update-check --verbose
 
 ## Supported Ecosystems
 
-Buddy Bot automatically detects and updates:
+Buddy automatically detects and updates:
 
 ### Package Managers
 
@@ -134,7 +134,7 @@ Buddy Bot automatically detects and updates:
 
 ## Generated Workflows
 
-After setup, Buddy Bot creates three workflows:
+After setup, Buddy creates three workflows:
 
 ### `buddy-dashboard.yml`
 
@@ -164,25 +164,25 @@ Creates dependency update PRs:
 
 ```bash
 # Setup
-buddy-bot setup                    # Interactive setup
-buddy-bot setup --non-interactive  # CI/CD mode
+buddy setup                    # Interactive setup
+buddy setup --non-interactive  # CI/CD mode
 
 # Scanning
-buddy-bot scan                     # Scan for updates
-buddy-bot scan --verbose           # Detailed output
-buddy-bot scan --strategy minor    # Specific strategy
+buddy scan                     # Scan for updates
+buddy scan --verbose           # Detailed output
+buddy scan --strategy minor    # Specific strategy
 
 # Updating
-buddy-bot update                   # Create update PRs
-buddy-bot update --dry-run         # Preview changes
+buddy update                   # Create update PRs
+buddy update --dry-run         # Preview changes
 
 # Maintenance
-buddy-bot update-check             # Process rebase requests
-buddy-bot dashboard                # Update dashboard issue
+buddy update-check             # Process rebase requests
+buddy dashboard                # Update dashboard issue
 
 # Help
-buddy-bot help
-buddy-bot --version
+buddy help
+buddy --version
 ```
 
 ## Environment Variables
@@ -190,7 +190,7 @@ buddy-bot --version
 | Variable | Description |
 |----------|-------------|
 | `GITHUB_TOKEN` | GitHub API token (required for PRs) |
-| `BUDDY_BOT_TOKEN` | PAT for workflow file updates |
+| `BUDDY_TOKEN` | PAT for workflow file updates |
 
 ## Next Steps
 

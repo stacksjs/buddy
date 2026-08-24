@@ -4,26 +4,26 @@ Interactive setup wizard for automated dependency management.
 
 ## Overview
 
-The `setup` command provides a comprehensive, Renovate-like setup experience that guides you through configuring Buddy Bot for your project. It automates the entire process from repository detection to workflow generation.
+The `setup` command provides a comprehensive, Renovate-like setup experience that guides you through configuring Buddy for your project. It automates the entire process from repository detection to workflow generation.
 
 ```bash
-buddy-bot setup [options]
+buddy setup [options]
 ```
 
 ## Quick Start
 
 ```bash
 # Interactive setup (recommended)
-buddy-bot setup
+buddy setup
 
 # Setup with verbose logging
-buddy-bot setup --verbose
+buddy setup --verbose
 
 # Non-interactive setup with defaults
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Non-interactive with specific preset and token setup
-buddy-bot setup --non-interactive --preset testing --token-setup new-pat --verbose
+buddy setup --non-interactive --preset testing --token-setup new-pat --verbose
 ```
 
 ## Enhanced Features
@@ -76,7 +76,7 @@ Found 1 existing dependency management tool(s):
 **Migration Features:**
 
 - **Tool Detection** - Automatically discovers Renovate (`renovate.json`, `.renovaterc`, package.json) and Dependabot (`.github/dependabot.yml`) configurations
-- **Smart Conversion** - Maps Renovate package rules to Buddy Bot groups, converts schedules to workflow presets, and preserves team assignments
+- **Smart Conversion** - Maps Renovate package rules to Buddy groups, converts schedules to workflow presets, and preserves team assignments
 - **Compatibility Analysis** - Identifies unsupported features like `extends` presets and `regexManagers`, provides alternatives and workarounds
 - **Migration Report** - Detailed summary with confidence levels, migrated settings, warnings, and incompatible features
 
@@ -118,7 +118,7 @@ Found 2 available integration(s):
 🔍 Pre-flight Validation
 ✅ Git repository detected
 ✅ Bun v1.2.19 detected
-⚠️  Found 2 existing workflows. Some may conflict with Buddy Bot workflows.
+⚠️  Found 2 existing workflows. Some may conflict with Buddy workflows.
 💡 GitHub CLI detected. This can help with authentication.
 ```
 
@@ -197,7 +197,7 @@ Automatically detects your GitHub repository from `git remote get-url origin` an
 
 ```
 🔑 Step 2: GitHub Token Setup
-For full functionality, Buddy Bot needs a Personal Access Token (PAT).
+For full functionality, Buddy needs a Personal Access Token (PAT).
 This enables workflow file updates and advanced GitHub Actions features.
 ```
 
@@ -243,8 +243,8 @@ Choose from carefully crafted presets:
 
 ```
 📝 Step 5: Configuration File
-✅ Created buddy-bot.config.json with your repository settings.
-💡 You can edit this file to customize Buddy Bot's behavior.
+✅ Created buddy.config.json with your repository settings.
+💡 You can edit this file to customize Buddy's behavior.
 ```
 
 Creates a complete configuration file with:
@@ -297,12 +297,12 @@ Generates three core workflows:
 - **YAML syntax validation** - Ensures all generated workflows are syntactically correct
 - **Required field verification** - Validates presence of name, on, jobs, and other essential fields
 - **Security best practices** - Checks token usage, permissions, and security configurations
-- **Buddy Bot integration** - Verifies workflows include proper buddy-bot execution commands
+- **Buddy integration** - Verifies workflows include proper buddy execution commands
 - **Permission validation** - Ensures workflows have appropriate permissions for their functions
 
 **Security Validation:**
 
-- **Token scope verification** - Validates GITHUB_TOKEN vs BUDDY_BOT_TOKEN usage
+- **Token scope verification** - Validates GITHUB_TOKEN vs BUDDY_TOKEN usage
 - **Permission matrix** - Ensures workflows have minimum required permissions
 - **Secret handling** - Validates secure handling of tokens and sensitive information
 - **Workflow permissions** - Checks for explicit permission definitions and security boundaries
@@ -317,7 +317,7 @@ Generates three core workflows:
    - buddy-check.yml (Auto-rebase PR checker)
    - buddy-update.yml (Scheduled dependency updates)
 
-📁 Configuration file: buddy-bot.config.json
+📁 Configuration file: buddy.config.json
 ```
 
 Provides clear next steps with:
@@ -351,7 +351,7 @@ For CI/CD pipelines, automated deployments, or when you want to use defaults, th
 
 ```bash
 # Use all defaults (standard preset with default token)
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 ```
 
 This will:
@@ -366,13 +366,13 @@ This will:
 
 ```bash
 # High-frequency testing setup with verbose output
-buddy-bot setup --non-interactive --preset testing --verbose
+buddy setup --non-interactive --preset testing --verbose
 
 # Security-focused setup with custom token
-buddy-bot setup --non-interactive --preset security --token-setup new-pat
+buddy setup --non-interactive --preset security --token-setup new-pat
 
 # Standard setup using existing organization secrets
-buddy-bot setup --non-interactive --preset standard --token-setup existing-secret
+buddy setup --non-interactive --preset standard --token-setup existing-secret
 ```
 
 ### Non-Interactive Behavior
@@ -393,7 +393,7 @@ When `--non-interactive` is enabled:
 #### `default-token` (Default)
 
 ```bash
-buddy-bot setup --non-interactive --token-setup default-token
+buddy setup --non-interactive --token-setup default-token
 ```
 
 - Uses `GITHUB_TOKEN` provided by GitHub Actions
@@ -404,10 +404,10 @@ buddy-bot setup --non-interactive --token-setup default-token
 #### `existing-secret`
 
 ```bash
-buddy-bot setup --non-interactive --token-setup existing-secret
+buddy setup --non-interactive --token-setup existing-secret
 ```
 
-- Assumes `BUDDY_BOT_TOKEN` secret already exists
+- Assumes `BUDDY_TOKEN` secret already exists
 - Full functionality including workflow file updates
 - Suitable for organizations with pre-configured secrets
 - Best for production environments
@@ -415,11 +415,11 @@ buddy-bot setup --non-interactive --token-setup existing-secret
 #### `new-pat`
 
 ```bash
-buddy-bot setup --non-interactive --token-setup new-pat
+buddy setup --non-interactive --token-setup new-pat
 ```
 
 - Configures for custom Personal Access Token
-- Generates workflows that use `BUDDY_BOT_TOKEN`
+- Generates workflows that use `BUDDY_TOKEN`
 - Requires manual token creation and secret setup
 - Provides warnings about manual steps needed
 
@@ -428,7 +428,7 @@ buddy-bot setup --non-interactive --token-setup new-pat
 #### Standard Preset
 
 ```bash
-buddy-bot setup --non-interactive --preset standard
+buddy setup --non-interactive --preset standard
 ```
 
 - Balanced approach for most projects
@@ -439,7 +439,7 @@ buddy-bot setup --non-interactive --preset standard
 #### Testing Preset
 
 ```bash
-buddy-bot setup --non-interactive --preset testing
+buddy setup --non-interactive --preset testing
 ```
 
 - Optimized for development and testing
@@ -450,7 +450,7 @@ buddy-bot setup --non-interactive --preset testing
 #### Security Preset
 
 ```bash
-buddy-bot setup --non-interactive --preset security
+buddy setup --non-interactive --preset security
 ```
 
 - Security-focused configuration
@@ -461,7 +461,7 @@ buddy-bot setup --non-interactive --preset security
 #### High-Frequency Preset
 
 ```bash
-buddy-bot setup --non-interactive --preset high-frequency
+buddy setup --non-interactive --preset high-frequency
 ```
 
 - Multiple updates per day
@@ -472,7 +472,7 @@ buddy-bot setup --non-interactive --preset high-frequency
 #### Minimal Preset
 
 ```bash
-buddy-bot setup --non-interactive --preset minimal
+buddy setup --non-interactive --preset minimal
 ```
 
 - Low-frequency updates
@@ -485,7 +485,7 @@ buddy-bot setup --non-interactive --preset minimal
 #### GitHub Actions Workflow
 
 ```yaml
-name: Setup Buddy Bot
+name: Setup Buddy
 on:
   workflow_dispatch:
     inputs:
@@ -509,10 +509,10 @@ jobs:
 
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - name: Setup Buddy Bot
+      - name: Setup Buddy
 
         run: |
-          bunx buddy-bot setup \
+          bunx @buddysh/buddy setup \
             --non-interactive \
             --preset ${{ github.event.inputs.preset || 'standard' }} \
             --token-setup existing-secret \
@@ -531,7 +531,7 @@ COPY package.json bun.lockb ./
 RUN bun install
 
 # Non-interactive setup for containerized environments
-RUN bunx buddy-bot setup \
+RUN bunx @buddysh/buddy setup \
     --non-interactive \
     --preset minimal \
     --token-setup default-token \
@@ -546,7 +546,7 @@ RUN bunx buddy-bot setup \
 
 set -e
 
-echo "Setting up Buddy Bot for repository..."
+echo "Setting up Buddy for repository..."
 
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -563,20 +563,20 @@ elif [[ "$ENVIRONMENT" == "production" ]]; then
 fi
 
 # Run non-interactive setup
-bunx buddy-bot setup \
+bunx @buddysh/buddy setup \
     --non-interactive \
     --preset "$PRESET" \
     --token-setup existing-secret \
     --verbose
 
-echo "Buddy Bot setup complete!"
+echo "Buddy setup complete!"
 ```
 
 ## Generated Files
 
 The setup process creates several files:
 
-### Configuration File (`buddy-bot.config.json`)
+### Configuration File (`buddy.config.json`)
 
 ```json
 {
@@ -660,7 +660,7 @@ on:
 
 2. **Generate New Token**
    - Click "Generate new token"
-   - Give it a descriptive name (e.g., "buddy-bot-token")
+   - Give it a descriptive name (e.g., "buddy-token")
 
 3. **Select Required Scopes**
    - ✅ `repo` - Full control of private repositories
@@ -677,13 +677,13 @@ on:
    ```
 
    - Click "New repository secret"
-   - Name: `BUDDY_BOT_TOKEN`
+   - Name: `BUDDY_TOKEN`
    - Value: Your generated token
    - Click "Add secret"
 
 ### Token Benefits
 
-| Feature | GITHUB_TOKEN | BUDDY_BOT_TOKEN |
+| Feature | GITHUB_TOKEN | BUDDY_TOKEN |
 |---------|--------------|-----------------|
 | **Package Updates** | ✅ Yes | ✅ Yes |
 | **PR Creation** | ✅ Yes | ✅ Yes |
@@ -754,7 +754,7 @@ Configure GitHub Actions permissions:
 - **Updates**: Every 15 minutes
 - **Strategy**: Patch updates only
 - **Auto-merge**: Disabled
-- **Best for**: Testing Buddy Bot functionality
+- **Best for**: Testing Buddy functionality
 
 ## Post-Setup
 
@@ -764,7 +764,7 @@ After running setup, follow these steps:
 
 ```bash
 # Check configuration
-cat buddy-bot.config.json
+cat buddy.config.json
 
 # Review workflows
 ls -la .github/workflows/
@@ -774,20 +774,20 @@ ls -la .github/workflows/
 
 ```bash
 # Test repository detection
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Test dashboard creation
-buddy-bot dashboard --dry-run
+buddy dashboard --dry-run
 ```
 
 ### 3. Commit Changes
 
 ```bash
 # Add generated files
-git add .github/workflows/ buddy-bot.config.json
+git add .github/workflows/ buddy.config.json
 
 # Commit setup
-git commit -m "Add Buddy Bot dependency management workflows"
+git commit -m "Add Buddy dependency management workflows"
 
 # Push to repository
 git push
@@ -834,7 +834,7 @@ git remote get-url origin
 
 **Workflow files not updating:**
 
-1. Ensure `BUDDY_BOT_TOKEN` secret is set
+1. Ensure `BUDDY_TOKEN` secret is set
 2. Verify token has `workflow` scope
 3. Check repository permissions above
 
@@ -842,7 +842,7 @@ git remote get-url origin
 
 **"Bad credentials" error:**
 
-1. Verify `GITHUB_TOKEN` or `BUDDY_BOT_TOKEN` is set
+1. Verify `GITHUB_TOKEN` or `BUDDY_TOKEN` is set
 2. Check token hasn't expired
 3. Ensure token has required scopes (`repo`, `workflow`)
 
@@ -852,39 +852,39 @@ git remote get-url origin
 
 ```bash
 # Standard interactive setup (recommended for first-time users)
-buddy-bot setup
+buddy setup
 
 # Interactive setup with detailed logging
-buddy-bot setup --verbose
+buddy setup --verbose
 ```
 
 ### Non-Interactive Setup
 
 ```bash
 # Basic non-interactive setup (uses defaults)
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Non-interactive with specific preset
-buddy-bot setup --non-interactive --preset testing --verbose
+buddy setup --non-interactive --preset testing --verbose
 
 # Production setup with existing secrets
-buddy-bot setup --non-interactive --preset security --token-setup existing-secret
+buddy setup --non-interactive --preset security --token-setup existing-secret
 
 # Development setup with new token
-buddy-bot setup --non-interactive --preset testing --token-setup new-pat --verbose
+buddy setup --non-interactive --preset testing --token-setup new-pat --verbose
 ```
 
 ### Testing Setup Locally
 
 ```bash
 # Test repository detection
-buddy-bot setup --verbose
+buddy setup --verbose
 
 # Test non-interactive flow
-buddy-bot setup --non-interactive --preset testing --verbose
+buddy setup --non-interactive --preset testing --verbose
 
 # If setup completes, test scanning
-buddy-bot scan --dry-run
+buddy scan --dry-run
 ```
 
 ## Technical Implementation
@@ -915,7 +915,7 @@ interface ValidationResult {
 
 - **Workflow scanning** - Analyzes `.github/workflows/` for potential conflicts
 - **Tool identification** - Detects Renovate, Dependabot, and other dependency managers
-- **Configuration conflicts** - Identifies existing buddy-bot or similar configurations
+- **Configuration conflicts** - Identifies existing buddy or similar configurations
 
 #### Smart Project Analysis Engine
 
@@ -982,7 +982,7 @@ async function validateWorkflowGeneration(workflowContent: string): Promise<Vali
 
 - **YAML syntax validation** - Ensures generated workflows are syntactically correct
 - **Security best practices** - Validates token usage, permissions, and security configurations
-- **Buddy Bot integration** - Verifies workflows include proper execution commands
+- **Buddy integration** - Verifies workflows include proper execution commands
 - **Permission matrix validation** - Ensures workflows have appropriate GitHub Actions permissions
 
 ### Error Handling & Recovery

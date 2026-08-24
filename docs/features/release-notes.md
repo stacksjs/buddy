@@ -118,7 +118,7 @@ export default {
       }
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Breaking Changes Detection
@@ -186,7 +186,7 @@ export default {
       error: 'Unable to fetch release notes. See package documentation for details.'
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Custom Templates
@@ -447,16 +447,16 @@ Manage release notes via CLI:
 
 ```bash
 # Extract release notes for a package
-buddy-bot release-notes react 18.0.0 18.2.0
+buddy release-notes react 18.0.0 18.2.0
 
 # Preview release notes for current updates
-buddy-bot release-notes --preview
+buddy release-notes --preview
 
 # Cache release notes
-buddy-bot release-notes --cache-update
+buddy release-notes --cache-update
 
 # Test release notes template
-buddy-bot release-notes --template-test
+buddy release-notes --template-test
 ```
 
 ## Integration Examples
@@ -487,7 +487,7 @@ export default {
       requireAcknowledgment: true
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Minimal Configuration
@@ -512,7 +512,7 @@ export default {
       packageSection: '**{packageName}** {currentVersion} → {targetVersion}\n{releaseNotes}\n'
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Performance Optimization

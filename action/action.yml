@@ -1,5 +1,5 @@
-name: Buddy Bot
-description: Run Buddy Bot as a pipeline step, with schema-validated output later steps can consume
+name: Buddy
+description: Run Buddy as a pipeline step, with schema-validated output later steps can consume
 author: stacksjs
 
 branding:
@@ -26,7 +26,7 @@ inputs:
     required: false
     default: '2'
   version:
-    description: Version of buddy-bot to run.
+    description: Version of buddy to run.
     required: false
     default: latest
   verbose:
@@ -49,7 +49,7 @@ runs:
       with:
         bun-version: latest
 
-    - name: Run Buddy Bot
+    - name: Run Buddy
       id: run
       shell: bash
       # The prompt is passed through the environment rather than interpolated
@@ -94,4 +94,4 @@ runs:
           args+=(--verbose)
         fi
 
-        bunx "buddy-bot@${BUDDY_VERSION}" run "${args[@]}"
+        bunx "@buddysh/buddy@${BUDDY_VERSION}" run "${args[@]}"

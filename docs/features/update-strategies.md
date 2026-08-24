@@ -18,7 +18,7 @@ export default {
   packages: {
     strategy: 'patch'
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 **When to use:**
@@ -43,7 +43,7 @@ export default {
   packages: {
     strategy: 'minor'
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 **When to use:**
@@ -68,7 +68,7 @@ export default {
   packages: {
     strategy: 'major'
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 **When to use:**
@@ -91,7 +91,7 @@ export default {
   packages: {
     strategy: 'all'
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 **When to use:**
@@ -117,7 +117,7 @@ export default {
     strategy: 'minor', // Applied to all packages
     ignore: ['react'] // Except ignored packages
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Package Groups with Different Strategies
@@ -146,7 +146,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Per-Package Strategy Override
@@ -163,7 +163,7 @@ export default {
       '@types/*': 'all' // Type definitions can be aggressive
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Smart Strategy Selection
@@ -234,8 +234,8 @@ const week3Config = {
 Different strategies for different environments:
 
 ```typescript
-const isProduction = process.env.NODE*ENV === 'production'
-const isCorporate = process.env.CORPORATE*ENVIRONMENT === 'true'
+const isProduction = process.env.NODE_ENV === 'production'
+const isCorporate = process.env.CORPORATE_ENVIRONMENT === 'true'
 
 export default {
   packages: {
@@ -243,7 +243,7 @@ export default {
       ? (isCorporate ? 'patch' : 'minor')
       : 'major'
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Ecosystem-Aware Strategies
@@ -281,13 +281,13 @@ Override configuration strategies via CLI:
 
 ```bash
 # Force patch strategy regardless of config
-buddy-bot update --strategy patch
+buddy update --strategy patch
 
 # Use major strategy for specific packages
-buddy-bot update --strategy major --packages react,vue
+buddy update --strategy major --packages react,vue
 
 # Mixed strategies
-buddy-bot update --patch typescript --minor react --major eslint
+buddy update --patch typescript --minor react --major eslint
 ```
 
 ## Monitoring Strategy Effectiveness
@@ -325,7 +325,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Balanced Team
@@ -347,7 +347,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Aggressive Startup
@@ -364,7 +364,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Integration with Pull Requests

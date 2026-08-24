@@ -1,12 +1,12 @@
-# Buddy Bot Action
+# Buddy Action
 
-Run Buddy Bot as a pipeline step. The step's output is schema-validated, so
+Run Buddy as a pipeline step. The step's output is schema-validated, so
 later steps can consume it with `fromJSON()` and trust its shape.
 
 ## Usage
 
 ```yaml
-- uses: stacksjs/buddy-bot/action@v1
+- uses: stacksjs/buddy/action@v1
   id: notes
   with:
     prompt: Summarize the dependency changes merged this week as release notes.
@@ -31,7 +31,7 @@ differently than it promised — otherwise the failure surfaces as a confusing
 error three steps downstream, or worse, as an empty string that silently
 publishes.
 
-Buddy Bot re-asks on a violation, quoting the specific failures back, before
+Buddy re-asks on a violation, quoting the specific failures back, before
 giving up. `retries` controls how many times (default 2).
 
 The supported schema subset is `type`, `required`, `properties`, `items` and
@@ -46,7 +46,7 @@ The supported schema subset is `type`, `required`, `properties`, `items` and
 | `output-schema` | JSON Schema the output must satisfy                      |
 | `model`         | Model override                                           |
 | `retries`       | Schema retries before failing (default `2`)              |
-| `version`       | buddy-bot version to run (default `latest`)              |
+| `version`       | buddy version to run (default `latest`)              |
 | `verbose`       | Log diagnostics to stderr                                |
 
 ## Without the action
@@ -54,7 +54,7 @@ The supported schema subset is `type`, `required`, `properties`, `items` and
 The action is a thin wrapper. In any step, or on your own machine:
 
 ```bash
-bunx buddy-bot run --prompt "..." --output-schema '{"type":"object"}'
+bunx @buddysh/buddy run --prompt "..." --output-schema '{"type":"object"}'
 ```
 
 Outside Actions the result goes to stdout; inside, it is also written to

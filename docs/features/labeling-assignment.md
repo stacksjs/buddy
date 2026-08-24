@@ -81,7 +81,7 @@ export default {
       }
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Custom Label Rules
@@ -153,7 +153,7 @@ export default {
       dismissStale: true // Dismiss stale reviews
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 #### Package-Based Assignment
@@ -235,7 +235,7 @@ export default {
       requiresAssignee: true
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## CLI Label Management
@@ -244,16 +244,16 @@ Manage labels and assignments via CLI:
 
 ```bash
 # List current labels
-buddy-bot labels list
+buddy labels list
 
 # Create custom label
-buddy-bot labels create "custom-label" --color "ff0000" --description "Custom label"
+buddy labels create "custom-label" --color "ff0000" --description "Custom label"
 
 # Assign reviewers to PR
-buddy-bot assign 123 --reviewers alice,bob --assignees charlie
+buddy assign 123 --reviewers alice,bob --assignees charlie
 
 # Update PR labels
-buddy-bot labels update 123 --add security --remove low-priority
+buddy labels update 123 --add security --remove low-priority
 ```
 
 ## Automation Examples
@@ -283,7 +283,7 @@ export default {
       ]
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Development Workflow
@@ -319,7 +319,7 @@ export default {
       ]
     }
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 See [Pull Request Generation](/features/pull-requests) for more details on how labeling and assignment integrate with the overall PR workflow.

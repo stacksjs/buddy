@@ -1,19 +1,19 @@
 # Migrating from Dependabot
 
-This guide provides detailed instructions for migrating from GitHub's Dependabot to Buddy Bot, including configuration conversion and enhanced features.
+This guide provides detailed instructions for migrating from GitHub's Dependabot to Buddy, including configuration conversion and enhanced features.
 
 ## Automated Migration
 
-Buddy Bot can automatically detect and migrate Dependabot configurations:
+Buddy can automatically detect and migrate Dependabot configurations:
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 The migration process will:
 
 - 🔍 Detect `.github/dependabot.yml` or `.github/dependabot.yaml`
-- ⚙️ Convert basic settings to Buddy Bot format
+- ⚙️ Convert basic settings to Buddy format
 - ⚠️ Identify configuration gaps (Dependabot is limited)
 - 📋 Suggest enhancements and optimizations
 
@@ -21,7 +21,7 @@ The migration process will:
 
 ### Basic Settings
 
-| Dependabot Setting | Buddy Bot Equivalent | Notes |
+| Dependabot Setting | Buddy Equivalent | Notes |
 |-------------------|---------------------|-------|
 | `package-ecosystem` | Detected automatically | npm, composer, github-actions |
 | `directory` | `packages.paths` | File path configuration |
@@ -37,7 +37,7 @@ The migration process will:
 
 **Dependabot Intervals → Cron:**
 
-| Dependabot | Buddy Bot Cron | Description |
+| Dependabot | Buddy Cron | Description |
 |------------|---------------|-------------|
 | `daily` | `0 2 * * *` | Daily at 2 AM |
 | `weekly` | `0 2 * * 1` | Monday at 2 AM |
@@ -55,7 +55,7 @@ schedule:
 ```
 
 ```typescript
-// Buddy Bot
+// Buddy
 {
   schedule: {
     cron: '0 4 * * 1', // Monday 4 AM
@@ -85,7 +85,7 @@ updates:
 
 ```
 
-**After (Buddy Bot):**
+**After (Buddy):**
 ```typescript
 export default {
   schedule: {
@@ -96,7 +96,7 @@ export default {
     strategy: 'all',
     ignore: ['react', 'typescript']
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Multi-Ecosystem Configuration
@@ -150,7 +150,7 @@ updates:
 
 ```
 
-**After (Buddy Bot):**
+**After (Buddy):**
 ```typescript
 export default {
   schedule: {
@@ -192,7 +192,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Advanced Configuration with Ignores
@@ -234,7 +234,7 @@ updates:
 
 ```
 
-**After (Buddy Bot):**
+**After (Buddy):**
 ```typescript
 export default {
   schedule: {
@@ -268,12 +268,12 @@ export default {
     reviewers: ['security-team'],
     labels: ['dependencies']
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Enhanced Features
 
-Buddy Bot provides several features not available in Dependabot:
+Buddy provides several features not available in Dependabot:
 
 ### Dependency Dashboard
 
@@ -287,7 +287,7 @@ export default {
     includeGitHubActions: true,
     labels: ['dependencies', 'dashboard']
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Smart Grouping
@@ -317,7 +317,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### Auto-merge Configuration
@@ -351,7 +351,7 @@ export default {
       }
     ]
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Migration Process
@@ -369,26 +369,26 @@ Add this to your Dependabot config to disable it temporarily:
 ```yaml
 version: 2
 updates: []
-# Temporarily disabled for Buddy Bot migration
+# Temporarily disabled for Buddy migration
 ```
 
-### 3. Run Buddy Bot Setup
+### 3. Run Buddy Setup
 
 ```bash
-buddy-bot setup
+buddy setup
 ```
 
 ### 4. Test Configuration
 
 ```bash
 # Scan for updates
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Test update process
-buddy-bot update --dry-run
+buddy update --dry-run
 
 # Create dashboard
-buddy-bot dashboard
+buddy dashboard
 ```
 
 ### 5. Validate Workflows
@@ -406,9 +406,9 @@ Check generated GitHub Actions:
 3. **Week 3**: Enable auto-merge for trusted updates
 4. **Week 4**: Remove Dependabot configuration
 
-## Comparison: Dependabot vs Buddy Bot
+## Comparison: Dependabot vs Buddy
 
-| Feature | Dependabot | Buddy Bot |
+| Feature | Dependabot | Buddy |
 |---------|------------|-----------|
 | **Package Managers** | 10+ ecosystems | npm, Composer, GitHub Actions |
 | **Scheduling** | Basic intervals | Full cron expressions |
@@ -450,19 +450,19 @@ Check generated GitHub Actions:
 
 **Limited ecosystem support:**
 ```
-Buddy Bot focuses on the most common package managers.
+Buddy focuses on the most common package managers.
 For other ecosystems, consider keeping Dependabot for those specific paths.
 ```
 
 **Complex ignore patterns:**
 ```yaml
 # Dependabot supports complex ignore patterns
-# Simplify to basic package names in Buddy Bot
+# Simplify to basic package names in Buddy
 ```
 
 **Version-specific ignores:**
 ```
-Buddy Bot uses package-level ignores rather than version-specific.
+Buddy uses package-level ignores rather than version-specific.
 Use pinning for version-specific control.
 ```
 
@@ -489,13 +489,13 @@ updates:
 ```
 
 ```typescript
-// buddy-bot.config.ts (for supported ecosystems)
+// buddy.config.ts (for supported ecosystems)
 export default {
   packages: {
     strategy: 'all'
     // npm, composer, github-actions handled here
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Best Practices
@@ -516,4 +516,4 @@ export default {
 - Skip workflow validation
 - Forget to monitor first weeks
 
-The migration from Dependabot to Buddy Bot offers enhanced features and better control, while maintaining the reliability you expect from automated dependency updates.
+The migration from Dependabot to Buddy offers enhanced features and better control, while maintaining the reliability you expect from automated dependency updates.

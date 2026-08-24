@@ -7,12 +7,12 @@ Utility commands for configuration, scheduling, and repository management.
 Open GitHub repository and organization settings in your browser.
 
 ```bash
-buddy-bot open-settings [options]
+buddy open-settings [options]
 ```
 
 ### Description
 
-Quickly open the GitHub settings pages needed to configure permissions for buddy-bot. This includes repository settings, organization settings, and Actions configurations.
+Quickly open the GitHub settings pages needed to configure permissions for buddy. This includes repository settings, organization settings, and Actions configurations.
 
 ### Options
 
@@ -32,16 +32,16 @@ Quickly open the GitHub settings pages needed to configure permissions for buddy
 
 ```bash
 # Open repository settings
-buddy-bot open-settings
+buddy open-settings
 
 # Open Actions settings
-buddy-bot open-settings --type actions
+buddy open-settings --type actions
 
 # Open organization settings
-buddy-bot open-settings --type org
+buddy open-settings --type org
 
 # Open personal tokens page
-buddy-bot open-settings --type tokens
+buddy open-settings --type tokens
 ```
 
 ### What Opens
@@ -74,12 +74,12 @@ buddy-bot open-settings --type tokens
 Run automated updates on a schedule.
 
 ```bash
-buddy-bot schedule [options]
+buddy schedule [options]
 ```
 
 ### Description
 
-Execute buddy-bot updates on a predefined schedule. This command is typically used in CI/CD environments or cron jobs for automated dependency management.
+Execute buddy updates on a predefined schedule. This command is typically used in CI/CD environments or cron jobs for automated dependency management.
 
 ### Options
 
@@ -95,19 +95,19 @@ Execute buddy-bot updates on a predefined schedule. This command is typically us
 
 ```bash
 # Run scheduled updates (uses config)
-buddy-bot schedule
+buddy schedule
 
 # Override cron schedule
-buddy-bot schedule --cron "0 2 * * 1"
+buddy schedule --cron "0 2 * * 1"
 
 # Different timezone
-buddy-bot schedule --timezone "America/New*York"
+buddy schedule --timezone "America/New*York"
 
 # Dry run to preview changes
-buddy-bot schedule --dry-run
+buddy schedule --dry-run
 
 # Override update strategy
-buddy-bot schedule --strategy patch
+buddy schedule --strategy patch
 ```
 
 ### Cron Expressions
@@ -116,21 +116,21 @@ Common scheduling patterns:
 
 ```bash
 # Every day at 2 AM UTC
-buddy-bot schedule --cron "0 2 * * *"
+buddy schedule --cron "0 2 * * *"
 
 # Weekly on Monday at 2 AM
-buddy-bot schedule --cron "0 2 * * 1"
+buddy schedule --cron "0 2 * * 1"
 
 # Every 6 hours
-buddy-bot schedule --cron "0 */6 * * *"
+buddy schedule --cron "0 */6 * * *"
 
 # Weekdays at 9 AM
-buddy-bot schedule --cron "0 9 * * 1-5"
+buddy schedule --cron "0 9 * * 1-5"
 ```
 
 ### Configuration Integration
 
-The schedule command uses settings from `buddy-bot.config.ts`:
+The schedule command uses settings from `buddy.config.ts`:
 
 ```typescript
 export default {
@@ -141,7 +141,7 @@ export default {
   packages: {
     strategy: 'patch', // Used by scheduler
   },
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ### CI/CD Integration
@@ -164,16 +164,16 @@ jobs:
 
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
-      - run: bunx buddy-bot schedule
+      - run: bunx @buddysh/buddy schedule
 
         env:
-          GITHUB*TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **Cron Job**
 ```bash
 # Add to crontab
-0 2 * * 1 cd /path/to/project && bunx buddy-bot schedule
+0 2 * * 1 cd /path/to/project && bunx @buddysh/buddy schedule
 ```
 
 ### Output

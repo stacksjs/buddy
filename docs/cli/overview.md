@@ -6,13 +6,13 @@ Buddy provides a comprehensive command-line interface for dependency management,
 
 ```bash
 # Install Buddy globally
-bun add -g buddy-bot
+bun add -g @buddysh/buddy
 
 # Interactive setup (recommended first step)
-buddy-bot setup
+buddy setup
 
 # Or use with bunx (no installation required)
-bunx buddy-bot setup
+bunx @buddysh/buddy setup
 ```
 
 **🚀 Start with `setup`** - The setup command provides a complete Renovate-like configuration experience that automatically configures workflows, tokens, and repository settings.
@@ -20,7 +20,7 @@ bunx buddy-bot setup
 ## Command Structure
 
 ```bash
-buddy-bot <command> [options] [arguments]
+buddy <command> [options] [arguments]
 ```
 
 ## Available Commands
@@ -81,53 +81,53 @@ All commands support these global options:
 
 ```bash
 # Interactive setup (recommended for new projects)
-buddy-bot setup
+buddy setup
 
 # Non-interactive setup with defaults
-buddy-bot setup --non-interactive
+buddy setup --non-interactive
 
 # Non-interactive setup with specific preset
-buddy-bot setup --non-interactive --preset testing --verbose
+buddy setup --non-interactive --preset testing --verbose
 
 # Scan for available updates
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Apply updates and create PRs
-buddy-bot update
+buddy update
 ```
 
 ### Package Analysis
 
 ```bash
 # Get information about a package
-buddy-bot info react
+buddy info react
 
 # Check available versions
-buddy-bot versions typescript --latest 5
+buddy versions typescript --latest 5
 
 # Search for packages
-buddy-bot search "test framework"
+buddy search "test framework"
 ```
 
 ### PR Management
 
 ```bash
 # Rebase a specific PR
-buddy-bot rebase 17
+buddy rebase 17
 
 # Check all PRs for rebase requests
-buddy-bot update-check
+buddy update-check
 
 # Force rebase even if up to date
-buddy-bot rebase 17 --force
+buddy rebase 17 --force
 ```
 
 ## Configuration File
 
-Most commands use settings from `buddy-bot.config.ts`:
+Most commands use settings from `buddy.config.ts`:
 
 ```typescript
-import type { BuddyBotConfig } from 'buddy-bot'
+import type { BuddyConfig } from '@buddysh/buddy'
 
 export default {
   verbose: true,
@@ -145,7 +145,7 @@ export default {
     assignees: ['maintainer'],
     labels: ['dependencies'],
   }
-} satisfies BuddyBotConfig
+} satisfies BuddyConfig
 ```
 
 ## Environment Variables
@@ -178,7 +178,7 @@ Buddy uses standard exit codes:
 Enable detailed logging for any command:
 
 ```bash
-buddy-bot <command> --verbose
+buddy <command> --verbose
 ```
 
 ### Common Issues
@@ -186,10 +186,10 @@ buddy-bot <command> --verbose
 **Command not found:**
 ```bash
 # Check installation
-which buddy-bot
+which buddy
 
 # Or use bunx
-bunx buddy-bot --version
+bunx @buddysh/buddy --version
 ```
 
 **GitHub token issues:**
@@ -204,7 +204,7 @@ gh auth login
 **Permission errors:**
 ```bash
 # Check repository permissions
-buddy-bot open-settings
+buddy open-settings
 ```
 
 ## Integration Examples
@@ -217,8 +217,8 @@ buddy-bot open-settings
 - name: Update dependencies
 
   run: |
-    bunx buddy-bot scan --verbose
-    bunx buddy-bot update --strategy patch
+    bunx @buddysh/buddy scan --verbose
+    bunx @buddysh/buddy update --strategy patch
 ```
 
 ### NPM Scripts
@@ -226,10 +226,10 @@ buddy-bot open-settings
 ```json
 {
   "scripts": {
-    "deps:scan": "buddy-bot scan --verbose",
-    "deps:update": "buddy-bot update",
-    "deps:check": "buddy-bot check react typescript",
-    "deps:info": "buddy-bot info"
+    "deps:scan": "buddy scan --verbose",
+    "deps:update": "buddy update",
+    "deps:check": "buddy check react typescript",
+    "deps:info": "buddy info"
   }
 }
 ```
@@ -239,12 +239,12 @@ buddy-bot open-settings
 ```bash
 # Update specific workspace
 cd packages/frontend
-buddy-bot update --strategy minor
+buddy update --strategy minor
 
 # Check all workspaces
 for dir in packages/*/; do
   echo "Checking $dir"
-  cd "$dir" && buddy-bot scan
+  cd "$dir" && buddy scan
   cd ../..
 done
 ```
@@ -262,11 +262,11 @@ done
 
 ```bash
 # General help
-buddy-bot --help
+buddy --help
 
 # Command-specific help
-buddy-bot scan --help
-buddy-bot update --help
+buddy scan --help
+buddy update --help
 ```
 
 ### Documentation
@@ -277,6 +277,6 @@ buddy-bot update --help
 
 ### Community
 
-- **GitHub Issues**: [Report bugs and feature requests](https://github.com/stacksjs/buddy-bot/issues)
-- **Discussions**: [Community discussions](https://github.com/stacksjs/buddy-bot/discussions)
+- **GitHub Issues**: [Report bugs and feature requests](https://github.com/stacksjs/buddy/issues)
+- **Discussions**: [Community discussions](https://github.com/stacksjs/buddy/discussions)
 - **Discord**: [Join our Discord](https://stacksjs.com/discord)

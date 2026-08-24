@@ -1,6 +1,6 @@
 # Ecosystems
 
-Buddy Bot updates dependencies across npm/Bun/yarn/pnpm, Composer, GitHub
+Buddy updates dependencies across npm/Bun/yarn/pnpm, Composer, GitHub
 Actions, Docker, pkgx/Launchpad, Zig, and — through the adapter interface —
 Python, Rust, Go and Ruby.
 

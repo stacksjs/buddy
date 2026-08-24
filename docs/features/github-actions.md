@@ -101,26 +101,26 @@ GitHub Actions updates appear in a dedicated table within pull requests:
 
 ```bash
 # Scan all dependencies including GitHub Actions
-buddy-bot scan
+buddy scan
 
 # Verbose output showing action detection
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Specific strategy for actions
-buddy-bot scan --strategy minor
+buddy scan --strategy minor
 ```
 
 ### Create Action Update PRs
 
 ```bash
 # Create PRs including action updates
-buddy-bot update
+buddy update
 
 # Dry run to preview action updates
-buddy-bot update --dry-run
+buddy update --dry-run
 
 # Assign action updates to specific team
-buddy-bot update --assignee devops-team
+buddy update --assignee devops-team
 ```
 
 ## Best Practices

@@ -1,10 +1,10 @@
 # Headless Runs
 
-`buddy-bot run` executes a prompt as a pipeline step and, optionally, enforces
+`buddy run` executes a prompt as a pipeline step and, optionally, enforces
 a schema on the output so later steps can consume it safely.
 
 ```bash
-buddy-bot run --prompt "Summarize this week's dependency updates as release notes"
+buddy run --prompt "Summarize this week's dependency updates as release notes"
 ```
 
 The result goes to stdout. Inside GitHub Actions it is also written to
@@ -13,7 +13,7 @@ The result goes to stdout. Inside GitHub Actions it is also written to
 ## Schema-validated output
 
 ```bash
-buddy-bot run \
+buddy run \
   --prompt "Summarize the dependency changes merged this week" \
   --output-schema '{
     "type": "object",
@@ -29,7 +29,7 @@ rather than to have emitted something shaped differently than it promised —
 otherwise the mistake surfaces three steps downstream as a confusing error, or
 worse, as an empty string that silently publishes.
 
-Before failing, Buddy Bot re-asks with the specific violations quoted back:
+Before failing, Buddy re-asks with the specific violations quoted back:
 
 ```
 - markdown: is required but missing
@@ -50,7 +50,7 @@ that is right about what it covers.
 ## In a workflow
 
 ```yaml
-- uses: stacksjs/buddy-bot/action@v1
+- uses: stacksjs/buddy/action@v1
   id: notes
   with:
     prompt: Summarize the dependency changes merged this week as release notes.
@@ -61,7 +61,7 @@ that is right about what it covers.
 - run: echo '${{ fromJSON(steps.notes.outputs.result).markdown }}'
 ```
 
-The action is a thin wrapper over the CLI — `bunx buddy-bot run` in any step
+The action is a thin wrapper over the CLI — `bunx @buddysh/buddy run` in any step
 does the same thing.
 
 ## Output escaping

@@ -48,7 +48,7 @@ All dependency files are scanned using the same intelligent update strategies an
 Configure how aggressively Buddy should scan for updates:
 
 ```typescript
-// buddy-bot.config.ts
+// buddy.config.ts
 export default {
   packages: {
     strategy: 'patch', // 'major' | 'minor' | 'patch' | 'all'
@@ -125,36 +125,36 @@ export default {
 
 ```bash
 # Scan all dependencies
-buddy-bot scan
+buddy scan
 
 # Verbose output with detailed information
-buddy-bot scan --verbose
+buddy scan --verbose
 
 # Scan with specific strategy
-buddy-bot scan --strategy patch
+buddy scan --strategy patch
 ```
 
 ### Targeted Scanning
 
 ```bash
 # Scan specific packages only
-buddy-bot scan --packages "react,typescript"
+buddy scan --packages "react,typescript"
 
 # Use glob patterns
-buddy-bot scan --pattern "@types/*"
+buddy scan --pattern "@types/*"
 
 # Ignore specific packages during scan
-buddy-bot scan --ignore "eslint,prettier"
+buddy scan --ignore "eslint,prettier"
 ```
 
 ### Check Specific Packages
 
 ```bash
 # Check if specific packages have updates
-buddy-bot check react typescript
+buddy check react typescript
 
 # Check with specific strategy
-buddy-bot check react --strategy minor
+buddy check react --strategy minor
 ```
 
 ## Scan Results
