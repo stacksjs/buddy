@@ -841,3 +841,35 @@ body :is(h1, h2, h3, h4)[id] {
   border: 0;
   border-radius: 0;
 }
+
+/* ── Hero panel proportions ─────────────────────────────────────────────── */
+
+/* Some samples are long. Without a ceiling the panel grows past the copy it is
+   meant to illustrate and the hero stops being a hero. */
+.BPHomeHero .BPHeroCode-body {
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3c342b transparent;
+}
+
+.BPHomeHero .BPHeroCode-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.BPHomeHero .BPHeroCode-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.BPHomeHero .BPHeroCode-body::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #3c342b;
+  background-clip: content-box;
+}
+
+.BPHomeHero .BPHeroCode-body::-webkit-scrollbar-thumb:hover {
+  background: #5b5145;
+  background-clip: content-box;
+}
