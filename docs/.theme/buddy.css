@@ -1,0 +1,692 @@
+/**
+ * Buddy's own skin over BunPress.
+ *
+ * Two things to know before editing:
+ *
+ * 1. This file is injected into <head>, but each .stx component ships its own
+ *    <style> in the <body> — later in the document, so it wins any tie on
+ *    specificity. Every override here is therefore written with a parent
+ *    selector (`.BPFeatures .BPFeature`, not `.BPFeature`) to outrank it.
+ *
+ * 2. Dark mode is `html.dark`, set by the theme toggle. `data-theme-mode` on
+ *    <html> only records the preference; it is not what the CSS keys off.
+ */
+
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Paper rather than white. The whole palette is warm-shifted so the amber
+     sits in it rather than on top of it. */
+  --bp-c-bg: #fbf8f3;
+  --bp-c-bg-alt: #f3ede3;
+  --bp-c-bg-soft: #f7f1e8;
+  --bp-c-bg-elv: #ffffff;
+
+  --bp-c-text-1: #1a1512;
+  --bp-c-text-2: #5f564d;
+  --bp-c-text-3: #8d8377;
+
+  --bp-c-divider: #e7ded1;
+  --bp-c-border: #ded3c3;
+  --bp-c-gutter: #ece4d8;
+
+  /* #f5a524 is the brand, but it fails contrast as link text on paper, so
+     links get a darker amber and the bright one is kept for fills. */
+  --bp-c-brand-1: #a6620a;
+  --bp-c-brand-2: #8f5408;
+  --bp-c-brand-3: #f5a524;
+  --bp-c-brand-soft: rgba(245, 165, 36, 0.14);
+
+  --buddy-amber: #f5a524;
+  --buddy-amber-deep: #a6620a;
+  --buddy-ink: #17130e;
+  --buddy-ink-soft: #241d16;
+  --buddy-paper: #fbf8f3;
+  --buddy-grid: rgba(26, 21, 18, 0.055);
+  --buddy-card-bg: #ffffff;
+  --buddy-card-shadow: 0 1px 2px rgba(26, 21, 18, 0.04);
+  --buddy-card-shadow-hover: 0 10px 26px -12px rgba(26, 21, 18, 0.22);
+
+  --buddy-code-bg: #17130e;
+  --buddy-code-border: rgba(23, 19, 14, 0.6);
+  --buddy-code-head: #241d16;
+
+  --buddy-font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --buddy-radius: 12px;
+  --buddy-radius-sm: 8px;
+
+  --bp-button-brand-bg: var(--buddy-amber);
+  --bp-button-brand-border: var(--buddy-amber);
+  --bp-button-brand-text: var(--buddy-ink);
+  --bp-button-brand-hover-bg: #ffb43c;
+  --bp-button-brand-hover-border: #ffb43c;
+  --bp-button-brand-hover-text: var(--buddy-ink);
+  --bp-button-brand-active-bg: #e0940f;
+  --bp-button-brand-active-border: #e0940f;
+
+  --bp-code-block-bg: var(--buddy-code-bg);
+  --bp-nav-height: 68px;
+}
+
+html.dark {
+  --bp-c-bg: #14110e;
+  --bp-c-bg-alt: #1b1712;
+  --bp-c-bg-soft: #1e1a14;
+  --bp-c-bg-elv: #1b1712;
+
+  --bp-c-text-1: #f6f1e9;
+  --bp-c-text-2: #b4a999;
+  --bp-c-text-3: #8a7f70;
+
+  --bp-c-divider: #2c251d;
+  --bp-c-border: #372e24;
+  --bp-c-gutter: #241e17;
+
+  --bp-c-brand-1: #f5a524;
+  --bp-c-brand-2: #ffb43c;
+  --bp-c-brand-3: #f5a524;
+
+  --buddy-grid: rgba(246, 241, 233, 0.045);
+  --buddy-card-bg: #1b1712;
+  --buddy-card-shadow: none;
+  --buddy-card-shadow-hover: 0 10px 26px -12px rgba(0, 0, 0, 0.6);
+
+  /* On a dark page the panel goes *darker* than the background and keeps a
+     hairline, which is what separates it — a panel lighter than the page reads
+     as a card, and a panel the same colour reads as nothing at all. */
+  --buddy-code-bg: #0d0b09;
+  --buddy-code-border: rgba(246, 241, 233, 0.1);
+  --buddy-code-head: #16120d;
+  --bp-code-block-bg: #0d0b09;
+}
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
+
+body {
+  background-color: var(--bp-c-bg);
+  /* A dotted grid, faint enough to read as texture rather than as a pattern.
+     It is what stops a large empty page from looking like a blank document. */
+  background-image: radial-gradient(var(--buddy-grid) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+body ::selection {
+  background: rgba(245, 165, 36, 0.28);
+}
+
+body :focus-visible {
+  outline: 2px solid var(--buddy-amber);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+body h1,
+body h2,
+body h3,
+body h4,
+body .BPHero-text,
+body .BPHero-name,
+body .BPFeature-title,
+body .BPNavBarTitle-text {
+  font-family: var(--buddy-font-display);
+  letter-spacing: -0.022em;
+}
+
+/* ── Nav ────────────────────────────────────────────────────────────────── */
+
+.Layout .BPNav {
+  background: color-mix(in srgb, var(--bp-c-bg) 82%, transparent);
+  backdrop-filter: saturate(1.6) blur(14px);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom: 1px solid var(--bp-c-divider);
+}
+
+.BPNav .BPNavBarTitle {
+  gap: 10px;
+}
+
+.BPNav .BPNavBarTitle-logo {
+  height: 28px;
+}
+
+.BPNav .BPNavBarTitle-text {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+}
+
+.BPNav .BPNavBarMenu-link,
+.BPNav .BPNavBarMenu-group-button {
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.BPNav .BPNavBarSearch {
+  border-radius: 999px;
+  border-color: var(--bp-c-divider);
+  background: var(--bp-c-bg-elv);
+}
+
+.BPNav .BPMega {
+  border-radius: 16px;
+  border: 1px solid var(--bp-c-border);
+  box-shadow: 0 24px 60px -24px rgba(26, 21, 18, 0.35);
+}
+
+.BPNav .BPMega-group-title {
+  font-family: var(--bp-font-family-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--bp-c-text-3);
+}
+
+.BPNav .BPMega-item:hover {
+  background: var(--bp-c-brand-soft);
+}
+
+.BPNav .BPMega-footer {
+  background: var(--bp-c-bg-alt);
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.BPHome .BPHomeHero {
+  position: relative;
+  overflow: hidden;
+}
+
+/* One warm light source behind the headline, so the page has a direction. */
+.BPHome .BPHomeHero::before {
+  content: '';
+  position: absolute;
+  inset: -40% 30% 30% -25%;
+  background: radial-gradient(closest-side, rgba(245, 165, 36, 0.20), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.BPHome .BPHomeHero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The page name becomes a mono eyebrow with a lit dot, rather than the
+   gradient wordmark every VitePress site opens with. */
+.BPHomeHero .BPHero-name {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 9px;
+  margin: 20px 0 18px;
+  font-family: var(--bp-font-family-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--buddy-amber-deep);
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+}
+
+html.dark .BPHomeHero .BPHero-name {
+  color: var(--buddy-amber);
+}
+
+.BPHomeHero .BPHero-name::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--buddy-amber);
+  box-shadow: 0 0 0 4px rgba(245, 165, 36, 0.22);
+}
+
+.BPHomeHero .BPHero-text {
+  font-size: clamp(2.6rem, 5.4vw, 4rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.038em;
+  text-wrap: balance;
+}
+
+.BPHomeHero .BPHero-tagline {
+  max-width: 40rem;
+  font-size: 1.075rem;
+  line-height: 1.65;
+  color: var(--bp-c-text-2);
+}
+
+.BPHomeHero .BPHero-announcement {
+  border-radius: 999px;
+  border: 1px solid var(--bp-c-border);
+  background: var(--bp-c-bg-elv);
+  font-size: 13px;
+}
+
+.BPHomeHero .BPHero-announcement-tag {
+  border-radius: 999px;
+  background: var(--buddy-amber);
+  color: var(--buddy-ink);
+  font-family: var(--bp-font-family-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.BPHomeHero .BPButton {
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+/* A printed-card offset rather than a soft glow: it survives dark mode, and
+   it makes the primary action feel like an object you can press. */
+.BPHomeHero .BPButton-brand,
+.BPHome .BPButton-brand {
+  background-color: var(--buddy-amber);
+  border-color: var(--buddy-amber);
+  color: var(--buddy-ink);
+  box-shadow: 3px 3px 0 var(--buddy-ink);
+}
+
+.BPHomeHero .BPButton-brand:hover,
+.BPHome .BPButton-brand:hover {
+  background-color: #ffb43c;
+  border-color: #ffb43c;
+  color: var(--buddy-ink);
+}
+
+html.dark .BPHomeHero .BPButton-brand {
+  box-shadow: 3px 3px 0 rgba(246, 241, 233, 0.85);
+}
+
+.BPHomeHero .BPButton-brand:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--buddy-ink);
+}
+
+html.dark .BPHomeHero .BPButton-brand:hover {
+  box-shadow: 4px 4px 0 rgba(246, 241, 233, 0.85);
+}
+
+.BPHomeHero .BPButton-alt {
+  background: transparent;
+  border: 1px solid var(--bp-c-border);
+}
+
+.BPHomeHero .BPButton-alt:hover {
+  background: var(--bp-c-bg-elv);
+  border-color: var(--buddy-amber);
+}
+
+/* ── Hero code panel: a terminal, not a card ────────────────────────────── */
+
+/* `.BPHeroCode` is the window, `-head` the tab strip, `-body > -panel > pre`
+   the contents. The <pre> carries the highlighter's own light background, so
+   it has to be cleared explicitly or the panel is half dark and half white. */
+
+.BPHomeHero .BPHeroCode {
+  border-radius: 14px;
+  border: 1px solid var(--buddy-code-border);
+  background: var(--buddy-code-bg);
+  box-shadow: 0 30px 60px -30px rgba(26, 21, 18, 0.45);
+}
+
+.BPHomeHero .BPHeroCode-head {
+  position: relative;
+  min-height: 42px;
+  padding-left: 74px;
+  background: var(--buddy-code-head);
+  border-bottom: 1px solid rgba(246, 241, 233, 0.09);
+}
+
+/* Window dots, drawn in one pseudo-element with two extra shadows. */
+.BPHomeHero .BPHeroCode-head::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: #f5a524;
+  box-shadow: 17px 0 0 #6b6055, 34px 0 0 #3c342b;
+}
+
+.BPHomeHero .BPHeroCode-tab {
+  border-radius: 6px 6px 0 0;
+  border-bottom-color: transparent;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: #8a7f70;
+}
+
+.BPHomeHero .BPHeroCode-tab:hover {
+  color: #d8cec0;
+}
+
+.BPHomeHero .BPHeroCode-tab.is-active,
+.BPHomeHero .BPHeroCode-tab[aria-selected='true'] {
+  color: var(--buddy-amber);
+  background: rgba(245, 165, 36, 0.12);
+  border-bottom-color: var(--buddy-amber);
+}
+
+.BPHomeHero .BPHeroCode-file {
+  color: #8a7f70;
+}
+
+.BPHomeHero .BPHeroCode-body,
+.BPHomeHero .BPHeroCode-panel,
+.BPHomeHero .BPHeroCode pre {
+  background: transparent;
+  color: #e9e1d5;
+}
+
+.BPHomeHero .BPHeroCode pre {
+  font-size: 12.5px;
+  line-height: 1.62;
+}
+
+.BPHomeHero .BPHeroCode code {
+  color: #e9e1d5;
+}
+
+/* ── Feature cards ──────────────────────────────────────────────────────── */
+
+.BPHomeFeatures .BPFeatures {
+  gap: 16px;
+}
+
+.BPHomeFeatures .BPFeature {
+  position: relative;
+  padding: 26px 24px 24px;
+  border-radius: var(--buddy-radius);
+  border: 1px solid var(--bp-c-border);
+  background: var(--buddy-card-bg);
+  box-shadow: var(--buddy-card-shadow);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+/* A hairline that lights up on hover — cheaper than a border colour change
+   and it reads as a highlight rather than a state error. */
+.BPHomeFeatures .BPFeature::after {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  border-radius: var(--buddy-radius) var(--buddy-radius) 0 0;
+  background: var(--buddy-amber);
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.BPHomeFeatures .BPFeature:hover {
+  transform: translateY(-2px);
+  border-color: var(--bp-c-border);
+  box-shadow: var(--buddy-card-shadow-hover);
+}
+
+.BPHomeFeatures .BPFeature:hover::after {
+  opacity: 1;
+}
+
+/* Wide cards carry a wash and a heavier title, so the grid reads as an
+   arrangement rather than one flat tone repeated eight times. */
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span: 2'],
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span:2'] {
+  background:
+    linear-gradient(135deg, rgba(245, 165, 36, 0.16), rgba(245, 165, 36, 0.02) 60%),
+    var(--buddy-card-bg);
+  border-color: rgba(245, 165, 36, 0.45);
+}
+
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span: 2'] .BPFeature-title,
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span:2'] .BPFeature-title {
+  font-size: 1.16rem;
+}
+
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span: 2'] .BPFeature-icon,
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span:2'] .BPFeature-icon {
+  background: var(--buddy-amber);
+  border-color: var(--buddy-amber);
+}
+
+.BPHomeFeatures .BPFeature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  font-size: 19px;
+  border-radius: 10px;
+  background: var(--bp-c-brand-soft);
+  border: 1px solid rgba(245, 165, 36, 0.28);
+}
+
+.BPHomeFeatures .BPFeature-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.BPHomeFeatures .BPFeature-details {
+  font-size: 0.9rem;
+  line-height: 1.62;
+  color: var(--bp-c-text-2);
+}
+
+/* ── Marketing prose ────────────────────────────────────────────────────── */
+
+.BPHome .BPHomeFeatures {
+  padding-bottom: 8px;
+}
+
+.BPHome .BPHome-content h2 {
+  margin-top: 64px;
+  padding-top: 28px;
+  border-top: 1px solid var(--bp-c-divider);
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+}
+
+.BPHome .BPHome-content h3 {
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.BPHome .BPHome-content p {
+  font-size: 1.02rem;
+  line-height: 1.72;
+}
+
+.BPHome .BPHome-content table,
+.BPContent .bp-doc table {
+  display: table;
+  width: 100%;
+  /* `separate` rather than `collapse`, because a collapsed table cannot have
+     rounded corners — the cell borders paint straight over them. */
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--bp-c-border);
+  border-radius: var(--buddy-radius-sm);
+  overflow: hidden;
+  font-size: 0.9rem;
+  background: var(--buddy-card-bg);
+}
+
+.BPHome .BPHome-content th,
+.BPContent .bp-doc th {
+  background: var(--bp-c-bg-alt);
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bp-c-text-2);
+}
+
+.BPHome .BPHome-content td,
+.BPHome .BPHome-content th,
+.BPContent .bp-doc td,
+.BPContent .bp-doc th {
+  border: 0;
+  border-bottom: 1px solid var(--bp-c-divider);
+  padding: 11px 14px;
+}
+
+.BPHome .BPHome-content tr:last-child td,
+.BPContent .bp-doc tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── Docs ───────────────────────────────────────────────────────────────── */
+
+.BPSidebar .BPSidebarItem-link.is-active,
+.BPSidebar .BPSidebarItem-link[aria-current='page'] {
+  color: var(--bp-c-brand-1);
+  font-weight: 600;
+}
+
+.BPContent .bp-doc h2 {
+  padding-top: 22px;
+  border-top: 1px solid var(--bp-c-divider);
+  letter-spacing: -0.028em;
+}
+
+.BPContent .bp-doc h1 {
+  letter-spacing: -0.035em;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.BPFooter .BPFooter-compare {
+  display: block;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bp-c-divider);
+}
+
+.BPFooter .BPFooter-compare-label {
+  display: block;
+  margin-bottom: 10px;
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bp-c-text-3);
+}
+
+.BPFooter .BPFooter-compare a {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 4px 11px;
+  border: 1px solid var(--bp-c-divider);
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bp-c-text-2);
+  text-decoration: none;
+  transition: border-color 0.16s, color 0.16s, background 0.16s;
+}
+
+.BPFooter .BPFooter-compare a:hover {
+  border-color: var(--buddy-amber);
+  background: var(--bp-c-brand-soft);
+  color: var(--bp-c-text-1);
+}
+
+.BPFooter .BPFooter-compare a.BPFooter-compare-all {
+  border-color: transparent;
+  color: var(--bp-c-brand-1);
+  font-weight: 600;
+}
+
+.BPFooter .BPFooter-note {
+  display: block;
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  body * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .BPHomeFeatures .BPFeature:hover,
+  .BPHomeHero .BPButton-brand:hover {
+    transform: none;
+  }
+}
+
+/* ── Code panels ────────────────────────────────────────────────────────── */
+
+/*
+ * The base theme paints `pre` with `!important`, in both light and dark, so
+ * these have to shout back. Syntax colours are inline styles baked in at build
+ * time from a single highlighter theme, which is why every panel is ink in
+ * both modes rather than following the page: one set of token colours can only
+ * be legible on one kind of background, and a terminal is the right one here.
+ */
+
+body pre,
+body pre[data-lang],
+body article pre,
+body .bp-doc pre,
+html.dark body pre,
+html.dark body pre[data-lang],
+html.dark body .bp-doc pre {
+  background: var(--buddy-code-bg) !important;
+  color: #e9e1d5 !important;
+}
+
+.BPContent .bp-doc div[class*='language-'],
+.BPContent .bp-doc pre[data-lang],
+.BPHome .BPHome-content div[class*='language-'],
+.BPHome .BPHome-content pre[data-lang] {
+  border: 1px solid var(--buddy-code-border);
+  border-radius: var(--buddy-radius);
+  background: var(--buddy-code-bg);
+}
+
+.BPContent .bp-doc pre code,
+.BPHome .BPHome-content pre code {
+  font-size: 0.845rem;
+  line-height: 1.68;
+}
+
+/* The language tag the theme prints in the corner of a block. */
+.BPContent .bp-doc [class*='language-']::before,
+.BPHome .BPHome-content [class*='language-']::before {
+  color: #7c7266;
+}
+
+/* Inline code stays part of the sentence: a tinted chip, not a panel. */
+.BPContent .bp-doc :not(pre) > code,
+.BPHome .BPHome-content :not(pre) > code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--bp-c-divider);
+  background: var(--bp-c-bg-alt);
+  color: var(--bp-c-text-1);
+  font-size: 0.855em;
+}
+
+/* Anything the highlighter left unstyled, and a warm fallback palette for the
+   token classes it does emit — a safety net if the highlighter theme changes. */
+body pre .token[style=''],
+body pre .token:not([style]) {
+  color: #e9e1d5 !important;
+}

@@ -1,5 +1,12 @@
 import type { BunPressConfig, NavItem } from '@stacksjs/bunpress'
 
+/**
+ * The site's own stylesheet, read at config load rather than inlined here.
+ * It is a real .css file so an editor treats it as one; `themeConfig.css`
+ * only accepts a string.
+ */
+const themeCss = await Bun.file(new URL('./docs/.theme/buddy.css', import.meta.url)).text()
+
 const REPO = 'https://github.com/stacksjs/buddy'
 
 /**
@@ -343,7 +350,11 @@ const config: BunPressConfig = {
   url: 'https://buddy.sh',
 
   fonts: {
-    google: ['Inter:wght@400;500;600;700', 'JetBrains Mono:wght@400;600'],
+    google: [
+      'Inter:wght@400;500;600;700',
+      'Space Grotesk:wght@500;600;700',
+      'JetBrains Mono:wght@400;500;600',
+    ],
     display: 'swap',
   },
 
@@ -358,7 +369,12 @@ const config: BunPressConfig = {
     ['meta', { name: 'twitter:image', content: 'https://buddy.sh/images/og-image.png' }],
   ],
 
-  markdown: {},
+  markdown: {
+    // Token colours are baked into the HTML as inline styles at build time,
+    // so the highlighter theme has to match the panel rather than the page.
+    // Every code panel on the site is ink, in both light and dark mode.
+    syntaxHighlightTheme: 'github-dark',
+  },
 
   search: {
     enabled: true,
@@ -380,55 +396,7 @@ const config: BunPressConfig = {
       primary: '#f5a524',
     },
 
-    // The Compare strip lives inside the footer's <p>, so every rule here
-    // works on inline elements that have been given a block-ish display.
-    css: `
-.BPFooter .BPFooter-compare {
-  display: block;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--bp-c-divider);
-}
-
-.BPFooter .BPFooter-compare-label {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--bp-c-text-3);
-}
-
-.BPFooter .BPFooter-compare a {
-  display: inline-block;
-  margin: 0 6px 6px 0;
-  padding: 4px 10px;
-  border: 1px solid var(--bp-c-divider);
-  border-radius: 999px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--bp-c-text-2);
-  text-decoration: none;
-  text-underline-offset: 0;
-  transition: border-color 0.2s, color 0.2s;
-}
-
-.BPFooter .BPFooter-compare a:hover {
-  border-color: var(--bp-c-brand-1);
-  color: var(--bp-c-brand-1);
-}
-
-.BPFooter .BPFooter-compare a.BPFooter-compare-all {
-  border-color: transparent;
-  color: var(--bp-c-brand-1);
-  font-weight: 600;
-}
-
-.BPFooter .BPFooter-note {
-  display: block;
-}
-`,
+    css: themeCss,
 
     socialLinks: [
       { icon: 'github', link: REPO },
