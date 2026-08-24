@@ -1,4 +1,4 @@
-import type { BunPressConfig } from '@stacksjs/bunpress'
+import type { BunPressConfig, NavItem } from '@stacksjs/bunpress'
 
 const REPO = 'https://github.com/stacksjs/buddy'
 
@@ -127,6 +127,96 @@ const projectSidebar = [
   },
 ]
 
+/**
+ * The Features mega menu.
+ *
+ * Every entry points at a landing page rather than a reference page: someone
+ * opening a menu called "Features" is deciding whether they want the thing,
+ * not configuring it. Each landing page links down into the docs, so the
+ * reference material is one click further on rather than hidden.
+ */
+const featuresMenu: NavItem = {
+  text: 'Features',
+  activeMatch: '^/features/',
+  columns: 3,
+  items: [
+    {
+      text: 'Review',
+      items: [
+        {
+          text: 'AI Code Review',
+          link: '/features/ai-code-review',
+          icon: '🔍',
+          description: 'Inline findings anchored to the lines you changed',
+        },
+        {
+          text: 'Conversations',
+          link: '/features/pr-conversations',
+          icon: '💬',
+          description: '@buddy answers, re-reviews, resolves and pauses',
+        },
+        {
+          text: 'Local Review',
+          link: '/features/local-review',
+          icon: '💻',
+          description: 'Read the working tree before the PR exists',
+        },
+        {
+          text: 'Finishing Touches',
+          link: '/features/finishing-touches',
+          icon: '✨',
+          description: 'Tests, docstrings and autofix, as a stacked PR',
+        },
+      ],
+    },
+    {
+      text: 'Automate',
+      items: [
+        {
+          text: 'Merge Gates',
+          link: '/features/merge-gates',
+          icon: '🚦',
+          description: 'A real check run, not a comment nobody reads',
+        },
+        {
+          text: 'CI Repair',
+          link: '/features/ci-repair',
+          icon: '🛠️',
+          description: 'Classify a failing run and fix what is unambiguous',
+        },
+        {
+          text: 'Dependency Updates',
+          link: '/features/dependency-updates',
+          icon: '📦',
+          description: 'Eleven ecosystems, real changelogs, auto-merge',
+        },
+      ],
+    },
+    {
+      text: 'Platform',
+      items: [
+        {
+          text: 'Workflow Security',
+          link: '/features/workflow-security',
+          icon: '🛡️',
+          description: 'Supply-chain footguns in .github/workflows',
+        },
+        {
+          text: 'Your CI, Your Keys',
+          link: '/features/self-hosted',
+          icon: '🏠',
+          description: 'No hosted app, no diff leaving your pipeline',
+        },
+      ],
+    },
+  ],
+  footer: {
+    text: 'All features →',
+    link: '/features/',
+    note: 'Nine jobs, one binary.',
+  },
+}
+
 const config: BunPressConfig = {
   verbose: false,
 
@@ -194,8 +284,8 @@ const config: BunPressConfig = {
     },
 
     nav: [
+      featuresMenu,
       { text: 'Guide', link: '/intro' },
-      { text: 'Features', link: '/features/scanning' },
       { text: 'CLI', link: '/cli/overview' },
       { text: 'AI', link: '/ai/providers' },
       { text: 'Config', link: '/config' },
