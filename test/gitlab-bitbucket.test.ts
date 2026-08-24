@@ -332,8 +332,8 @@ describe('CI templates', () => {
 
 describe('remote detection', () => {
   it('success case - recognises each platform, HTTPS and SSH', () => {
-    expect(parseRemote('https://github.com/stacksjs/buddy-bot.git'))
-      .toEqual({ owner: 'stacksjs', name: 'buddy-bot', provider: 'github' })
+    expect(parseRemote('https://github.com/stacksjs/buddy.git'))
+      .toEqual({ owner: 'stacksjs', name: 'buddy', provider: 'github' })
     expect(parseRemote('git@gitlab.com:group/repo.git'))
       .toEqual({ owner: 'group', name: 'repo', provider: 'gitlab' })
     expect(parseRemote('https://bitbucket.org/workspace/repo'))
@@ -359,12 +359,12 @@ describe('repository detection across CI platforms', () => {
   }
 
   it('success case - reads GitHub Actions', () => {
-    expect(resolve({ GITHUB_REPOSITORY: 'stacksjs/buddy-bot' }).result)
-      .toMatchObject({ owner: 'stacksjs', name: 'buddy-bot' })
+    expect(resolve({ GITHUB_REPOSITORY: 'stacksjs/buddy' }).result)
+      .toMatchObject({ owner: 'stacksjs', name: 'buddy' })
   })
 
   it('success case - reads GitLab CI', () => {
-    // Without this, buddy-bot on GitLab CI with no config file cannot find
+    // Without this, buddy on GitLab CI with no config file cannot find
     // the repository it is running in at all.
     expect(resolve({ CI_PROJECT_PATH: 'group/repo' }).result)
       .toMatchObject({ owner: 'group', name: 'repo' })
@@ -406,6 +406,6 @@ describe('setup generates the right CI file', () => {
   it('success case - the GitLab template declares no variable nothing reads', () => {
     // A setting in generated output that no code consults is worse than none:
     // it implies configuration that does nothing.
-    expect(generateGitLabPipeline()).not.toContain('BUDDY_BOT_PROVIDER')
+    expect(generateGitLabPipeline()).not.toContain('BUDDY_PROVIDER')
   })
 })

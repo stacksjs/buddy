@@ -664,7 +664,7 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       expect(slackPlugin!.hooks[0].name).toBe('notify-slack')
       expect(slackPlugin!.hooks[0].priority).toBe(10)
       expect(slackPlugin!.configuration.webhook_url).toBe('https://hooks.slack.com/test')
-      expect(slackPlugin!.configuration.channel).toBe('#buddy-bot')
+      expect(slackPlugin!.configuration.channel).toBe('#buddy')
     })
 
     it('should create Discord plugin with correct configuration', async () => {

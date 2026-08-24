@@ -333,7 +333,7 @@ jobs:
         expect.objectContaining({
           headers: expect.objectContaining({
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'buddy-bot',
+            'User-Agent': 'buddy',
           }),
         }),
       )
@@ -409,7 +409,7 @@ jobs:
         expect.objectContaining({
           headers: expect.objectContaining({
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'buddy-bot',
+            'User-Agent': 'buddy',
           }),
         }),
       )
@@ -454,7 +454,7 @@ jobs:
         expect.objectContaining({
           headers: expect.objectContaining({
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'buddy-bot',
+            'User-Agent': 'buddy',
           }),
         }),
       )
@@ -499,7 +499,7 @@ jobs:
         expect.objectContaining({
           headers: expect.objectContaining({
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'buddy-bot',
+            'User-Agent': 'buddy',
           }),
         }),
       )

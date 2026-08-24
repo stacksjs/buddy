@@ -196,7 +196,7 @@ updates:
       })
 
       // `enabled: false` on a name-only rule is how Renovate spells "ignore",
-      // and it reads better in buddy-bot's own ignore list.
+      // and it reads better in buddy's own ignore list.
       expect(result.migratedSettings.packages.ignore).toEqual(['typescript', '@types/node'])
     })
 
@@ -321,7 +321,7 @@ updates:
 
       expect(result.configFound).toBe(true) // File exists but content may fail
       expect(result.warnings).toHaveLength(1)
-      expect(result.warnings[0]).toBe('Dependabot configuration is limited. Consider customizing Buddy Bot settings.')
+      expect(result.warnings[0]).toBe('Dependabot configuration is limited. Consider customizing Buddy settings.')
     })
   })
 

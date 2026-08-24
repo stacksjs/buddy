@@ -1,16 +1,16 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { assertValidConfig, formatConfigIssues, validateConfig } from '../src/config-validation'
 import { ConfigurationError } from '../src/types'
 
 /** Minimal config that must always validate clean. */
-const validConfig: BuddyBotConfig = {
+const validConfig: BuddyConfig = {
   verbose: false,
-  repository: { provider: 'github', owner: 'stacksjs', name: 'buddy-bot' },
+  repository: { provider: 'github', owner: 'stacksjs', name: 'buddy' },
   packages: { strategy: 'all' },
 }
 
-function pathsOf(config: BuddyBotConfig): string[] {
+function pathsOf(config: BuddyConfig): string[] {
   return validateConfig(config).map(issue => issue.path)
 }
 
@@ -25,7 +25,7 @@ describe('config-validation', () => {
     })
 
     it('success case - accepts a fully populated config', () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         verbose: true,
         logLevel: 'debug',
         maxPRsPerRun: 5,

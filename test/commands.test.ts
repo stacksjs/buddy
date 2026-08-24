@@ -6,7 +6,7 @@ import { Logger } from '../src/utils/logger'
 
 function makeContext(overrides: Partial<CommandContext> = {}): CommandContext {
   return {
-    command: { name: 'review', args: '', raw: '@buddy-bot review' },
+    command: { name: 'review', args: '', raw: '@buddy review' },
     actor: { login: 'maintainer', canWrite: true, isBot: false },
     number: 42,
     isPullRequest: true,
@@ -17,56 +17,56 @@ function makeContext(overrides: Partial<CommandContext> = {}): CommandContext {
 
 describe('command parsing', () => {
   it('success case - parses a bare command', () => {
-    expect(parseCommand('@buddy-bot review')).toMatchObject({ name: 'review', args: '' })
+    expect(parseCommand('@buddy review')).toMatchObject({ name: 'review', args: '' })
   })
 
   it('success case - parses a command with arguments', () => {
-    expect(parseCommand('@buddy-bot remember we pin react to 17')).toMatchObject({
+    expect(parseCommand('@buddy remember we pin react to 17')).toMatchObject({
       name: 'remember',
       args: 'we pin react to 17',
     })
   })
 
   it('success case - resolves aliases', () => {
-    expect(parseCommand('@buddy-bot retry')?.name).toBe('rebase')
-    expect(parseCommand('@buddy-bot fix')?.name).toBe('fix-ci')
-    expect(parseCommand('@buddy-bot full')?.name).toBe('full-review')
+    expect(parseCommand('@buddy retry')?.name).toBe('rebase')
+    expect(parseCommand('@buddy fix')?.name).toBe('fix-ci')
+    expect(parseCommand('@buddy full')?.name).toBe('full-review')
   })
 
   it('success case - is case insensitive', () => {
-    expect(parseCommand('@Buddy-Bot REVIEW')?.name).toBe('review')
+    expect(parseCommand('@Buddy REVIEW')?.name).toBe('review')
   })
 
   it('success case - finds a mention mid-sentence', () => {
-    expect(parseCommand('thanks, @buddy-bot review this when you can')?.name).toBe('review')
+    expect(parseCommand('thanks, @buddy review this when you can')?.name).toBe('review')
   })
 
   it('success case - treats unknown text as a question', () => {
     // Refusing free-form text would make the mention useless for chat.
-    expect(parseCommand('@buddy-bot why did you pick this version?')).toMatchObject({
+    expect(parseCommand('@buddy why did you pick this version?')).toMatchObject({
       name: 'chat',
       args: 'why did you pick this version?',
     })
   })
 
   it('success case - a bare mention asks for help', () => {
-    expect(parseCommand('@buddy-bot')?.name).toBe('help')
+    expect(parseCommand('@buddy')?.name).toBe('help')
   })
 
   it('failure case - ignores a mention inside a fenced code block', () => {
     // Documenting the bot is not invoking it.
-    const body = 'Run this:\n\n```\n@buddy-bot review\n```\n'
+    const body = 'Run this:\n\n```\n@buddy review\n```\n'
 
     expect(parseCommand(body)).toBeNull()
   })
 
   it('failure case - ignores a mention in inline code', () => {
-    expect(parseCommand('use `@buddy-bot review` to trigger a review')).toBeNull()
+    expect(parseCommand('use `@buddy review` to trigger a review')).toBeNull()
   })
 
   it('failure case - ignores a mention inside a blockquote', () => {
     // Quoting someone else's command is not issuing one.
-    expect(parseCommand('> @buddy-bot review\n\nI agree with this')).toBeNull()
+    expect(parseCommand('> @buddy review\n\nI agree with this')).toBeNull()
   })
 
   it('failure case - returns null when the bot is not mentioned', () => {
@@ -77,7 +77,7 @@ describe('command parsing', () => {
 
   it('edge case - honours a custom mention name', () => {
     expect(parseCommand('@depbot review', '@depbot')?.name).toBe('review')
-    expect(parseCommand('@buddy-bot review', '@depbot')).toBeNull()
+    expect(parseCommand('@buddy review', '@depbot')).toBeNull()
   })
 
   it('edge case - strips fences without losing surrounding text', () => {
@@ -91,14 +91,14 @@ describe('command parsing', () => {
 
 describe('mention pre-filter', () => {
   it('success case - detects a mention cheaply', () => {
-    expect(mentionsBot('hey @buddy-bot')).toBe(true)
+    expect(mentionsBot('hey @buddy')).toBe(true)
     expect(mentionsBot('nothing here')).toBe(false)
   })
 
   it('edge case - the pre-filter is deliberately looser than the parser', () => {
     // The workflow guard errs toward running; the parser makes the real call.
-    expect(mentionsBot('`@buddy-bot review`')).toBe(true)
-    expect(parseCommand('`@buddy-bot review`')).toBeNull()
+    expect(mentionsBot('`@buddy review`')).toBe(true)
+    expect(parseCommand('`@buddy review`')).toBeNull()
   })
 })
 

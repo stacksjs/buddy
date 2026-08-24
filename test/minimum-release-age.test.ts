@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -32,7 +32,7 @@ describe('Minimum Release Age Functionality', () => {
 
   describe('RegistryClient.meetsMinimumReleaseAge', () => {
     it('should allow all packages when minimumReleaseAge is 0 (default)', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 0,
@@ -47,7 +47,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should allow packages in exclude list regardless of age', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 1440, // 24 hours
@@ -66,7 +66,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should handle npm/bun packages with mocked release dates', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 60, // 1 hour
@@ -102,7 +102,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should handle GitHub Actions with mocked release dates', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 120, // 2 hours
@@ -138,7 +138,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should handle Composer packages with mocked release dates', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 30, // 30 minutes
@@ -174,7 +174,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should allow updates when release date cannot be determined', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 60,
@@ -202,7 +202,7 @@ describe('Minimum Release Age Functionality', () => {
 
   describe('Buddy.filterUpdatesByMinimumReleaseAge', () => {
     it('should filter updates based on minimum release age', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 60, // 1 hour
@@ -264,7 +264,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should return all updates when minimumReleaseAge is 0', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 0, // Disabled
@@ -300,7 +300,7 @@ describe('Minimum Release Age Functionality', () => {
     })
 
     it('should handle mixed dependency types correctly', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 30, // 30 minutes
@@ -371,7 +371,7 @@ describe('Minimum Release Age Functionality', () => {
         },
       }, null, 2))
 
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         packages: {
           strategy: 'all',
           minimumReleaseAge: 60, // 1 hour

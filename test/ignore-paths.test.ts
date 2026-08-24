@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -13,7 +13,7 @@ describe('IgnorePaths Functionality', () => {
 
   beforeEach(async () => {
     // Create a temporary directory for each test
-    testDir = await fs.mkdtemp(join(tmpdir(), 'buddy-bot-ignore-test-'))
+    testDir = await fs.mkdtemp(join(tmpdir(), 'buddy-ignore-test-'))
     originalCwd = process.cwd()
     process.chdir(testDir)
   })
@@ -190,7 +190,7 @@ describe('IgnorePaths Functionality', () => {
       await fs.writeFile('test-envs/env1/package.json', packageJson)
       await fs.writeFile('src/package.json', packageJson)
 
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: {
           provider: 'github',
           owner: 'test',
@@ -214,7 +214,7 @@ describe('IgnorePaths Functionality', () => {
     })
 
     it('should handle empty ignorePaths array', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: {
           provider: 'github',
           owner: 'test',
@@ -236,7 +236,7 @@ describe('IgnorePaths Functionality', () => {
     })
 
     it('should handle undefined ignorePaths', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: {
           provider: 'github',
           owner: 'test',

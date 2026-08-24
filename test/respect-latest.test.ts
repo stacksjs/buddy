@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -31,7 +31,7 @@ describe('respectLatest functionality', () => {
   })
 
   it('should test RegistryClient shouldRespectVersion method directly', async () => {
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: true,
@@ -60,7 +60,7 @@ describe('respectLatest functionality', () => {
   })
 
   it('should test RegistryClient with respectLatest false', async () => {
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: false,
@@ -137,7 +137,7 @@ devDependencies:
 
   it('should test CLI respectLatest flag override', async () => {
     // Test that CLI flag overrides config
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: true, // Config default
@@ -146,7 +146,7 @@ devDependencies:
 
     // Simulate CLI override
     const cliOptions = { respectLatest: false }
-    const finalConfig: BuddyBotConfig = {
+    const finalConfig: BuddyConfig = {
       ...config,
       packages: {
         ...config.packages!,
@@ -160,7 +160,7 @@ devDependencies:
 
   it('should test auto-close PR functionality for dynamic versions', async () => {
     // Test the auto-close logic for PRs with dynamic versions
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: true, // New default behavior
@@ -191,7 +191,7 @@ python.org
 🔗 **Package Info**: pkgx.com
 
 🌐 **Official Site**: python.org`,
-      head: 'buddy-bot/update-major-update---python.org-1754515225181',
+      head: 'buddy/update-major-update---python.org-1754515225181',
       author: 'github-actions[bot]',
     }
 
@@ -214,7 +214,7 @@ python.org
 
   it('should not auto-close PRs when respectLatest is false', async () => {
     // Test that auto-close doesn't happen when respectLatest is false
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: false, // Old behavior
@@ -233,7 +233,7 @@ python.org
 | Package | Change | Type | File |
 |---------|--------|------|------|
 | [python.org](https://pkgx.com/pkg/python.org) | * → 3.13.5 | 🔴 major | pkgx.yml |`,
-      head: 'buddy-bot/update-major-update---python.org-1754515225181',
+      head: 'buddy/update-major-update---python.org-1754515225181',
       author: 'github-actions[bot]',
     }
 
@@ -255,7 +255,7 @@ python.org
   })
 
   it('should extract packages from PR body correctly', async () => {
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       packages: {
         strategy: 'all',
         respectLatest: true,

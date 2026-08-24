@@ -17,13 +17,13 @@ function pr(overrides: Partial<PullRequest> = {}): PullRequest {
     number: 1,
     title: 'chore(deps): bump x',
     body: '',
-    head: 'buddy-bot/update-x',
+    head: 'buddy/update-x',
     base: 'main',
     state: 'open',
     url: 'https://git.test/pull/1',
     createdAt: daysAgo(3),
     updatedAt: daysAgo(1),
-    author: 'buddy-bot',
+    author: 'buddy',
     reviewers: [],
     assignees: [],
     labels: [],
@@ -80,7 +80,7 @@ describe('health metrics', () => {
 })
 
 describe('activity metrics', () => {
-  it('success case - counts only buddy-bot pull requests', () => {
+  it('success case - counts only buddy pull requests', () => {
     const metrics = computeMetrics(baseInput({
       pullRequests: [pr(), pr({ number: 2, head: 'feature/manual' })],
     }))

@@ -9,7 +9,7 @@ describe('CLI Setup - Non-Interactive Mode', () => {
 
   beforeEach(async () => {
     // Create a temporary directory for each test
-    testDir = await fs.mkdtemp(join(tmpdir(), 'buddy-bot-test-'))
+    testDir = await fs.mkdtemp(join(tmpdir(), 'buddy-test-'))
     originalCwd = process.cwd()
     process.chdir(testDir)
 
@@ -48,7 +48,7 @@ describe('CLI Setup - Non-Interactive Mode', () => {
 
       const workflow = generateUnifiedWorkflow(false)
 
-      expect(workflow).toContain('name: Buddy Bot')
+      expect(workflow).toContain('name: Buddy')
       expect(workflow).toContain('cron: \'0 */2 * * *\'')
       expect(workflow).toContain('default: true') // dry_run default
       expect(workflow).toContain('dependency-update:') // job name
@@ -68,12 +68,12 @@ describe('CLI Setup - Non-Interactive Mode', () => {
 
       const workflow = generateUnifiedWorkflow(true)
 
-      // GITHUB_TOKEN is always the built-in token; BUDDY_BOT_TOKEN is separate
+      // GITHUB_TOKEN is always the built-in token; BUDDY_TOKEN is separate
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflow).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
       // eslint-disable-next-line no-template-curly-in-string
-      expect(workflow).toContain('BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}')
-      expect(workflow).toContain('BUDDY_BOT_TOKEN (a PAT with \'repo\' and \'workflow\' scopes)')
+      expect(workflow).toContain('BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}')
+      expect(workflow).toContain('BUDDY_TOKEN (a PAT with \'repo\' and \'workflow\' scopes)')
       expect(workflow).toContain('Create one at: https://github.com/settings/tokens')
     })
 
@@ -84,7 +84,7 @@ describe('CLI Setup - Non-Interactive Mode', () => {
 
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflow).toContain('${{ secrets.GITHUB_TOKEN }}')
-      // Note: The workflow contains BUDDY_BOT_TOKEN in comments, which is expected
+      // Note: The workflow contains BUDDY_TOKEN in comments, which is expected
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflow).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
     })
@@ -94,10 +94,10 @@ describe('CLI Setup - Non-Interactive Mode', () => {
 
       const workflow = generateUnifiedWorkflow(false)
 
-      expect(workflow).toContain('name: Buddy Bot')
+      expect(workflow).toContain('name: Buddy')
       expect(workflow).toContain('pull_request:') // Rebase checkbox triggers instantly via PR edit event
       expect(workflow).toContain('check:') // job name
-      expect(workflow).toContain('bunx buddy-bot update-check')
+      expect(workflow).toContain('bunx @buddysh/buddy update-check')
     })
 
     it('should generate all core workflows', async () => {
@@ -111,7 +111,7 @@ describe('CLI Setup - Non-Interactive Mode', () => {
       await generateCoreWorkflows(preset, repoInfo, false, logger)
 
       // Check that the unified workflow file was created
-      const unifiedExists = await fs.access('.github/workflows/buddy-bot.yml').then(() => true).catch(() => false)
+      const unifiedExists = await fs.access('.github/workflows/buddy.yml').then(() => true).catch(() => false)
 
       // Check that the old individual files do not exist
       const dashboardExists = await fs.access('.github/workflows/buddy-dashboard.yml').then(() => true).catch(() => false)
@@ -124,9 +124,9 @@ describe('CLI Setup - Non-Interactive Mode', () => {
       expect(updateExists).toBe(false)
 
       // Verify content of the unified workflow file
-      const unifiedContent = await fs.readFile('.github/workflows/buddy-bot.yml', 'utf-8')
+      const unifiedContent = await fs.readFile('.github/workflows/buddy.yml', 'utf-8')
 
-      expect(unifiedContent).toContain('name: Buddy Bot')
+      expect(unifiedContent).toContain('name: Buddy')
       expect(unifiedContent).toContain('check:') // check job
       expect(unifiedContent).toContain('dependency-update:') // dependency update job
       expect(unifiedContent).toContain('dashboard-update:') // dashboard update job
@@ -166,12 +166,12 @@ describe('CLI Setup - Non-Interactive Mode', () => {
       const repoInfo = { owner: 'test-org', name: 'test-repo' }
       await generateConfigFile(repoInfo, false)
 
-      const configExists = await fs.access('buddy-bot.config.ts').then(() => true).catch(() => false)
+      const configExists = await fs.access('buddy.config.ts').then(() => true).catch(() => false)
       expect(configExists).toBe(true)
 
-      const configContent = await fs.readFile('buddy-bot.config.ts', 'utf-8')
-      expect(configContent).toContain('import type { BuddyBotConfig }')
-      expect(configContent).toContain('const config: BuddyBotConfig')
+      const configContent = await fs.readFile('buddy.config.ts', 'utf-8')
+      expect(configContent).toContain('import type { BuddyConfig }')
+      expect(configContent).toContain('const config: BuddyConfig')
       expect(configContent).toContain('export default config')
       expect(configContent).toContain('owner: \'test-org\'')
       expect(configContent).toContain('name: \'test-repo\'')
@@ -184,8 +184,8 @@ describe('CLI Setup - Non-Interactive Mode', () => {
       const repoInfo = { owner: 'test-org', name: 'test-repo' }
       await generateConfigFile(repoInfo, true)
 
-      const configContent = await fs.readFile('buddy-bot.config.ts', 'utf-8')
-      expect(configContent).toContain('// token: process.env.BUDDY_BOT_TOKEN,')
+      const configContent = await fs.readFile('buddy.config.ts', 'utf-8')
+      expect(configContent).toContain('// token: process.env.BUDDY_TOKEN,')
     })
 
     it('should generate config file with default token comments', async () => {
@@ -194,7 +194,7 @@ describe('CLI Setup - Non-Interactive Mode', () => {
       const repoInfo = { owner: 'test-org', name: 'test-repo' }
       await generateConfigFile(repoInfo, false)
 
-      const configContent = await fs.readFile('buddy-bot.config.ts', 'utf-8')
+      const configContent = await fs.readFile('buddy.config.ts', 'utf-8')
       expect(configContent).toContain('// Uses GITHUB_TOKEN by default')
     })
   })
@@ -298,7 +298,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: bunx buddy-bot scan
+      - run: bunx @buddysh/buddy scan
 permissions:
   contents: read
 `
@@ -393,7 +393,7 @@ steps:
       const repoInfo = { owner: 'test-org', name: 'test-repo' }
       await generateConfigFile(repoInfo, false)
 
-      const configContent = await fs.readFile('buddy-bot.config.ts', 'utf-8')
+      const configContent = await fs.readFile('buddy.config.ts', 'utf-8')
       expect(configContent).toContain('ignorePaths: [')
       expect(configContent).toContain('// Add file/directory paths to ignore using glob patterns')
       expect(configContent).toContain('// Example: \'packages/test-*/**\', \'**/*test-envs/**\', \'apps/legacy/**\'')
@@ -406,12 +406,12 @@ steps:
       await generateConfigFile(repoInfo, true)
 
       // Verify the generated config includes ignorePaths
-      const configExists = await fs.access('buddy-bot.config.ts').then(() => true).catch(() => false)
+      const configExists = await fs.access('buddy.config.ts').then(() => true).catch(() => false)
       expect(configExists).toBe(true)
 
-      const configContent = await fs.readFile('buddy-bot.config.ts', 'utf-8')
+      const configContent = await fs.readFile('buddy.config.ts', 'utf-8')
       expect(configContent).toContain('ignorePaths')
-      expect(configContent).toContain('BuddyBotConfig')
+      expect(configContent).toContain('BuddyConfig')
     })
   })
 })

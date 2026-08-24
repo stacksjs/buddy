@@ -25,7 +25,7 @@ function makeContext(overrides: Partial<AgentContext> = {}): AgentContext {
   return {
     workspace,
     baseBranch: 'main',
-    branch: 'buddy-bot/update-x',
+    branch: 'buddy/update-x',
     log: () => {},
     ...overrides,
   }

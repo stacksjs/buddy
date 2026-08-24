@@ -12,7 +12,7 @@ function makeIssue(number: number): Issue {
     url: `https://github.com/o/r/issues/${number}`,
     createdAt: new Date(0),
     updatedAt: new Date(0),
-    author: 'buddy-bot',
+    author: 'buddy',
     assignees: [],
     labels: ['dependencies', 'dashboard'],
   }
@@ -100,12 +100,12 @@ describe('dashboard matching', () => {
   function matches(issue: { title: string, body: string, labels: string[] }): boolean {
     const hasRequiredLabels = issue.labels.includes('dashboard') && issue.labels.includes('dependencies')
     const titleMatches = issue.title.toLowerCase().includes('dependency dashboard')
-    const bodyHasMarker = issue.body.includes('This issue lists Buddy Bot updates and detected dependencies')
+    const bodyHasMarker = issue.body.includes('This issue lists Buddy updates and detected dependencies')
 
     return bodyHasMarker || (hasRequiredLabels && titleMatches)
   }
 
-  const MARKER = 'This issue lists Buddy Bot updates and detected dependencies.'
+  const MARKER = 'This issue lists Buddy updates and detected dependencies.'
 
   it('success case - the body marker alone identifies a dashboard', () => {
     // Requiring labels too made a dashboard whose labels a maintainer removed

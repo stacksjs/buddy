@@ -18,13 +18,13 @@ function makeDashboard(options: {
 
 ## Open
 
- - [${box('buddy-bot/update-react')}] <!-- rebase-branch=buddy-bot/update-react -->[chore(deps): update react](../pull/123) (\`react\`)
- - [${box('buddy-bot/update-types')}] <!-- rebase-branch=buddy-bot/update-types -->[chore(deps): update types](../pull/124) (\`@types/node\`)
+ - [${box('buddy/update-react')}] <!-- rebase-branch=buddy/update-react -->[chore(deps): update react](../pull/123) (\`react\`)
+ - [${box('buddy/update-types')}] <!-- rebase-branch=buddy/update-types -->[chore(deps): update types](../pull/124) (\`@types/node\`)
  - [${options.rebaseAll ? 'x' : ' '}] <!-- rebase-all-open-prs -->**Click on this checkbox to rebase all open PRs at once**
 
 ---
 
-- [${options.manual ? 'x' : ' '}] <!-- manual job -->Check this box to trigger a request for Buddy Bot to run again on this repository
+- [${options.manual ? 'x' : ' '}] <!-- manual job -->Check this box to trigger a request for Buddy to run again on this repository
 `
 }
 
@@ -38,19 +38,19 @@ describe('dashboard actions', () => {
     })
 
     it('success case - reads a single ticked rebase box', () => {
-      const actions = parseDashboardActions(makeDashboard({ rebased: ['buddy-bot/update-react'] }))
+      const actions = parseDashboardActions(makeDashboard({ rebased: ['buddy/update-react'] }))
 
-      expect(actions.rebaseBranches).toEqual(['buddy-bot/update-react'])
+      expect(actions.rebaseBranches).toEqual(['buddy/update-react'])
       expect(actions.rebaseAll).toBe(false)
       expect(hasDashboardActions(actions)).toBe(true)
     })
 
     it('success case - reads several ticked rebase boxes', () => {
       const actions = parseDashboardActions(
-        makeDashboard({ rebased: ['buddy-bot/update-react', 'buddy-bot/update-types'] }),
+        makeDashboard({ rebased: ['buddy/update-react', 'buddy/update-types'] }),
       )
 
-      expect(actions.rebaseBranches).toEqual(['buddy-bot/update-react', 'buddy-bot/update-types'])
+      expect(actions.rebaseBranches).toEqual(['buddy/update-react', 'buddy/update-types'])
     })
 
     it('success case - reads the rebase-all box', () => {
@@ -62,9 +62,9 @@ describe('dashboard actions', () => {
     })
 
     it('edge case - accepts an uppercase X', () => {
-      const body = ' - [X] <!-- rebase-branch=buddy-bot/update-react -->[title](../pull/1)'
+      const body = ' - [X] <!-- rebase-branch=buddy/update-react -->[title](../pull/1)'
 
-      expect(parseDashboardActions(body).rebaseBranches).toEqual(['buddy-bot/update-react'])
+      expect(parseDashboardActions(body).rebaseBranches).toEqual(['buddy/update-react'])
     })
 
     it('edge case - handles null and empty bodies', () => {
@@ -74,24 +74,24 @@ describe('dashboard actions', () => {
 
     it('edge case - deduplicates a branch listed twice', () => {
       const body = [
-        ' - [x] <!-- rebase-branch=buddy-bot/update-react -->[a](../pull/1)',
-        ' - [x] <!-- rebase-branch=buddy-bot/update-react -->[b](../pull/2)',
+        ' - [x] <!-- rebase-branch=buddy/update-react -->[a](../pull/1)',
+        ' - [x] <!-- rebase-branch=buddy/update-react -->[b](../pull/2)',
       ].join('\n')
 
-      expect(parseDashboardActions(body).rebaseBranches).toEqual(['buddy-bot/update-react'])
+      expect(parseDashboardActions(body).rebaseBranches).toEqual(['buddy/update-react'])
     })
 
     it('failure case - ignores an unticked marker on a ticked-looking line', () => {
-      const body = ' - [ ] <!-- rebase-branch=buddy-bot/update-react -->[x] not a checkbox'
+      const body = ' - [ ] <!-- rebase-branch=buddy/update-react -->[x] not a checkbox'
 
       expect(parseDashboardActions(body).rebaseBranches).toEqual([])
     })
   })
 
   describe('uncheckDashboardActions', () => {
-    it('success case - unticks every buddy-bot checkbox', () => {
+    it('success case - unticks every buddy checkbox', () => {
       const ticked = makeDashboard({
-        rebased: ['buddy-bot/update-react', 'buddy-bot/update-types'],
+        rebased: ['buddy/update-react', 'buddy/update-types'],
         rebaseAll: true,
         manual: true,
       })

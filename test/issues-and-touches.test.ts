@@ -149,18 +149,18 @@ describe('finishing touches', () => {
   it('success case - renders an offer with checkbox markers', () => {
     const offer = renderTouchOffer(['docstrings', 'unit-tests'])
 
-    expect(offer).toContain('buddy-bot:touch=docstrings')
-    expect(offer).toContain('buddy-bot:touch=unit-tests')
+    expect(offer).toContain('buddy:touch=docstrings')
+    expect(offer).toContain('buddy:touch=unit-tests')
   })
 
   it('success case - reads back which touches were ticked', () => {
-    const body = ` - [x] <!-- buddy-bot:touch=docstrings -->Add docs\n - [ ] <!-- buddy-bot:touch=simplify -->Simplify`
+    const body = ` - [x] <!-- buddy:touch=docstrings -->Add docs\n - [ ] <!-- buddy:touch=simplify -->Simplify`
 
     expect(parseTouchSelections(body)).toEqual(['docstrings'])
   })
 
   it('edge case - ignores a ticked marker for an unknown touch', () => {
-    expect(parseTouchSelections(' - [x] <!-- buddy-bot:touch=nonsense -->x')).toEqual([])
+    expect(parseTouchSelections(' - [x] <!-- buddy:touch=nonsense -->x')).toEqual([])
   })
 
   it('edge case - nothing ticked selects nothing', () => {

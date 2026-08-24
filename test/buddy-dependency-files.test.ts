@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import fs from 'node:fs'
@@ -11,7 +11,7 @@ describe('Buddy - Dependency Files Integration', () => {
   let mockGenerateGitHubActionsUpdates: any
   let mockGenerateDependencyFileUpdates: any
 
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     repository: {
       provider: 'github',
       owner: 'test-owner',

@@ -75,12 +75,12 @@ describe('pr-manifest', () => {
 
     it('success case - records optional group metadata', () => {
       const manifest = parseManifest(
-        serializeManifest([makeUpdate()], { group: 'Non-Major Updates', strategy: 'all', branch: 'buddy-bot/update-x' }),
+        serializeManifest([makeUpdate()], { group: 'Non-Major Updates', strategy: 'all', branch: 'buddy/update-x' }),
       )
 
       expect(manifest?.group).toBe('Non-Major Updates')
       expect(manifest?.strategy).toBe('all')
-      expect(manifest?.branch).toBe('buddy-bot/update-x')
+      expect(manifest?.branch).toBe('buddy/update-x')
       expect(manifest?.generatedAt).toBeDefined()
     })
 
@@ -101,20 +101,20 @@ describe('pr-manifest', () => {
     })
 
     it('failure case - returns null for malformed JSON instead of throwing', () => {
-      const broken = 'body\n\n<!-- buddy-bot:manifest v1\n{ "updates": [ }\n-->'
+      const broken = 'body\n\n<!-- buddy:manifest v1\n{ "updates": [ }\n-->'
 
       expect(() => parseManifest(broken)).not.toThrow()
       expect(parseManifest(broken)).toBeNull()
     })
 
     it('failure case - returns null for a truncated manifest with no closing marker', () => {
-      const truncated = `body\n\n<!-- buddy-bot:manifest v1\n{"schemaVersion":1,"updates":[`
+      const truncated = `body\n\n<!-- buddy:manifest v1\n{"schemaVersion":1,"updates":[`
 
       expect(parseManifest(truncated)).toBeNull()
     })
 
     it('failure case - returns null for JSON without an updates array', () => {
-      const wrongShape = 'body\n\n<!-- buddy-bot:manifest v1\n{"schemaVersion":1}\n-->'
+      const wrongShape = 'body\n\n<!-- buddy:manifest v1\n{"schemaVersion":1}\n-->'
 
       expect(parseManifest(wrongShape)).toBeNull()
     })
@@ -126,7 +126,7 @@ describe('pr-manifest', () => {
     })
 
     it('edge case - drops malformed entries but keeps valid ones', () => {
-      const mixed = 'body\n\n<!-- buddy-bot:manifest v1\n{"schemaVersion":1,"updates":[{"name":"ok","current":"1.0.0","target":"1.0.1"},{"name":42}]}\n-->'
+      const mixed = 'body\n\n<!-- buddy:manifest v1\n{"schemaVersion":1,"updates":[{"name":"ok","current":"1.0.0","target":"1.0.1"},{"name":42}]}\n-->'
 
       const manifest = parseManifest(mixed)
 
@@ -135,7 +135,7 @@ describe('pr-manifest', () => {
     })
 
     it('edge case - preserves unknown fields from a future schema version', () => {
-      const future = 'body\n\n<!-- buddy-bot:manifest v2\n{"schemaVersion":2,"updates":[{"name":"a","current":"1","target":"2"}],"futureField":"kept"}\n-->'
+      const future = 'body\n\n<!-- buddy:manifest v2\n{"schemaVersion":2,"updates":[{"name":"a","current":"1","target":"2"}],"futureField":"kept"}\n-->'
 
       const manifest = parseManifest(future) as any
 
@@ -161,7 +161,7 @@ describe('pr-manifest', () => {
       let body = `content${serializeManifest([makeUpdate()])}`
       body = withManifest(body, [makeUpdate({ newVersion: '^5.9.0' })])
 
-      expect(body.match(/buddy-bot:manifest/g)).toHaveLength(1)
+      expect(body.match(/buddy:manifest/g)).toHaveLength(1)
       expect(parseManifest(body)?.updates[0].target).toBe('^5.9.0')
     })
 

@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -7,7 +7,7 @@ import { Buddy } from '../src/buddy'
 import { isDependencyFile, parseDependencyFile, updateDependencyFile } from '../src/utils/dependency-file-parser'
 
 describe('Dependency Files Integration Tests', () => {
-  const testConfig: BuddyBotConfig = {
+  const testConfig: BuddyConfig = {
     verbose: false,
     packages: { strategy: 'all' },
   }

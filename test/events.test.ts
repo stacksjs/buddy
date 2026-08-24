@@ -157,7 +157,7 @@ describe('webhook delivery', () => {
     await createWebhookSink({ url: 'https://example.test/hook', secretEnv: 'TEST_WEBHOOK_SECRET' })
       .deliver('pr.created', { number: 3, title: 't', url: 'u', packages: [] })
 
-    expect(headers['x-buddy-bot-signature']).toBe(`sha256=${sign(body, 'shared-secret')}`)
+    expect(headers['x-buddy-signature']).toBe(`sha256=${sign(body, 'shared-secret')}`)
   })
 
   it('failure case - an unsigned sink sends no signature header', async () => {
@@ -170,7 +170,7 @@ describe('webhook delivery', () => {
     await createWebhookSink({ url: 'https://example.test/hook' })
       .deliver('pr.created', { number: 1, title: 't', url: 'u', packages: [] })
 
-    expect(headers['x-buddy-bot-signature']).toBeUndefined()
+    expect(headers['x-buddy-signature']).toBeUndefined()
   })
 
   it('failure case - a non-2xx response throws for the bus to contain', async () => {

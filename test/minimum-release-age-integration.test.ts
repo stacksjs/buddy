@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -67,7 +67,7 @@ jobs:
     }, null, 2))
 
     // Configuration with minimum release age enabled
-    const config: BuddyBotConfig = {
+    const config: BuddyConfig = {
       verbose: true,
       packages: {
         strategy: 'all',
@@ -109,14 +109,14 @@ jobs:
     expect(typeof filterMethod).toBe('function')
 
     console.log('\n✅ Integration test completed successfully!')
-    console.log('🎯 Minimum release age feature is properly integrated into buddy-bot')
+    console.log('🎯 Minimum release age feature is properly integrated into buddy')
   })
 
   it('should show configuration examples for different use cases', () => {
     console.log('\n📚 Configuration Examples for Minimum Release Age:')
 
     // Example 1: Conservative security (24 hours)
-    const conservativeConfig: BuddyBotConfig = {
+    const conservativeConfig: BuddyConfig = {
       packages: {
         strategy: 'all',
         minimumReleaseAge: 1440, // 24 hours
@@ -129,7 +129,7 @@ jobs:
     console.log('   minimumReleaseAgeExclude: ["webpack", "react"]')
 
     // Example 2: Moderate security (4 hours)
-    const moderateConfig: BuddyBotConfig = {
+    const moderateConfig: BuddyConfig = {
       packages: {
         strategy: 'all',
         minimumReleaseAge: 240, // 4 hours
@@ -142,7 +142,7 @@ jobs:
     console.log('   minimumReleaseAgeExclude: ["@types/*"]')
 
     // Example 3: Quick security (1 hour)
-    const quickConfig: BuddyBotConfig = {
+    const quickConfig: BuddyConfig = {
       packages: {
         strategy: 'all',
         minimumReleaseAge: 60, // 1 hour
@@ -155,7 +155,7 @@ jobs:
     console.log('   minimumReleaseAgeExclude: []')
 
     // Example 4: Disabled (default)
-    const disabledConfig: BuddyBotConfig = {
+    const disabledConfig: BuddyConfig = {
       packages: {
         strategy: 'all',
         minimumReleaseAge: 0, // Disabled

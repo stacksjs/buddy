@@ -1,8 +1,8 @@
-import type { BuddyBotConfig, PackageFile, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageFile, PackageUpdate } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { Buddy } from '../src/buddy'
 
-const mockConfig: BuddyBotConfig = {
+const mockConfig: BuddyConfig = {
   verbose: false,
   packages: { strategy: 'all' },
   repository: {

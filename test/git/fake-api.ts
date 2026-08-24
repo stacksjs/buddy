@@ -114,7 +114,7 @@ function gitlabMr(pr: FakePullRequest): unknown {
     merged_at: pr.mergedAt ?? null,
     draft: pr.draft,
     sha: `sha-${pr.head}`,
-    author: { username: 'buddy-bot' },
+    author: { username: 'buddy' },
     reviewers: pr.reviewers.map(username => ({ username })),
     assignees: [],
     labels: pr.labels,
@@ -131,7 +131,7 @@ function gitlabIssue(issue: FakeIssue): unknown {
     created_at: issue.createdAt,
     updated_at: issue.updatedAt,
     closed_at: issue.state === 'closed' ? NOW : null,
-    author: { username: 'buddy-bot' },
+    author: { username: 'buddy' },
     assignees: [],
     labels: issue.labels,
   }
@@ -358,7 +358,7 @@ function bitbucketPr(pr: FakePullRequest): unknown {
     links: { html: { href: `https://bitbucket.test/w/r/pull-requests/${pr.number}` } },
     created_on: pr.createdAt,
     updated_on: pr.updatedAt,
-    author: { nickname: 'buddy-bot' },
+    author: { nickname: 'buddy' },
     reviewers: pr.reviewers.map(nickname => ({ nickname })),
   }
 }
@@ -372,7 +372,7 @@ function bitbucketIssue(issue: FakeIssue): unknown {
     links: { html: { href: `https://bitbucket.test/w/r/issues/${issue.number}` } },
     created_on: issue.createdAt,
     updated_on: issue.updatedAt,
-    reporter: { nickname: 'buddy-bot' },
+    reporter: { nickname: 'buddy' },
   }
 }
 

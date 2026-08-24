@@ -95,7 +95,7 @@ export class InMemoryProvider implements GitProvider {
       url: `https://git.test/o/r/pull/${number}`,
       createdAt: now,
       updatedAt: now,
-      author: 'buddy-bot',
+      author: 'buddy',
       reviewers: options.reviewers ?? [],
       assignees: options.assignees ?? [],
       labels: options.labels ?? [],
@@ -177,7 +177,7 @@ export class InMemoryProvider implements GitProvider {
       url: `https://git.test/o/r/issues/${number}`,
       createdAt: now,
       updatedAt: now,
-      author: 'buddy-bot',
+      author: 'buddy',
       assignees: options.assignees ?? [],
       labels: options.labels ?? [],
     }

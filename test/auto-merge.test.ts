@@ -1,5 +1,5 @@
 import type { AutoMergeCandidate } from '../src/pr/auto-merge'
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { evaluateAutoMerge, evaluateAutoMergeForUpdates, resolveAutoMergeConfig } from '../src/pr/auto-merge'
 import { serializeManifest } from '../src/pr/pr-manifest'
@@ -21,19 +21,19 @@ function makePR(updates: PackageUpdate[], overrides: Partial<AutoMergeCandidate>
     number: 42,
     title: 'chore(deps): update dependencies',
     body: `prose${serializeManifest(updates)}`,
-    head: 'buddy-bot/update-deps',
+    head: 'buddy/update-deps',
     labels: [],
     draft: false,
     ...overrides,
   }
 }
 
-function makeConfig(conditions: string[], overrides: Record<string, unknown> = {}): BuddyBotConfig {
+function makeConfig(conditions: string[], overrides: Record<string, unknown> = {}): BuddyConfig {
   return {
     pullRequest: {
       autoMerge: { enabled: true, strategy: 'squash', conditions, ...overrides },
     },
-  } as BuddyBotConfig
+  } as BuddyConfig
 }
 
 describe('auto-merge evaluation', () => {
@@ -120,7 +120,7 @@ describe('auto-merge evaluation', () => {
     })
 
     it('success case - honours a custom security label', () => {
-      const config = { ...makeConfig(['security-only']), security: { label: 'vuln' } } as BuddyBotConfig
+      const config = { ...makeConfig(['security-only']), security: { label: 'vuln' } } as BuddyConfig
       const pr = makePR([makeUpdate()], { labels: ['vuln'] })
 
       expect(evaluateAutoMerge(pr, config, true).eligible).toBe(true)
@@ -136,10 +136,10 @@ describe('auto-merge evaluation', () => {
   })
 
   describe('safety rails', () => {
-    it('failure case - refuses a non-buddy-bot branch', () => {
+    it('failure case - refuses a non-buddy branch', () => {
       const pr = makePR([makeUpdate()], { head: 'feature/hand-written' })
 
-      expect(evaluateAutoMerge(pr, makeConfig(['patch-only']), true).reason).toContain('not a buddy-bot PR')
+      expect(evaluateAutoMerge(pr, makeConfig(['patch-only']), true).reason).toContain('not a buddy PR')
     })
 
     it('failure case - refuses a draft PR', () => {
@@ -201,13 +201,13 @@ describe('auto-merge evaluation', () => {
   describe('size-reduced manifests', () => {
     it('edge case - recomputes update type when the field was shed', () => {
       // Reduced manifests omit `type`; the bucket comes back from the versions.
-      const body = 'x\n\n<!-- buddy-bot:manifest v1\n{"schemaVersion":1,"updates":[{"name":"a","current":"1.2.3","target":"1.2.4","file":"package.json"}]}\n-->'
+      const body = 'x\n\n<!-- buddy:manifest v1\n{"schemaVersion":1,"updates":[{"name":"a","current":"1.2.3","target":"1.2.4","file":"package.json"}]}\n-->'
 
       expect(evaluateAutoMerge(makePR([], { body }), makeConfig(['patch-only']), true).eligible).toBe(true)
     })
 
     it('edge case - treats an unparseable version pair as major', () => {
-      const body = 'x\n\n<!-- buddy-bot:manifest v1\n{"schemaVersion":1,"updates":[{"name":"a","current":"latest","target":"main","file":"deps.yaml"}]}\n-->'
+      const body = 'x\n\n<!-- buddy:manifest v1\n{"schemaVersion":1,"updates":[{"name":"a","current":"latest","target":"main","file":"deps.yaml"}]}\n-->'
 
       expect(evaluateAutoMerge(makePR([], { body }), makeConfig(['minor-only']), true).eligible).toBe(false)
     })

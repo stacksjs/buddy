@@ -289,14 +289,14 @@ describe('post-merge actions', () => {
     number: 42,
     title: 'feat: the thing',
     body: 'Closes #12',
-    head: 'buddy-bot/x',
+    head: 'buddy/x',
     base: 'main',
     state: 'merged',
     url: 'https://git.test/pull/42',
     createdAt: new Date(),
     updatedAt: new Date(),
     mergedAt: new Date(),
-    author: 'buddy-bot',
+    author: 'buddy',
     reviewers: [],
     assignees: [],
     labels: [],
@@ -413,7 +413,7 @@ describe('issue quick links', () => {
   })
 
   it('edge case - renders with no options at all', () => {
-    expect(renderQuickLinks()).toContain('Buddy Bot')
+    expect(renderQuickLinks()).toContain('Buddy')
   })
 })
 

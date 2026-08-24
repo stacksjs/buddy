@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -22,7 +22,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 
   describe('shouldAutoCloseForIgnorePaths', () => {
     it('should return false when no ignorePaths configured', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: { strategy: 'all' }, // No ignorePaths
       }
@@ -35,7 +35,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
         body: `
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/test-envs/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -45,7 +45,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should return false when PR contains no file paths', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -59,7 +59,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
         number: 1,
         title: 'Update dependencies',
         body: 'This PR has no file paths mentioned',
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -69,7 +69,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should return true when PR contains files matching ignorePaths', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -90,7 +90,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/test-envs/env1/package.json** | ✅ |
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **packages/test-envs/env2/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -100,7 +100,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should return false when PR contains files not matching ignorePaths', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -121,7 +121,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/ui/package.json** | ✅ |
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **src/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -131,7 +131,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should handle multiple ignorePaths patterns', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -153,7 +153,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **src/legacy/package.json** | ✅ |
 | [vue](https://github.com/vuejs/vue) | \`^2.0.0\` → \`^3.0.0\` | **apps/old/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -163,7 +163,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should handle mixed files (some matching, some not)', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -184,7 +184,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/test-envs/package.json** | ✅ |
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **packages/ui/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -196,7 +196,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
 
   describe('extractFilePathsFromPRBody', () => {
     it('should extract file paths from table format with bold file names', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: { strategy: 'all' },
       }
@@ -220,7 +220,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should extract file paths from simple table format', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: { strategy: 'all' },
       }
@@ -241,7 +241,7 @@ describe('IgnorePaths Auto-Close Functionality', () => {
     })
 
     it('should extract file paths from text mentions', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: { strategy: 'all' },
       }
@@ -262,7 +262,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
     })
 
     it('should handle empty or malformed PR bodies', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: { strategy: 'all' },
       }
@@ -358,7 +358,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
 
   describe('Integration with Buddy class', () => {
     it('should auto-close PRs when ignorePaths configuration changes', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -379,7 +379,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/launchpad/test-envs/env1/package.json** | ✅ |
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **packages/launchpad/test-envs/env2/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test-envs',
+        head: 'buddy/update-test-envs',
         author: 'github-actions[bot]',
       }
 
@@ -394,7 +394,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
     })
 
     it('should not auto-close PRs for files outside ignorePaths', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -415,7 +415,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/ui/package.json** | ✅ |
 | [react](https://github.com/facebook/react) | \`^17.0.0\` → \`^18.0.0\` | **src/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-main',
+        head: 'buddy/update-main',
         author: 'github-actions[bot]',
       }
 
@@ -432,7 +432,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
 
   describe('Edge cases and error handling', () => {
     it('should handle invalid glob patterns gracefully', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -448,7 +448,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
         body: `
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/test/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-test',
+        head: 'buddy/update-test',
         author: 'github-actions[bot]',
       }
 
@@ -459,7 +459,7 @@ also modifies apps/legacy/deps.yaml for better compatibility.
     })
 
     it('should handle PRs with complex file path formats', async () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         repository: { provider: 'github', owner: 'test', name: 'test' },
         packages: {
           strategy: 'all',
@@ -484,7 +484,7 @@ Updates in multiple formats:
 |---------|---------|------|--------|
 | [lodash](https://github.com/lodash/lodash) | \`^4.0.0\` → \`^4.17.21\` | **packages/core/test-envs/package.json** | ✅ |
 `,
-        head: 'buddy-bot/update-complex',
+        head: 'buddy/update-complex',
         author: 'github-actions[bot]',
       }
 

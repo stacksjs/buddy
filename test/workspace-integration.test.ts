@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import type { Logger } from '../src/utils/logger'
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import { RegistryClient } from '../src/registry/registry-client'
@@ -11,7 +11,7 @@ describe('RegistryClient - Workspace Integration', () => {
   let pathSpy: any
   let fetchSpy: any
 
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     packages: {
       strategy: 'all',
       ignore: [],

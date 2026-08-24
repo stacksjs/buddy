@@ -1,5 +1,5 @@
 import type { AiClient, AiCompletionRequest, AiResponse } from '../src/ai/types'
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { withManifest } from '../src/pr/pr-manifest'
 import { analyzeGroupMajors, appendUpgradeReport, matchesGlobs } from '../src/upgrades/wire'
@@ -39,7 +39,7 @@ function scriptedClient(json: unknown): AiClient & { requests: AiCompletionReque
 
 const HIGH_CONFIDENCE = { changes: [], confidence: 'high', effort: 1, risks: [] }
 
-function baseOptions(config: BuddyBotConfig, ai: AiClient | null) {
+function baseOptions(config: BuddyConfig, ai: AiClient | null) {
   return {
     config,
     workspace: '/tmp',
@@ -50,7 +50,7 @@ function baseOptions(config: BuddyBotConfig, ai: AiClient | null) {
   }
 }
 
-const ENABLED: BuddyBotConfig = { ai: { majorUpgrades: { enabled: true } } }
+const ENABLED: BuddyConfig = { ai: { majorUpgrades: { enabled: true } } }
 
 describe('package glob matching', () => {
   it('success case - no globs means everything qualifies', () => {
@@ -149,7 +149,7 @@ describe('group major analysis', () => {
   })
 
   it('success case - respects the package globs', async () => {
-    const config: BuddyBotConfig = { ai: { majorUpgrades: { enabled: true, packages: ['@types/*'] } } }
+    const config: BuddyConfig = { ai: { majorUpgrades: { enabled: true, packages: ['@types/*'] } } }
 
     const outcome = await analyzeGroupMajors({
       ...baseOptions(config, scriptedClient(HIGH_CONFIDENCE)),
@@ -162,7 +162,7 @@ describe('group major analysis', () => {
 
   it('success case - names packages it did not analyse', async () => {
     // Otherwise the section reads as complete coverage of the group's majors.
-    const config: BuddyBotConfig = { ai: { majorUpgrades: { enabled: true, packages: ['vue'] } } }
+    const config: BuddyConfig = { ai: { majorUpgrades: { enabled: true, packages: ['vue'] } } }
 
     const outcome = await analyzeGroupMajors({
       ...baseOptions(config, scriptedClient(HIGH_CONFIDENCE)),
@@ -206,7 +206,7 @@ describe('report placement', () => {
     const spliced = appendUpgradeReport(body, '## Major upgrade analysis\n\nreport')
 
     expect(spliced.indexOf('Major upgrade analysis')).toBeGreaterThan(spliced.indexOf('## Tables'))
-    expect(spliced.indexOf('Major upgrade analysis')).toBeLessThan(spliced.indexOf('buddy-bot:manifest'))
+    expect(spliced.indexOf('Major upgrade analysis')).toBeLessThan(spliced.indexOf('buddy:manifest'))
   })
 
   it('success case - an empty report leaves the body untouched', () => {

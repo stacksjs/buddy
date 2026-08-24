@@ -1,10 +1,10 @@
 /* eslint-disable ts/no-require-imports */
-import type { BuddyBotConfig, PullRequest } from '../src/types'
+import type { BuddyConfig, PullRequest } from '../src/types'
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Buddy } from '../src/buddy'
 
 describe('Auto-close obsolete PRs', () => {
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     repository: {
       provider: 'github',
       owner: 'test-owner',
@@ -40,7 +40,7 @@ describe('Auto-close obsolete PRs', () => {
 |---------|---------|----------|--------|
 | [laravel/framework](https://github.com/laravel/framework) | ^8.0 → ^9.0 | **composer.json** | ✅ |
       `,
-      head: 'buddy-bot/update-composer-123',
+      head: 'buddy/update-composer-123',
       base: 'main',
       author: 'github-actions[bot]',
       url: 'https://github.com/test-owner/test-repo/pull/123',
@@ -71,7 +71,7 @@ describe('Auto-close obsolete PRs', () => {
     expect(prNumber).toBe(123)
     expect(comment).toContain('`composer.json` has been removed')
     expect(mockGitProvider.closePullRequest).toHaveBeenCalledWith(123)
-    expect(mockGitProvider.deleteBranch).toHaveBeenCalledWith('buddy-bot/update-composer-123')
+    expect(mockGitProvider.deleteBranch).toHaveBeenCalledWith('buddy/update-composer-123')
 
     // Restore original function
     require('node:fs').existsSync = originalExistsSync
@@ -90,7 +90,7 @@ describe('Auto-close obsolete PRs', () => {
 |---------|---------|----------|--------|
 | [react](https://github.com/facebook/react) | ^17.0 → ^18.0 | **package.json** | ✅ |
       `,
-      head: 'buddy-bot/update-npm-456',
+      head: 'buddy/update-npm-456',
       base: 'main',
       author: 'github-actions[bot]',
       url: 'https://github.com/test-owner/test-repo/pull/456',
@@ -126,7 +126,7 @@ describe('Auto-close obsolete PRs', () => {
       number: 789,
       title: 'chore(deps): update composer dependencies',
       body: `**composer.json** updates available`,
-      head: 'buddy-bot/update-composer-789',
+      head: 'buddy/update-composer-789',
       base: 'main',
       author: 'github-actions[bot]',
       url: 'https://github.com/test-owner/test-repo/pull/789',

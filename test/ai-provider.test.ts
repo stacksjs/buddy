@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import process from 'node:process'
 import { resolveModelAlias } from '../src/ai/aliases'
@@ -16,7 +16,7 @@ const KEY_VARS = [
   'GEMINI_API_KEY',
   'OPENROUTER_API_KEY',
   'OPENAI_COMPATIBLE_API_KEY',
-  'BUDDY_BOT_MODEL',
+  'BUDDY_MODEL',
   'CUSTOM_KEY_VAR',
 ]
 
@@ -121,9 +121,9 @@ describe('provider resolution', () => {
     expect(resolution?.apiKey).toBe('sk-custom-test')
   })
 
-  it('success case - BUDDY_BOT_MODEL overrides the configured model', () => {
+  it('success case - BUDDY_MODEL overrides the configured model', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
-    process.env.BUDDY_BOT_MODEL = 'haiku'
+    process.env.BUDDY_MODEL = 'haiku'
 
     expect(resolveAiProvider({ ai: { model: 'opus' } })?.model).toBe('claude-haiku-4-5')
   })
@@ -152,7 +152,7 @@ describe('createAiClient', () => {
 })
 
 describe('openAI-compatible provider', () => {
-  const config: BuddyBotConfig = { ai: { provider: 'openai', model: 'test-model' } }
+  const config: BuddyConfig = { ai: { provider: 'openai', model: 'test-model' } }
 
   it('success case - maps a chat completion onto the normalized shape', async () => {
     process.env.OPENAI_API_KEY = 'sk-openai-test'

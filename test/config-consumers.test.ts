@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageUpdate, UpdateGroup } from '../src/types'
+import type { BuddyConfig, PackageUpdate, UpdateGroup } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { Buddy } from '../src/buddy'
 import { PullRequestGenerator } from '../src/pr/pr-generator'
@@ -28,7 +28,7 @@ function makeGroup(updates: PackageUpdate[] = [makeUpdate()]): UpdateGroup {
   }
 }
 
-function makeGenerator(config: BuddyBotConfig): PullRequestGenerator {
+function makeGenerator(config: BuddyConfig): PullRequestGenerator {
   const generator = new PullRequestGenerator(config) as any
   generator.releaseNotesFetcher.fetchPackageInfo = async () => null
   return generator
@@ -131,7 +131,7 @@ describe('previously unread configuration options', () => {
 
       // Custom templates must not be able to break the PR lifecycle.
       expect(body).toContain('<!-- rebase-check -->')
-      expect(body).toContain('buddy-bot:manifest')
+      expect(body).toContain('buddy:manifest')
     })
 
     it('edge case - leaves unknown tokens intact rather than blanking them', () => {

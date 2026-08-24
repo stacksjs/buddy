@@ -33,7 +33,7 @@ describe('generated workflow: declared inputs and untrusted values', () => {
     const workflow = generateUnifiedWorkflow(true)
 
     // A branch name is attacker-chosen text. Interpolated into a `run:` block
-    // it executes — and this workflow carries BUDDY_BOT_TOKEN, a PAT with repo
+    // it executes — and this workflow carries BUDDY_TOKEN, a PAT with repo
     // and workflow scopes, which a same-repo PR does receive.
     expect(workflow).not.toContain('BRANCH="${{ github.event.pull_request.head.ref }}"')
     expect(workflow).not.toContain('ACTOR="${{ github.actor }}"')

@@ -1,12 +1,12 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { resolveRepositoryConfig } from '../src/utils/repository'
 
-function makeConfig(overrides: Partial<BuddyBotConfig> = {}): BuddyBotConfig {
+function makeConfig(overrides: Partial<BuddyConfig> = {}): BuddyConfig {
   return {
     repository: { owner: '', name: '', provider: 'github' },
     ...overrides,
-  } as BuddyBotConfig
+  } as BuddyConfig
 }
 
 describe('resolveRepositoryConfig', () => {
@@ -87,7 +87,7 @@ describe('resolveRepositoryConfig', () => {
   })
 
   it('edge case - handles a config with no repository block', () => {
-    const config = {} as BuddyBotConfig
+    const config = {} as BuddyConfig
     const result = resolveRepositoryConfig(config, { GITHUB_REPOSITORY: 'a/b' })
 
     expect(result.source).toBe('unresolved')

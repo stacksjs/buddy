@@ -11,7 +11,7 @@ describe('Workspace Detection - End-to-End Tests', () => {
 
   beforeEach(async () => {
     // Create a fresh temporary directory for each test
-    tempDir = await mkdtemp(join(tmpdir(), 'buddy-bot-workspace-test-'))
+    tempDir = await mkdtemp(join(tmpdir(), 'buddy-workspace-test-'))
 
     mockLogger = new Logger(false)
 
@@ -35,7 +35,7 @@ describe('Workspace Detection - End-to-End Tests', () => {
       ],
       devDependencies: {
         'typescript': '5.8.2',
-        'buddy-bot': '0.4.4',
+        'buddy': '0.4.4',
       },
     }, null, 2))
 

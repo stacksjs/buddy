@@ -1,10 +1,10 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { Scheduler } from '../src/scheduler/scheduler'
 
 describe('Scheduler', () => {
   let scheduler: Scheduler
-  let mockConfig: BuddyBotConfig
+  let mockConfig: BuddyConfig
 
   beforeAll(() => {
     process.env.APP_ENV = 'test'

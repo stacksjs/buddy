@@ -1,4 +1,4 @@
-import type { BuddyBotConfig, PackageUpdate } from '../src/types'
+import type { BuddyConfig, PackageUpdate } from '../src/types'
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import fs from 'node:fs'
 import { Buddy } from '../src/buddy'
@@ -9,7 +9,7 @@ describe('Buddy - Composer Integration', () => {
   let existsSyncSpy: any
   let mockGenerateComposerUpdates: any
 
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     repository: {
       provider: 'github',
       owner: 'test-owner',
@@ -221,7 +221,7 @@ describe('Buddy - Composer Integration', () => {
 
   describe('Configuration Integration', () => {
     it('should respect ignore list for Composer packages', async () => {
-      const configWithIgnore: BuddyBotConfig = {
+      const configWithIgnore: BuddyConfig = {
         ...mockConfig,
         packages: {
           strategy: 'all',
@@ -237,7 +237,7 @@ describe('Buddy - Composer Integration', () => {
     })
 
     it('should apply update strategy to Composer packages', async () => {
-      const configWithStrategy: BuddyBotConfig = {
+      const configWithStrategy: BuddyConfig = {
         ...mockConfig,
         packages: {
           strategy: 'minor',

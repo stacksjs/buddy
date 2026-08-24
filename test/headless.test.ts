@@ -293,7 +293,7 @@ describe('doctor', () => {
     const report = await diagnose({}, { ...noTools, env: {}, cwd: process.cwd() })
     const rendered = renderDoctorReport(report)
 
-    expect(rendered).toContain('Buddy Bot environment')
+    expect(rendered).toContain('Buddy environment')
     expect(rendered).toContain('→')
   })
 })

@@ -219,8 +219,8 @@ describe('review state marker', () => {
   })
 
   it('failure case - returns null for malformed state instead of throwing', () => {
-    expect(() => parseReviewState('<!-- buddy-bot:review v1\n{bad\n-->')).not.toThrow()
-    expect(parseReviewState('<!-- buddy-bot:review v1\n{bad\n-->')).toBeNull()
+    expect(() => parseReviewState('<!-- buddy:review v1\n{bad\n-->')).not.toThrow()
+    expect(parseReviewState('<!-- buddy:review v1\n{bad\n-->')).toBeNull()
   })
 
   it('success case - a new commit needs review', () => {
@@ -235,7 +235,7 @@ describe('review state marker', () => {
   })
 
   it('success case - a paused PR is never reviewed', () => {
-    const state = parseReviewState(`<!-- buddy-bot:review v1\n{"reviewedSha":"x","paused":true}\n-->`)
+    const state = parseReviewState(`<!-- buddy:review v1\n{"reviewedSha":"x","paused":true}\n-->`)
 
     expect(needsReview(state, 'anything-new')).toBe(false)
   })

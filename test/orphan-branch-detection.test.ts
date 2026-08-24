@@ -52,7 +52,7 @@ function mockPR(number: number, headRef: string): MockPullsResponse {
 
 function makeProvider(opts: {
   openPRHeadRefs: string[]
-  buddyBotBranches: Array<{ name: string, daysOld: number }>
+  buddyBranches: Array<{ name: string, daysOld: number }>
   apiThrows?: Error
 }) {
   const prov = new GitHubProvider('token', 'owner', 'repo', true) as any
@@ -70,7 +70,7 @@ function makeProvider(opts: {
   // Stub git branch listing
   prov.runCommand = async (command: string, args: string[]) => {
     if (command === 'git' && args[0] === 'branch' && args[1] === '-r') {
-      return opts.buddyBotBranches
+      return opts.buddyBranches
         .map((b) => {
           const date = new Date()
           date.setDate(date.getDate() - b.daysOld)
@@ -93,41 +93,41 @@ function makeProvider(opts: {
 describe('Orphan branch detection (regression: PR-page scraping bug)', () => {
   it('protects the branch of an open PR returned by the GitHub API', async () => {
     const prov = makeProvider({
-      openPRHeadRefs: ['buddy-bot/update-non-major-updates'],
-      buddyBotBranches: [{ name: 'buddy-bot/update-non-major-updates', daysOld: 0 }],
+      openPRHeadRefs: ['buddy/update-non-major-updates'],
+      buddyBranches: [{ name: 'buddy/update-non-major-updates', daysOld: 0 }],
     })
 
-    const orphans = await prov.getOrphanedBuddyBotBranches()
+    const orphans = await prov.getOrphanedBuddyBranches()
     expect(orphans).toEqual([])
   })
 
-  it('marks a buddy-bot branch with no associated open PR as orphaned', async () => {
+  it('marks a buddy branch with no associated open PR as orphaned', async () => {
     const prov = makeProvider({
       openPRHeadRefs: [],
-      buddyBotBranches: [{ name: 'buddy-bot/update-non-major-updates', daysOld: 0 }],
+      buddyBranches: [{ name: 'buddy/update-non-major-updates', daysOld: 0 }],
     })
 
-    const orphans = await prov.getOrphanedBuddyBotBranches()
-    expect(orphans.map((b: any) => b.name)).toEqual(['buddy-bot/update-non-major-updates'])
+    const orphans = await prov.getOrphanedBuddyBranches()
+    expect(orphans.map((b: any) => b.name)).toEqual(['buddy/update-non-major-updates'])
   })
 
-  it('protects only buddy-bot branches with matching head refs (mixed open PRs)', async () => {
+  it('protects only buddy branches with matching head refs (mixed open PRs)', async () => {
     const prov = makeProvider({
-      openPRHeadRefs: ['buddy-bot/update-react', 'feature/unrelated'],
-      buddyBotBranches: [
-        { name: 'buddy-bot/update-react', daysOld: 0 },
-        { name: 'buddy-bot/update-typescript', daysOld: 0 },
+      openPRHeadRefs: ['buddy/update-react', 'feature/unrelated'],
+      buddyBranches: [
+        { name: 'buddy/update-react', daysOld: 0 },
+        { name: 'buddy/update-typescript', daysOld: 0 },
       ],
     })
 
-    const orphans = await prov.getOrphanedBuddyBotBranches()
-    expect(orphans.map((b: any) => b.name)).toEqual(['buddy-bot/update-typescript'])
+    const orphans = await prov.getOrphanedBuddyBranches()
+    expect(orphans.map((b: any) => b.name)).toEqual(['buddy/update-typescript'])
   })
 
   it('cleanupStaleBranches with API success deletes ALL orphans regardless of age', async () => {
     const prov = makeProvider({
       openPRHeadRefs: [],
-      buddyBotBranches: [{ name: 'buddy-bot/update-react', daysOld: 0 }], // freshly created
+      buddyBranches: [{ name: 'buddy/update-react', daysOld: 0 }], // freshly created
     })
     const deleted: string[] = []
     prov.deleteBranch = async (name: string) => {
@@ -136,14 +136,14 @@ describe('Orphan branch detection (regression: PR-page scraping bug)', () => {
 
     const result = await prov.cleanupStaleBranches(7, false)
 
-    expect(deleted).toEqual(['buddy-bot/update-react'])
-    expect(result.deleted).toEqual(['buddy-bot/update-react'])
+    expect(deleted).toEqual(['buddy/update-react'])
+    expect(result.deleted).toEqual(['buddy/update-react'])
   })
 
   it('cleanupStaleBranches with API failure spares branches younger than the age threshold', async () => {
     const prov = makeProvider({
       openPRHeadRefs: [],
-      buddyBotBranches: [{ name: 'buddy-bot/update-react', daysOld: 0 }], // freshly created
+      buddyBranches: [{ name: 'buddy/update-react', daysOld: 0 }], // freshly created
       apiThrows: new Error('GitHub API unavailable'),
     })
     const deleted: string[] = []
@@ -160,9 +160,9 @@ describe('Orphan branch detection (regression: PR-page scraping bug)', () => {
   it('cleanupStaleBranches with API failure still deletes branches older than the age threshold', async () => {
     const prov = makeProvider({
       openPRHeadRefs: [],
-      buddyBotBranches: [
-        { name: 'buddy-bot/update-react', daysOld: 0 }, // young, must NOT be deleted
-        { name: 'buddy-bot/very-old', daysOld: 60 }, // old, OK to delete
+      buddyBranches: [
+        { name: 'buddy/update-react', daysOld: 0 }, // young, must NOT be deleted
+        { name: 'buddy/very-old', daysOld: 60 }, // old, OK to delete
       ],
       apiThrows: new Error('GitHub API unavailable'),
     })
@@ -173,7 +173,7 @@ describe('Orphan branch detection (regression: PR-page scraping bug)', () => {
 
     const result = await prov.cleanupStaleBranches(7, false)
 
-    expect(deleted).toEqual(['buddy-bot/very-old'])
-    expect(result.deleted).toEqual(['buddy-bot/very-old'])
+    expect(deleted).toEqual(['buddy/very-old'])
+    expect(result.deleted).toEqual(['buddy/very-old'])
   })
 })

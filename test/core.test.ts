@@ -1,11 +1,11 @@
-import type { BuddyBotConfig, GitProviderName, PackageUpdate, UpdateGroup } from '../src/types'
+import type { BuddyConfig, GitProviderName, PackageUpdate, UpdateGroup } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { Buddy } from '../src/buddy'
 import { PullRequestGenerator } from '../src/pr/pr-generator'
 import { Scheduler } from '../src/scheduler/scheduler'
 
 describe('Core Functionality Tests', () => {
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     verbose: false,
     packages: { strategy: 'all' },
     repository: {
@@ -41,7 +41,7 @@ describe('Core Functionality Tests', () => {
     })
 
     it('should initialize with minimal config', () => {
-      const minimalConfig: BuddyBotConfig = {
+      const minimalConfig: BuddyConfig = {
         verbose: false,
         packages: { strategy: 'all' },
       }
@@ -134,7 +134,7 @@ describe('Core Functionality Tests', () => {
       const strategies: Array<'all' | 'major' | 'minor' | 'patch'> = ['all', 'major', 'minor', 'patch']
 
       strategies.forEach((strategy) => {
-        const config: BuddyBotConfig = {
+        const config: BuddyConfig = {
           verbose: false,
           packages: { strategy },
         }
@@ -149,7 +149,7 @@ describe('Core Functionality Tests', () => {
       const providers: Array<GitProviderName> = ['github']
 
       providers.forEach((provider) => {
-        const config: BuddyBotConfig = {
+        const config: BuddyConfig = {
           verbose: false,
           packages: { strategy: 'all' },
           repository: {
@@ -165,7 +165,7 @@ describe('Core Functionality Tests', () => {
     })
 
     it('should handle schedule configuration', () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         verbose: false,
         packages: { strategy: 'all' },
         schedule: {
@@ -182,7 +182,7 @@ describe('Core Functionality Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle invalid cron expressions', () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         ...mockConfig,
         schedule: { cron: 'invalid-cron' },
       }
@@ -217,7 +217,7 @@ describe('Core Functionality Tests', () => {
 
   describe('Integration Points', () => {
     it('should pass config through job creation', () => {
-      const config: BuddyBotConfig = {
+      const config: BuddyConfig = {
         verbose: true,
         packages: { strategy: 'patch' },
         repository: {

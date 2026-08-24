@@ -76,13 +76,13 @@ describe('token resolution', () => {
     // The personal token is not a better GITHUB_TOKEN — it is the *workflow*
     // token, passed separately. Preferring it here would change who appears to
     // have opened every pull request.
-    const resolved = resolveProviderToken('github', { BUDDY_BOT_TOKEN: 'pat', GITHUB_TOKEN: 'ambient' })
+    const resolved = resolveProviderToken('github', { BUDDY_TOKEN: 'pat', GITHUB_TOKEN: 'ambient' })
 
     expect(resolved).toEqual({ token: 'ambient', source: 'GITHUB_TOKEN' })
   })
 
-  it('success case - falls back to the buddy-bot token when CI provides none', () => {
-    expect(resolveProviderToken('github', { BUDDY_BOT_TOKEN: 'pat' })?.source).toBe('BUDDY_BOT_TOKEN')
+  it('success case - falls back to the buddy token when CI provides none', () => {
+    expect(resolveProviderToken('github', { BUDDY_TOKEN: 'pat' })?.source).toBe('BUDDY_TOKEN')
   })
 
   it('success case - each provider has its own convention', () => {
@@ -148,7 +148,7 @@ describe('provider factory', () => {
   it('failure case - names the variables to set when no token is found', async () => {
     await expect(createProvider({ owner: 'o', name: 'r' }, { env: {} }))
       .rejects
-      .toThrow(/GITHUB_TOKEN.*BUDDY_BOT_TOKEN/)
+      .toThrow(/GITHUB_TOKEN.*BUDDY_TOKEN/)
   })
 })
 
@@ -225,7 +225,7 @@ describe('platform-neutrality', () => {
     'src/security/reporters/github.ts',
     'src/utils/helpers.ts',
     'src/types.ts',
-    // Documentation links to buddy-bot's own repository.
+    // Documentation links to buddy's own repository.
     'src/ai/providers/openai.ts',
     'src/pr/pr-generator.ts',
     'src/dashboard/dashboard-generator.ts',

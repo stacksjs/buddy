@@ -104,6 +104,6 @@ describe('PR generator manifest embedding', () => {
   it('edge case - emits exactly one manifest per body', async () => {
     const body = await makeGenerator().generateBody(makeGroup([makeUpdate()]))
 
-    expect(body.match(/buddy-bot:manifest/g)).toHaveLength(1)
+    expect(body.match(/buddy:manifest/g)).toHaveLength(1)
   })
 })

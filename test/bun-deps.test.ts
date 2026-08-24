@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -28,7 +28,7 @@ const mockResolveDependencyFile = mock(() => Promise.resolve({
 
 describe('Bun deps.yaml Update Tests', () => {
   let testDir: string
-  let config: BuddyBotConfig
+  let config: BuddyConfig
 
   beforeAll(async () => {
     // Create a temporary directory for testing
@@ -59,7 +59,7 @@ describe('Bun deps.yaml Update Tests', () => {
 `,
     )
 
-    // Create a basic buddy-bot.config.ts file
+    // Create a basic buddy.config.ts file
     config = {
       repository: {
         provider: 'github' as const,

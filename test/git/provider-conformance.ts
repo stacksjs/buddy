@@ -78,30 +78,30 @@ export function runProviderConformance(name: string, create: () => GitProvider):
 
       it('success case - a created branch then exists', async () => {
         const provider = create()
-        await provider.createBranch('buddy-bot/update-x', 'main')
+        await provider.createBranch('buddy/update-x', 'main')
 
-        expect(await provider.branchExists('buddy-bot/update-x')).toBe(true)
+        expect(await provider.branchExists('buddy/update-x')).toBe(true)
       })
 
       it('success case - a deleted branch stops existing', async () => {
         const provider = create()
-        await provider.createBranch('buddy-bot/update-x', 'main')
-        await provider.deleteBranch('buddy-bot/update-x')
+        await provider.createBranch('buddy/update-x', 'main')
+        await provider.deleteBranch('buddy/update-x')
 
-        expect(await provider.branchExists('buddy-bot/update-x')).toBe(false)
+        expect(await provider.branchExists('buddy/update-x')).toBe(false)
       })
 
       it('success case - committing files makes them readable at the branch', async () => {
         const provider = create()
-        await provider.createBranch('buddy-bot/update-x', 'main')
+        await provider.createBranch('buddy/update-x', 'main')
         await provider.commitChanges(
-          'buddy-bot/update-x',
+          'buddy/update-x',
           'chore(deps): bump x',
           [{ path: 'package.json', content: '{"name":"x"}', type: 'update' }],
           'main',
         )
 
-        expect(await provider.getFileContent('package.json', 'buddy-bot/update-x')).toBe('{"name":"x"}')
+        expect(await provider.getFileContent('package.json', 'buddy/update-x')).toBe('{"name":"x"}')
       })
 
       it('edge case - reading a missing path returns null rather than throwing', async () => {
@@ -117,13 +117,13 @@ export function runProviderConformance(name: string, create: () => GitProvider):
         const pr = await provider.createPullRequest({
           title: 'chore(deps): bump x',
           body: 'body',
-          head: 'buddy-bot/update-x',
+          head: 'buddy/update-x',
           base: 'main',
         })
 
         expect(pr.number).toBeGreaterThan(0)
         expect(pr.title).toBe('chore(deps): bump x')
-        expect(pr.head).toBe('buddy-bot/update-x')
+        expect(pr.head).toBe('buddy/update-x')
         expect(pr.base).toBe('main')
         expect(pr.state).toBe('open')
         expect(pr.url).toContain(String(pr.number))

@@ -7,22 +7,22 @@ describe('CLI Setup - Extended Tests', () => {
 
       // Test with custom token
       const workflowWithCustomToken = generateUnifiedWorkflow(true)
-      expect(workflowWithCustomToken).toContain('name: Buddy Bot')
+      expect(workflowWithCustomToken).toContain('name: Buddy')
       expect(workflowWithCustomToken).toContain('pull_request:') // Rebase checkbox via PR edit event
       expect(workflowWithCustomToken).toContain('cron: \'0 */2 * * *\'') // Update job
       expect(workflowWithCustomToken).toContain('cron: \'15 */2 * * *\'') // Dashboard job
-      expect(workflowWithCustomToken).toContain('BUDDY_BOT_TOKEN')
+      expect(workflowWithCustomToken).toContain('BUDDY_TOKEN')
 
       // Test with default token
       const workflowWithDefaultToken = generateUnifiedWorkflow(false)
-      expect(workflowWithDefaultToken).toContain('name: Buddy Bot')
+      expect(workflowWithDefaultToken).toContain('name: Buddy')
       expect(workflowWithDefaultToken).toContain('pull_request:') // Rebase checkbox via PR edit event
       expect(workflowWithDefaultToken).toContain('cron: \'0 */2 * * *\'') // Update job
       expect(workflowWithDefaultToken).toContain('cron: \'15 */2 * * *\'') // Dashboard job
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflowWithDefaultToken).toContain('${{ secrets.GITHUB_TOKEN }}')
-      // Should not use BUDDY_BOT_TOKEN in the actual token environment variable
-      expect(workflowWithDefaultToken).not.toContain('secrets.BUDDY_BOT_TOKEN ||')
+      // Should not use BUDDY_TOKEN in the actual token environment variable
+      expect(workflowWithDefaultToken).not.toContain('secrets.BUDDY_TOKEN ||')
     })
 
     it('should include all required workflow jobs and elements', async () => {
@@ -43,10 +43,10 @@ describe('CLI Setup - Extended Tests', () => {
       expect(workflow).toContain('dry_run:')
       expect(workflow).toContain('packages:')
       expect(workflow).toContain('verbose:')
-      expect(workflow).toContain('bunx buddy-bot scan')
-      expect(workflow).toContain('bunx buddy-bot update')
-      expect(workflow).toContain('bunx buddy-bot update-check')
-      expect(workflow).toContain('bunx buddy-bot dashboard')
+      expect(workflow).toContain('bunx @buddysh/buddy scan')
+      expect(workflow).toContain('bunx @buddysh/buddy update')
+      expect(workflow).toContain('bunx @buddysh/buddy update-check')
+      expect(workflow).toContain('bunx @buddysh/buddy dashboard')
       expect(workflow).toContain('permissions:')
       expect(workflow).toContain('contents: write')
       expect(workflow).toContain('pull-requests: write')
@@ -103,14 +103,14 @@ describe('CLI Setup - Extended Tests', () => {
       const { generateUnifiedWorkflow } = await import('../src/setup')
 
       // With custom token — GITHUB_TOKEN is always the built-in token,
-      // BUDDY_BOT_TOKEN is passed separately for workflow file permissions
+      // BUDDY_TOKEN is passed separately for workflow file permissions
       const workflowWithCustom = generateUnifiedWorkflow(true)
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflowWithCustom).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
       // eslint-disable-next-line no-template-curly-in-string
-      expect(workflowWithCustom).toContain('BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}')
-      // Should NOT override GITHUB_TOKEN with BUDDY_BOT_TOKEN (that causes personal contribution pollution)
-      expect(workflowWithCustom).not.toContain('BUDDY_BOT_TOKEN || secrets.GITHUB_TOKEN')
+      expect(workflowWithCustom).toContain('BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}')
+      // Should NOT override GITHUB_TOKEN with BUDDY_TOKEN (that causes personal contribution pollution)
+      expect(workflowWithCustom).not.toContain('BUDDY_TOKEN || secrets.GITHUB_TOKEN')
 
       // With default token only — same output (hasCustomToken no longer changes token env)
       const workflowWithDefault = generateUnifiedWorkflow(false)
@@ -124,7 +124,7 @@ describe('CLI Setup - Extended Tests', () => {
       const { generateUnifiedWorkflow } = await import('../src/setup')
 
       const workflow = generateUnifiedWorkflow(true)
-      expect(workflow).toContain('name: Buddy Bot')
+      expect(workflow).toContain('name: Buddy')
       expect(workflow).toContain('on:')
       expect(workflow).toContain('schedule:')
       expect(workflow).toContain('workflow_dispatch:')
@@ -203,12 +203,12 @@ describe('CLI Setup - Extended Tests', () => {
 describe('Unified Workflow - newer commands', () => {
   it('should give every CLI command a trigger', async () => {
     // A command with no workflow job is unreachable for anyone who just runs
-    // `buddy-bot setup` — the feature exists but nothing invokes it.
+    // `buddy setup` — the feature exists but nothing invokes it.
     const { generateUnifiedWorkflow } = await import('../src/setup')
     const workflow = generateUnifiedWorkflow(false)
 
     for (const command of ['gate', 'touch', 'post-merge', 'handle-issue', 'report'])
-      expect(workflow).toContain(`bunx buddy-bot ${command}`)
+      expect(workflow).toContain(`bunx @buddysh/buddy ${command}`)
   })
 
   it('should guard post-merge on the merged flag', async () => {
@@ -227,10 +227,10 @@ describe('Unified Workflow - newer commands', () => {
   })
 
   it('should not override the workflow-level token in the new jobs', async () => {
-    // GITHUB_TOKEN is primary for bot attribution; BUDDY_BOT_TOKEN rides
+    // GITHUB_TOKEN is primary for bot attribution; BUDDY_TOKEN rides
     // alongside it for elevated scopes. The `||` pattern breaks that.
     const { generateUnifiedWorkflow } = await import('../src/setup')
 
-    expect(generateUnifiedWorkflow(true)).not.toContain('BUDDY_BOT_TOKEN || secrets.GITHUB_TOKEN')
+    expect(generateUnifiedWorkflow(true)).not.toContain('BUDDY_TOKEN || secrets.GITHUB_TOKEN')
   })
 })

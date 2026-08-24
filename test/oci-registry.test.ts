@@ -117,7 +117,7 @@ describe('credential resolution', () => {
   it('success case - ghcr falls back to the ambient GitHub token', () => {
     // Private GHCR images then work in Actions with no configuration at all.
     expect(resolveCredentials('ghcr.io', undefined, { GITHUB_TOKEN: 'gh' }))
-      .toEqual({ username: 'buddy-bot', password: 'gh' })
+      .toEqual({ username: 'buddy', password: 'gh' })
   })
 
   it('failure case - nothing configured means anonymous', () => {

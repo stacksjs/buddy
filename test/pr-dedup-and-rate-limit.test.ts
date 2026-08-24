@@ -78,9 +78,9 @@ describe('PR Deduplication & Rate Limiting', () => {
 
     it('should support custom prefix', () => {
       const updates = makeSingleUpdate('react', '18.0.0')
-      const branch = generateBranchName(updates, 'buddy-bot')
+      const branch = generateBranchName(updates, 'buddy')
 
-      expect(branch).toBe('buddy-bot/update-react-to-18.0.0')
+      expect(branch).toBe('buddy/update-react-to-18.0.0')
     })
 
     it('should produce different branches for different versions of the same package', () => {
@@ -98,40 +98,40 @@ describe('PR Deduplication & Rate Limiting', () => {
       // Should check the actor to prevent cascade loops
       expect(workflow).toContain('ACTOR=')
       expect(workflow).toContain('github-actions[bot]')
-      expect(workflow).toContain('buddy-bot')
+      expect(workflow).toContain('buddy')
       // Should skip when actor is a bot
       expect(workflow).toContain('Skipping')
       expect(workflow).toContain('bot actor')
     })
 
-    it('should only trigger check job for buddy-bot branch edits by users', () => {
+    it('should only trigger check job for buddy branch edits by users', () => {
       const workflow = generateUnifiedWorkflow(false)
 
       // Should check branch prefix
-      expect(workflow).toContain('buddy-bot/*')
+      expect(workflow).toContain('buddy/*')
       // Should output run_check=true for user-initiated edits
-      expect(workflow).toContain('buddy-bot PR edited by user')
+      expect(workflow).toContain('buddy PR edited by user')
       expect(workflow).toContain('run_check=true')
     })
   })
 
   describe('Token Attribution', () => {
-    it('should use GITHUB_TOKEN as primary token (not BUDDY_BOT_TOKEN)', () => {
+    it('should use GITHUB_TOKEN as primary token (not BUDDY_TOKEN)', () => {
       const workflow = generateUnifiedWorkflow(true)
 
       // Top-level env should use the built-in GITHUB_TOKEN
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflow).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}')
       // Should NOT have the old pattern that overrides GITHUB_TOKEN with PAT
-      expect(workflow).not.toContain('BUDDY_BOT_TOKEN || secrets.GITHUB_TOKEN')
+      expect(workflow).not.toContain('BUDDY_TOKEN || secrets.GITHUB_TOKEN')
     })
 
-    it('should pass BUDDY_BOT_TOKEN as separate env var', () => {
+    it('should pass BUDDY_TOKEN as separate env var', () => {
       const workflow = generateUnifiedWorkflow(true)
 
-      // BUDDY_BOT_TOKEN should be its own env var, not merged into GITHUB_TOKEN
+      // BUDDY_TOKEN should be its own env var, not merged into GITHUB_TOKEN
       // eslint-disable-next-line no-template-curly-in-string
-      expect(workflow).toContain('BUDDY_BOT_TOKEN: ${{ secrets.BUDDY_BOT_TOKEN }}')
+      expect(workflow).toContain('BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}')
     })
 
     it('should produce the same output regardless of hasCustomToken parameter', () => {
@@ -148,34 +148,34 @@ describe('PR Deduplication & Rate Limiting', () => {
     it('should use GITHUB_TOKEN for checkout steps', () => {
       const workflow = generateUnifiedWorkflow(true)
 
-      // All checkout steps should use GITHUB_TOKEN, not BUDDY_BOT_TOKEN
+      // All checkout steps should use GITHUB_TOKEN, not BUDDY_TOKEN
       // eslint-disable-next-line no-template-curly-in-string
       const checkoutTokenPattern = /token: \$\{\{ secrets\.GITHUB_TOKEN \}\}/g
       const matches = workflow.match(checkoutTokenPattern)
       expect(matches).not.toBeNull()
       expect(matches!.length).toBeGreaterThanOrEqual(1)
 
-      // Should NOT use BUDDY_BOT_TOKEN in checkout steps
-      expect(workflow).not.toContain('token: ${{ secrets.BUDDY_BOT_TOKEN }}')
+      // Should NOT use BUDDY_TOKEN in checkout steps
+      expect(workflow).not.toContain('token: ${{ secrets.BUDDY_TOKEN }}')
     })
 
-    it('should use GITHUB_TOKEN for buddy-bot command env vars', () => {
+    it('should use GITHUB_TOKEN for buddy command env vars', () => {
       const workflow = generateUnifiedWorkflow(true)
 
-      // The run step env vars should pass GITHUB_TOKEN (not PAT) to the buddy-bot commands
+      // The run step env vars should pass GITHUB_TOKEN (not PAT) to the buddy commands
       // Look for the pattern in step env blocks
       const envBlocks = workflow.split('env:')
       for (const block of envBlocks) {
         // If the block contains GITHUB_TOKEN assignment, it should use secrets.GITHUB_TOKEN
-        if (block.includes('GITHUB_TOKEN:') && block.includes('BUDDY_BOT_TOKEN:')) {
-          expect(block).not.toContain('BUDDY_BOT_TOKEN || secrets.GITHUB_TOKEN')
+        if (block.includes('GITHUB_TOKEN:') && block.includes('BUDDY_TOKEN:')) {
+          expect(block).not.toContain('BUDDY_TOKEN || secrets.GITHUB_TOKEN')
         }
       }
     })
   })
 
   describe('Rate Limiting Config', () => {
-    it('should accept maxPRsPerRun in BuddyBotConfig', async () => {
+    it('should accept maxPRsPerRun in BuddyConfig', async () => {
       // Import the type to verify it compiles
       const { Buddy } = await import('../src/buddy')
 

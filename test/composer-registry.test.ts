@@ -1,4 +1,4 @@
-import type { BuddyBotConfig } from '../src/types'
+import type { BuddyConfig } from '../src/types'
 import type { Logger } from '../src/utils/logger'
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
 import fs from 'node:fs'
@@ -12,7 +12,7 @@ describe('RegistryClient - Composer Integration', () => {
   let beforeEachExistsSpy: any
   let beforeEachReadFileSpy: any
 
-  const mockConfig: BuddyBotConfig = {
+  const mockConfig: BuddyConfig = {
     packages: {
       strategy: 'all',
       ignore: ['ignored/package'],
@@ -213,7 +213,7 @@ describe('RegistryClient - Composer Integration', () => {
     })
 
     it('should respect excludeMajor configuration', async () => {
-      const configWithExcludeMajor: BuddyBotConfig = {
+      const configWithExcludeMajor: BuddyConfig = {
         packages: {
           strategy: 'all',
           excludeMajor: true,
@@ -264,7 +264,7 @@ describe('RegistryClient - Composer Integration', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://packagist.org/packages/laravel/framework.json',
-        expect.objectContaining({ headers: { 'User-Agent': 'buddy-bot' } }),
+        expect.objectContaining({ headers: { 'User-Agent': 'buddy' } }),
       )
       expect(metadata).toBeDefined()
       expect(metadata!.name).toBe('laravel/framework')
@@ -308,7 +308,7 @@ describe('RegistryClient - Composer Integration', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://packagist.org/packages/laravel/framework.json',
-        expect.objectContaining({ headers: { 'User-Agent': 'buddy-bot' } }),
+        expect.objectContaining({ headers: { 'User-Agent': 'buddy' } }),
       )
       expect(exists).toBe(true)
     })

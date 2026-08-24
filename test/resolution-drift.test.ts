@@ -1,7 +1,7 @@
 /**
  * Packages that are behind for a reason no manifest shows.
  *
- * Everything else buddy-bot does compares a declared range against the
+ * Everything else buddy does compares a declared range against the
  * registry. This covers the class that misses, and the class it misses is the
  * one that wastes the most time, because from inside the repository everything
  * looks correct: every range is satisfiable, `bun install` succeeds, and the
@@ -17,7 +17,7 @@ describe('a transitive cap', () => {
   test('is found, and the dependant responsible is named', () => {
     /*
      * What actually happened. An application declared @stacksjs/database and
-     * got it, and also depended transitively on buddy-bot, which declared
+     * got it, and also depended transitively on buddy, which declared
      * ts-pantry at ^0.10.11 while the rest of that family had moved to ^0.11.
      * Under hoisted linking one copy wins for the whole tree, so 0.10.56 was
      * installed while 0.11.19 existed - and a fix released for that
@@ -29,7 +29,7 @@ describe('a transitive cap', () => {
       available: ['0.10.11', '0.10.56', '0.11.0', '0.11.19'],
       declared: [
         { by: '@stacksjs/config', range: '^0.11.0' },
-        { by: 'buddy-bot', range: '^0.10.11' },
+        { by: 'buddy', range: '^0.10.11' },
       ],
     })
 
@@ -56,14 +56,14 @@ describe('a transitive cap', () => {
       available: ['0.10.56', '0.11.0', '0.11.19'],
       declared: [
         { by: 'root', range: '*' },
-        { by: 'buddy-bot', range: '<=0.10.56' },
+        { by: 'buddy', range: '<=0.10.56' },
       ],
     })
 
     expect(drift?.kind).toBe('capped')
     expect(drift?.installed).toBe('0.10.56')
     expect(drift?.latest).toBe('0.11.19')
-    expect(drift?.capping.map(c => c.by)).toEqual(['buddy-bot'])
+    expect(drift?.capping.map(c => c.by)).toEqual(['buddy'])
   })
 
   test('reports the gap when a range permits more than is installed', () => {
@@ -204,10 +204,10 @@ describe('the report', () => {
       kind: 'capped' as const,
       reachable: '0.10.56',
       latest: '0.11.19',
-      capping: [{ by: 'buddy-bot', range: '^0.10.11' }],
+      capping: [{ by: 'buddy', range: '^0.10.11' }],
     })
 
-    expect(line).toContain('buddy-bot (^0.10.11)')
+    expect(line).toContain('buddy (^0.10.11)')
     expect(line).toContain('0.11.19')
   })
 
