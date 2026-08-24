@@ -255,3 +255,15 @@ export * from './upgrades'
 
 // Runtime events and notifications
 export * from './events'
+
+// Configuration loading
+export {
+  config,
+  defaultConfig,
+  getConfig,
+  resetConfigCache,
+} from './config'
+
+// Interactive setup, configuration migration and plugin discovery.
+// Also reachable as `@buddysh/buddy/setup`.
+export * from './setup'

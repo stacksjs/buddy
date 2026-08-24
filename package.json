@@ -1,20 +1,20 @@
 {
-  "name": "buddy-bot",
+  "name": "@buddysh/buddy",
   "type": "module",
   "version": "0.10.5",
   "description": "Automated & optimized dependency updates for JavaScript & TypeScript projects. Like Renovate & Dependabot.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
-  "homepage": "https://github.com/stacksjs/buddy-bot",
+  "homepage": "https://github.com/stacksjs/buddy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stacksjs/buddy-bot.git"
+    "url": "git+https://github.com/stacksjs/buddy.git"
   },
   "bugs": {
-    "url": "https://github.com/stacksjs/buddy-bot/issues"
+    "url": "https://github.com/stacksjs/buddy/issues"
   },
   "keywords": [
-    "buddy-bot",
+    "buddy",
     "dependency-updates",
     "dependency-management",
     "dependency-updater",
@@ -30,12 +30,20 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
-    }
+    },
+    "./setup": {
+      "types": "./dist/src/setup.d.ts",
+      "import": "./dist/src/setup.js"
+    },
+    "./package.json": "./package.json"
   },
   "module": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
-    "buddy-bot": "./dist/bin/cli.js"
+    "buddy": "./dist/bin/cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "README.md",
@@ -77,7 +85,6 @@
     "@stacksjs/logsmith": "^0.2.11",
     "@types/bun": "^1.4.0",
     "@types/prompts": "^2.4.9",
-    "buddy-bot": "^0.10.5",
     "bun-git-hooks": "^0.3.3",
     "bun-plugin-dtsx": "^0.11.10",
     "bunfig": "^0.15.19",
