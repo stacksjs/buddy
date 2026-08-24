@@ -21,4 +21,5 @@ test-package.json
 /pantry
 .zed
 .cursor
+.claude
 pantry
