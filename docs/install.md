@@ -49,10 +49,10 @@ brew install buddy # coming soon
 pkgx buddy # coming soon
 ```
 
-::: tip Dependency File Support
-Buddy automatically detects and updates pkgx dependency files (`deps.yaml`, `pkgx.yaml`) and Launchpad dependency files that use the same registry format. No additional configuration required!
 :::
 
+::: tip Dependency File Support
+Buddy automatically detects and updates pkgx dependency files (`deps.yaml`, `pkgx.yaml`) and Launchpad dependency files that use the same registry format. No additional configuration required!
 :::
 
 ## Prerequisites

@@ -690,3 +690,154 @@ body pre .token[style=''],
 body pre .token:not([style]) {
   color: #e9e1d5 !important;
 }
+
+/* ── Anchors under the sticky nav ───────────────────────────────────────── */
+
+body :is(h1, h2, h3, h4)[id] {
+  scroll-margin-top: calc(var(--bp-nav-height) + 20px);
+}
+
+/* ── Sidebar and outline ────────────────────────────────────────────────── */
+
+.BPSidebar .BPSidebarItem > .sidebar-section-toggle,
+.BPSidebar .BPSidebarItem > p,
+.BPSidebar .sidebar-section-toggle {
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bp-c-text-3);
+}
+
+.BPSidebar .BPSidebarItem-link {
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+}
+
+.BPSidebar .BPSidebarItem-link:hover {
+  background: var(--bp-c-bg-alt);
+}
+
+.BPSidebar .BPSidebarItem-link.is-active,
+.BPSidebar .BPSidebarItem-link[aria-current='page'] {
+  border-left-color: var(--buddy-amber);
+  background: var(--bp-c-brand-soft);
+}
+
+.BPDocAside .BPDocAsideOutline > .outline-title,
+.BPDocAside .bp-local-outline-label {
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Custom blocks ──────────────────────────────────────────────────────── */
+
+.BPContent .bp-doc .custom-block,
+.BPHome .BPHome-content .custom-block {
+  border-radius: var(--buddy-radius);
+  border-width: 1px;
+  border-left-width: 3px;
+}
+
+.BPContent .bp-doc .custom-block-title,
+.BPHome .BPHome-content .custom-block-title {
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* A quote is an aside, not a warning: a rule and a colour shift, no fill. */
+.BPContent .bp-doc blockquote,
+.BPHome .BPHome-content blockquote {
+  border-left: 3px solid var(--buddy-amber);
+  background: transparent;
+  color: var(--bp-c-text-2);
+  font-style: normal;
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+
+.BPSearch .BPSearch-panel {
+  border: 1px solid var(--bp-c-border);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -30px rgba(26, 21, 18, 0.45);
+}
+
+.BPSearch .BPSearch-input {
+  font-size: 16px;
+}
+
+.BPSearch .BPSearch-hit-breadcrumb {
+  font-family: var(--bp-font-family-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.BPSearch .BPSearch-hit:hover,
+.BPSearch .BPSearch-hit.is-active {
+  background: var(--bp-c-brand-soft);
+}
+
+/* ── Consistency fix ────────────────────────────────────────────────────── */
+
+/* Wide cards keep the tinted chip like every other card; only the border
+   thickens. A solid amber tile behind an emoji reads as a different component. */
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span: 2'] .BPFeature-icon,
+.BPHomeFeatures .BPFeature[style*='--bp-feature-span:2'] .BPFeature-icon {
+  background: rgba(245, 165, 36, 0.22);
+  border-color: rgba(245, 165, 36, 0.55);
+}
+
+/* ── Code groups ────────────────────────────────────────────────────────── */
+
+.BPContent .bp-doc .code-group,
+.BPHome .BPHome-content .code-group {
+  border: 1px solid var(--buddy-code-border);
+  border-radius: var(--buddy-radius);
+  background: var(--buddy-code-bg);
+  overflow: hidden;
+}
+
+.BPContent .bp-doc .code-group .tabs,
+.BPHome .BPHome-content .code-group .tabs,
+.BPContent .bp-doc .code-group-tabs,
+.BPHome .BPHome-content .code-group-tabs {
+  background: var(--buddy-code-head);
+  border-bottom: 1px solid rgba(246, 241, 233, 0.09);
+}
+
+.BPContent .bp-doc .code-group-tab,
+.BPHome .BPHome-content .code-group-tab {
+  font-family: var(--bp-font-family-mono);
+  font-size: 11.5px;
+  color: #8a7f70;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+}
+
+.BPContent .bp-doc .code-group-tab:hover,
+.BPHome .BPHome-content .code-group-tab:hover {
+  color: #d8cec0;
+}
+
+.BPContent .bp-doc .code-group-tab.active,
+.BPHome .BPHome-content .code-group-tab.active {
+  color: var(--buddy-amber);
+  border-bottom-color: var(--buddy-amber);
+  background: rgba(245, 165, 36, 0.1);
+}
+
+/* The panel's own <pre> is already ink; drop its border so the group reads as
+   one window rather than a box inside a box. */
+.BPContent .bp-doc .code-group pre[data-lang],
+.BPHome .BPHome-content .code-group pre[data-lang] {
+  border: 0;
+  border-radius: 0;
+}

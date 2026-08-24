@@ -374,6 +374,12 @@ const config: BunPressConfig = {
     // so the highlighter theme has to match the panel rather than the page.
     // Every code panel on the site is ink, in both light and dark mode.
     syntaxHighlightTheme: 'github-dark',
+
+    features: {
+      // Off by default, which left `::: code-group` fences rendering as
+      // literal `::: code-group` text above a stack of untabbed blocks.
+      codeGroups: true,
+    },
   },
 
   search: {
