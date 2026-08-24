@@ -294,6 +294,42 @@ const useCasesMenu: NavItem = {
   },
 }
 
+/**
+ * The competitors Buddy is compared against, in the order the footer lists
+ * them: the two dependency bots most readers arrive from, then the code
+ * reviewers, then the security platform.
+ *
+ * One array drives both the footer strip and the order on `/compare/`, so a
+ * new comparison page cannot be added without the footer learning about it.
+ */
+const competitors = [
+  { name: 'Renovate', slug: 'renovate' },
+  { name: 'Dependabot', slug: 'dependabot' },
+  { name: 'CodeRabbit', slug: 'coderabbit' },
+  { name: 'Greptile', slug: 'greptile' },
+  { name: 'Qodo Merge', slug: 'qodo' },
+  { name: 'Graphite', slug: 'graphite' },
+  { name: 'Sourcery', slug: 'sourcery' },
+  { name: 'Snyk', slug: 'snyk' },
+]
+
+/**
+ * The footer's Compare strip.
+ *
+ * The theme renders `footer.message` as raw HTML inside a paragraph, so this
+ * is built from inline elements only — a `<div>` here would be closed out of
+ * its own paragraph by the parser.
+ */
+const compareFooter = [
+  '<span class="BPFooter-compare">',
+  '<span class="BPFooter-compare-label">Compare Buddy</span>',
+  ...competitors.map(
+    ({ name, slug }) => `<a href="/compare/${slug}">vs ${name}</a>`,
+  ),
+  '<a class="BPFooter-compare-all" href="/compare/">All comparisons \u2192</a>',
+  '</span>',
+].join('')
+
 const config: BunPressConfig = {
   verbose: false,
 
@@ -344,6 +380,56 @@ const config: BunPressConfig = {
       primary: '#f5a524',
     },
 
+    // The Compare strip lives inside the footer's <p>, so every rule here
+    // works on inline elements that have been given a block-ish display.
+    css: `
+.BPFooter .BPFooter-compare {
+  display: block;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bp-c-divider);
+}
+
+.BPFooter .BPFooter-compare-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bp-c-text-3);
+}
+
+.BPFooter .BPFooter-compare a {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 4px 10px;
+  border: 1px solid var(--bp-c-divider);
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bp-c-text-2);
+  text-decoration: none;
+  text-underline-offset: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.BPFooter .BPFooter-compare a:hover {
+  border-color: var(--bp-c-brand-1);
+  color: var(--bp-c-brand-1);
+}
+
+.BPFooter .BPFooter-compare a.BPFooter-compare-all {
+  border-color: transparent;
+  color: var(--bp-c-brand-1);
+  font-weight: 600;
+}
+
+.BPFooter .BPFooter-note {
+  display: block;
+}
+`,
+
     socialLinks: [
       { icon: 'github', link: REPO },
     ],
@@ -356,7 +442,7 @@ const config: BunPressConfig = {
     lastUpdated: true,
 
     footer: {
-      message: 'Released under the MIT License.',
+      message: `${compareFooter}<span class="BPFooter-note">Released under the MIT License.</span>`,
       copyright: 'Copyright © 2024-present Chris Breuer',
     },
 
