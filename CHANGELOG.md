@@ -1,5 +1,40 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.10.5...v0.11.0)
+
+## 💥 Breaking Changes
+
+- feat(pkg)!: publish as @buddysh/buddy and export config and setup entrypoints ([3000f93](https://github.com/stacksjs/buddy/commit/3000f93)) _(by Chris <chris@stacksjs.com>)_
+- refactor!: rename buddy-bot identifiers, env vars and branch prefix to buddy ([bbe6918](https://github.com/stacksjs/buddy/commit/bbe6918)) _(by Chris <chris@stacksjs.com>)_
+
+## 🐛 Bug Fixes
+
+- **upgrades**: drop unused UsageSite type import ([96676eb](https://github.com/stacksjs/buddy/commit/96676eb)) _(by Chris <chris@stacksjs.com>)_
+- **pkg**: point types at the declaration the build emits ([9ce3ff2](https://github.com/stacksjs/buddy/commit/9ce3ff2)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📝 Documentation
+
+- replace fabricated configuration options with the real API ([64df025](https://github.com/stacksjs/buddy/commit/64df025)) _(by Chris <chris@stacksjs.com>)_
+- position Buddy as AI code review as well as dependency updates ([3209704](https://github.com/stacksjs/buddy/commit/3209704)) _(by Chris <chris@stacksjs.com>)_
+- rebrand to buddy and correct inaccurate API examples ([4af97cf](https://github.com/stacksjs/buddy/commit/4af97cf)) _(by Chris <chris@stacksjs.com>)_
+
+## ✅ Tests
+
+- update fixtures and assertions for the buddy rename ([6332986](https://github.com/stacksjs/buddy/commit/6332986)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.0 ([c5c7274](https://github.com/stacksjs/buddy/commit/c5c7274)) _(by Chris <chris@stacksjs.com>)_
+- rebrand launcher, config file, binaries and workflows to buddy ([4689892](https://github.com/stacksjs/buddy/commit/4689892)) _(by Chris <chris@stacksjs.com>)_
+- update deps ([8196b17](https://github.com/stacksjs/buddy/commit/8196b17)) _(by Chris <chris@stacksjs.com>)_
+- **deps**: dtsx 0.11.10 ([81e15e0](https://github.com/stacksjs/buddy/commit/81e15e0)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: dtsx 0.11.8, for declarations that parse ([0bdc279](https://github.com/stacksjs/buddy/commit/0bdc279)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: move to TypeScript 7 ([50242d8](https://github.com/stacksjs/buddy/commit/50242d8)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy-bot/compare/v0.10.4...v0.10.5)
 
 ## ⚡ Performance Improvements
