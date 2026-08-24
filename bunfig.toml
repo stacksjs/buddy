@@ -4,3 +4,4 @@ linker = "hoisted"
 
 [test]
 timeout = 10000
+preload = ["./test/preload.ts"]

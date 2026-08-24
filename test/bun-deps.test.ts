@@ -61,6 +61,9 @@ describe('Bun deps.yaml Update Tests', () => {
 
     // Create a basic buddy.config.ts file
     config = {
+      // The scan under test is about dependency files, not advisories:
+      // leaving security on makes it reach OSV over the network.
+      security: { enabled: false },
       repository: {
         provider: 'github' as const,
         owner: 'test-owner',

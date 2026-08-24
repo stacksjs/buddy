@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -325,15 +325,51 @@ steps:
     it('should validate repository access', async () => {
       const { validateRepositoryAccess } = await import('../src/setup')
 
-      const repoInfo = { owner: 'test-org', name: 'test-repo' }
-      const result = await validateRepositoryAccess(repoInfo)
+      // Stubbed rather than live: this used to call api.github.com for a
+      // repository that does not exist, so the assertions passed on whatever
+      // the network happened to return — and failed outright when it returned
+      // nothing.
+      const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation((async () => new Response(
+        JSON.stringify({
+          archived: false,
+          private: false,
+          has_issues: true,
+          permissions: { push: true },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )) as any)
 
-      // This will likely return warnings for a test repo, but should not throw
-      expect(result).toBeDefined()
-      expect(typeof result.success).toBe('boolean')
-      expect(Array.isArray(result.errors)).toBe(true)
-      expect(Array.isArray(result.warnings)).toBe(true)
-      expect(Array.isArray(result.suggestions)).toBe(true)
+      try {
+        const repoInfo = { owner: 'test-org', name: 'test-repo' }
+        const result = await validateRepositoryAccess(repoInfo)
+
+        expect(result).toBeDefined()
+        expect(result.success).toBe(true)
+        expect(Array.isArray(result.errors)).toBe(true)
+        expect(Array.isArray(result.warnings)).toBe(true)
+        expect(Array.isArray(result.suggestions)).toBe(true)
+        expect(fetchSpy).toHaveBeenCalled()
+      }
+      finally {
+        fetchSpy.mockRestore()
+      }
+    })
+
+    it('should report a missing repository as an error', async () => {
+      const { validateRepositoryAccess } = await import('../src/setup')
+
+      const fetchSpy = spyOn(globalThis, 'fetch').mockImplementation((async () =>
+        new Response('{}', { status: 404 })) as any)
+
+      try {
+        const result = await validateRepositoryAccess({ owner: 'test-org', name: 'nope' })
+
+        expect(result.success).toBe(false)
+        expect(result.errors.join(' ')).toMatch(/not found/i)
+      }
+      finally {
+        fetchSpy.mockRestore()
+      }
     })
   })
 

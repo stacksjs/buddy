@@ -372,6 +372,8 @@ describe('Minimum Release Age Functionality', () => {
       }, null, 2))
 
       const config: BuddyConfig = {
+        // Not a security test — keep the scan off the network.
+        security: { enabled: false },
         packages: {
           strategy: 'all',
           minimumReleaseAge: 60, // 1 hour

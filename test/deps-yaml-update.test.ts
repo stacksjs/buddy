@@ -36,6 +36,8 @@ describe('Bun deps.yaml Update Tests', () => {
 
     // Setup config
     config = {
+      // Not a security test — keep the scan off the network.
+      security: { enabled: false },
       packages: {
         strategy: 'patch',
         respectLatest: true,
