@@ -217,6 +217,83 @@ const featuresMenu: NavItem = {
   },
 }
 
+/**
+ * The Use Cases mega menu.
+ *
+ * Two axes, because readers arrive along both: some know what kind of team
+ * they are, and some only know which job they keep not getting to.
+ */
+const useCasesMenu: NavItem = {
+  text: 'Use Cases',
+  activeMatch: '^/use-cases/',
+  columns: 2,
+  items: [
+    {
+      text: 'By team',
+      items: [
+        {
+          text: 'Open Source',
+          link: '/use-cases/open-source',
+          icon: '🌱',
+          description: 'A reviewer a maintainer cannot hire',
+        },
+        {
+          text: 'Startups',
+          link: '/use-cases/startups',
+          icon: '🚀',
+          description: 'No spare reviewer, no time for updates',
+        },
+        {
+          text: 'Platform & Enterprise',
+          link: '/use-cases/platform-teams',
+          icon: '🏢',
+          description: 'Standards as check runs, on your infrastructure',
+        },
+        {
+          text: 'Agencies',
+          link: '/use-cases/agencies',
+          icon: '🧰',
+          description: 'Twenty client repositories, one config',
+        },
+      ],
+    },
+    {
+      text: 'By job',
+      items: [
+        {
+          text: 'Monorepos',
+          link: '/use-cases/monorepos',
+          icon: '🏗️',
+          description: 'Every manifest at every depth, no setting',
+        },
+        {
+          text: 'Security & Compliance',
+          link: '/use-cases/security-compliance',
+          icon: '🛡️',
+          description: 'Licences, advisories and supply-chain audits',
+        },
+        {
+          text: 'Migrating',
+          link: '/use-cases/migrating',
+          icon: '🔄',
+          description: 'Bring the Renovate config you already wrote',
+        },
+        {
+          text: 'AI Coding Agents',
+          link: '/use-cases/ai-coding-agents',
+          icon: '🤖',
+          description: 'Close the loop before the PR exists',
+        },
+      ],
+    },
+  ],
+  footer: {
+    text: 'All use cases →',
+    link: '/use-cases/',
+    note: 'Find the shape of your problem.',
+  },
+}
+
 const config: BunPressConfig = {
   verbose: false,
 
@@ -285,6 +362,7 @@ const config: BunPressConfig = {
 
     nav: [
       featuresMenu,
+      useCasesMenu,
       { text: 'Guide', link: '/intro' },
       { text: 'CLI', link: '/cli/overview' },
       { text: 'AI', link: '/ai/providers' },
