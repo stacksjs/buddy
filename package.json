@@ -1,7 +1,7 @@
 {
   "name": "@buddysh/buddy",
   "type": "module",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "AI code review and dependency updates in one bot. Reviews pull requests and local changes, answers @buddy comments, gates merges, repairs failing CI, and keeps dependencies current across npm, Composer, Docker, GitHub Actions and more.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",

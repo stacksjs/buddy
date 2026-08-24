@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.0...v0.11.1)
+
+## ✅ Tests
+
+- stop the suite reaching the internet ([8032ff2](https://github.com/stacksjs/buddy/commit/8032ff2)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.1 ([e78204a](https://github.com/stacksjs/buddy/commit/e78204a)) _(by Chris <chris@stacksjs.com>)_
+- remove orphaned probe9.ts scratch file ([d15a19f](https://github.com/stacksjs/buddy/commit/d15a19f)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.10.5...v0.11.0)
 
 ## 💥 Breaking Changes
