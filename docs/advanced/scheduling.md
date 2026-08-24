@@ -1,499 +1,215 @@
-# Scheduling & Automation
+# Scheduling
 
-Buddy provides flexible scheduling capabilities to automate dependency updates with precise timing and intelligent strategies.
+Buddy has no daemon of its own. Something outside it decides when to run —
+almost always a GitHub Actions `schedule:` trigger — and Buddy decides what is
+allowed to be proposed on that run.
 
-## Cron-Based Scheduling
+That split is worth holding onto, because it explains where each setting
+lives: cron expressions in a workflow control *when Buddy wakes up*, and cron
+expressions in the config control *which updates a waking run may open*.
 
-Configure automated updates using cron expressions for precise timing control.
+## Scheduling the run
 
-### Basic Scheduling
-
-```typescript
-export default {
-  schedule: {
-    // Weekly updates on Monday at 2 AM UTC
-    cron: '0 2 * * 1',
-    timezone: 'UTC',
-
-    // Enable/disable scheduling
-    enabled: true,
-
-    // Maximum execution time
-    timeout: 3600 // 1 hour
-  }
-} satisfies BuddyConfig
-```
-
-### Common Patterns
-
-```typescript
-const cronPatterns = {
-  // Daily at 2 AM
-  daily: '0 2 * * *',
-
-  // Weekly on Monday at 2 AM
-  weekly: '0 2 * * 1',
-
-  // Weekdays at 9 AM
-  weekdays: '0 9 * * 1-5',
-
-  // Every 6 hours
-  sixHourly: '0 */6 * * *',
-
-  // Monthly on 1st at midnight
-  monthly: '0 0 1 * *',
-
-  // Quarterly (1st of Jan, Apr, Jul, Oct)
-  quarterly: '0 0 1 1,4,7,10 *'
-}
-```
-
-### Multiple Schedules
-
-```typescript
-export default {
-  schedules: [
-    {
-      name: 'security-updates',
-      cron: '0 */6 * * *', // Every 6 hours
-      strategy: 'patch',
-      autoMerge: true,
-      labels: ['security', 'auto-merge']
-    },
-    {
-      name: 'weekly-updates',
-      cron: '0 2 * * 1', // Weekly Monday
-      strategy: 'minor',
-      reviewers: ['team-lead'],
-      labels: ['dependencies', 'weekly']
-    },
-    {
-      name: 'monthly-major',
-      cron: '0 3 1 * *', // Monthly 1st
-      strategy: 'major',
-      reviewers: ['senior-dev', 'tech-lead'],
-      labels: ['major-update', 'breaking-changes']
-    }
-  ]
-} satisfies BuddyConfig
-```
-
-## GitHub Actions Integration
-
-Seamless integration with GitHub Actions for automated scheduling.
-
-### Basic Workflow
+`buddy setup` generates workflows with a schedule already in them. To change
+it, edit the workflow's `cron`:
 
 ```yaml
-name: Dependency Updates
+name: Buddy
 on:
   schedule:
-
-    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
-
-  workflow*dispatch: # Allow manual trigger
+    - cron: '0 */6 * * *'   # every six hours
+  workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-
     steps:
-
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: bunx @buddysh/buddy update
-
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bunx @buddysh/buddy update --verbose
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUDDY_TOKEN: ${{ secrets.BUDDY_TOKEN }}
 ```
 
-### Advanced Workflow with Matrix
+GitHub runs scheduled workflows in UTC and does not guarantee the minute — a
+busy period can delay a run — so treat the cron as "about this often" rather
+than "exactly then".
 
-```yaml
-name: Multi-Strategy Updates
-on:
-  schedule:
+The presets `buddy setup` offers differ mostly in this cron:
 
-    - cron: '0 2 * * 1' # Weekly
-    - cron: '0 14 * * 3' # Mid-week security check
+| Preset | Cadence |
+| --- | --- |
+| Standard | Dashboard three times a week, updates daily |
+| High frequency | Several times a day |
+| Security | Every few hours, patches prioritised |
+| Minimal | Weekly |
+| Development / testing | Every few minutes, dry-run by default |
 
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
+## Holding updates back until a window
 
-          - strategy: patch
-
-            auto-merge: true
-            labels: 'patch-update,auto-merge'
-
-          - strategy: minor
-
-            reviewers: team-lead
-            labels: minor-update
-
-          - strategy: major
-
-            reviewers: 'senior-dev,tech-lead'
-            labels: 'major-update,breaking-changes'
-
-    steps:
-
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-      - run: bun install
-      - run: |
-
-          bunx @buddysh/buddy update \
-            --strategy ${{ matrix.strategy }} \
-            --labels "${{ matrix.labels }}" \
-            ${{ matrix.reviewers && format('--reviewers "{0}"', matrix.reviewers) || '' }} \
-            ${{ matrix.auto-merge && '--auto-merge' || '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-## Conditional Scheduling
-
-Execute updates based on specific conditions and triggers.
-
-### Environment-Based Scheduling
+A run that fires does not have to propose everything it finds. A package rule
+with a `schedule` releases its matching updates only when the run happens
+inside that window:
 
 ```typescript
+import type { BuddyConfig } from '@buddysh/buddy'
+
 export default {
-  schedule: {
-    environments: {
-      development: {
-        cron: '0 2 * * *', // Daily
-        strategy: 'all',
-        autoMerge: true
+  packages: {
+    strategy: 'all',
+    rules: [
+      {
+        // Majors only on the weekend, when nobody is shipping.
+        matchUpdateTypes: ['major'],
+        schedule: '0 0 * * 6,0',
+        scheduleTimezone: 'Europe/Berlin',
       },
-      staging: {
-        cron: '0 2 * * 1,3,5', // Mon, Wed, Fri
-        strategy: 'minor',
-        reviewers: ['qa-team']
+      {
+        // Framework upgrades wait a week after publication.
+        matchPackages: ['react', 'react-dom', 'next'],
+        minimumReleaseAge: 10080,
       },
-      production: {
-        cron: '0 2 * * 1', // Weekly
-        strategy: 'patch',
-        reviewers: ['tech-lead', 'senior-dev'],
-        requireApproval: true
-      }
-    }
-  }
+    ],
+  },
 } satisfies BuddyConfig
 ```
 
-### Trigger-Based Updates
+The cron here describes a **window, not a firing minute**. `0 0 * * 6,0` means
+"Saturdays and Sundays": a run on Wednesday holds those updates back, a run on
+Saturday lets them through. `scheduleTimezone` is an IANA name and defaults to
+the runner's zone, which on GitHub is UTC.
+
+## Package rules
+
+`schedule` is one effect among several. A rule matches on any combination of:
+
+| Matcher | Matches |
+| --- | --- |
+| `matchPackages` | Package names or globs |
+| `matchEcosystems` | `npm`, `composer`, `docker`, `github-actions`, … |
+| `matchDepTypes` | `dependencies`, `devDependencies`, … |
+| `matchUpdateTypes` | `major`, `minor`, `patch` |
+| `matchFiles` | Globs on the manifest path, for monorepo directories |
+| `matchCurrentVersion` | A semver range the installed version must satisfy |
+
+All matchers present on a rule must match. The effects it can then apply:
+
+| Effect | Does |
+| --- | --- |
+| `enabled: false` | Drops matching updates entirely |
+| `strategy` | Overrides the global update strategy |
+| `groupName` | Collects matches into a named pull request |
+| `labels`, `reviewers`, `assignees` | Applied to that pull request |
+| `autoMerge` | Overrides the global auto-merge decision |
+| `minimumReleaseAge` | Minutes a version must have been published |
+| `prPriority` | Ordering within the per-run pull request cap |
+| `autoMigrate` | Attempt the AI migration for matching majors |
+| `schedule`, `scheduleTimezone` | The window described above |
+
+A worked example:
 
 ```typescript
-const triggerBasedUpdates = {
-  schedule: {
-    triggers: {
-      // Security vulnerability detected
-      security: {
-        enabled: true,
-        immediate: true,
-        strategy: 'patch',
+export default {
+  packages: {
+    strategy: 'all',
+    rules: [
+      {
+        // Type packages are safe and boring: batch and merge them.
+        matchPackages: ['@types/*'],
+        groupName: 'TypeScript Types',
         autoMerge: true,
-        notifications: ['security-team']
+        labels: ['dependencies', 'types'],
       },
-
-      // Major release available
-      majorRelease: {
-        enabled: true,
-        delay: 86400, // Wait 24 hours
-        strategy: 'major',
-        requireDiscussion: true
+      {
+        // Anything still on 0.x gets a human.
+        matchCurrentVersion: '<1.0.0',
+        autoMerge: false,
+        reviewers: ['tech-lead'],
       },
-
-      // Dependency count threshold
-      batchThreshold: {
-        enabled: true,
-        threshold: 10, // When 10+ packages need updates
-        strategy: 'minor',
-        groupByEcosystem: true
-      }
-    }
-  }
-}
-```
-
-## Smart Scheduling
-
-Intelligent scheduling based on project patterns and team workflows.
-
-### Adaptive Scheduling
-
-```typescript
-const adaptiveSchedulingConfig = {
-  schedule: {
-    adaptive: {
-      enabled: true,
-
-      // Learn from team patterns
-      learning: {
-        trackMergePatterns: true,
-        trackReviewTimes: true,
-        adaptToTeamVelocity: true
+      {
+        // Freeze a legacy app's manifests without ignoring the packages
+        // everywhere else in the monorepo.
+        matchFiles: ['apps/legacy/**'],
+        enabled: false,
       },
-
-      // Auto-adjust timing
-      optimization: {
-        avoidBusyPeriods: true,
-        preferLowActivity: true,
-        respectTimeZones: true
-      },
-
-      // Feedback loop
-      feedback: {
-        trackSuccess: true,
-        adjustFrequency: true,
-        skipFailedStrategies: true
-      }
-    }
-  }
-}
-```
-
-### Workload-Aware Scheduling
-
-```typescript
-const workloadAwareSchedulingConfig = {
-  schedule: {
-    workload: {
-      enabled: true,
-
-      // Monitor team capacity
-      capacity: {
-        maxOpenPRs: 5, // Don't create if 5+ PRs open
-        maxReviewLoad: 10, // Consider reviewer workload
-        respectVacations: true // Check team calendar
-      },
-
-      // Dynamic frequency
-      frequency: {
-        baseFrequency: 'weekly',
-        adjustments: {
-          highActivity: 'reduce', // Reduce during busy periods
-          lowActivity: 'increase', // Increase during quiet periods
-          holidays: 'pause' // Pause during holidays
-        }
-      }
-    }
-  }
-}
-```
-
-## Advanced Scheduling Features
-
-### Time Zone Management
-
-```typescript
-const timezoneConfig = {
-  schedule: {
-    timezones: {
-      // Team time zones
-      team: {
-        alice: 'America/New*York',
-        bob: 'Europe/London',
-        charlie: 'Asia/Tokyo'
-      },
-
-      // Scheduling preferences
-      preferences: {
-        respectBusinessHours: true,
-        maxTimezoneSpread: 8, // Max 8 hour difference
-        preferMajorityTimezone: true
-      },
-
-      // Override for urgency
-      urgentOverrides: {
-        security: true, // Security updates ignore TZ
-        critical: true // Critical updates ignore TZ
-      }
-    }
-  }
-}
-```
-
-### Rollback Scheduling
-
-```typescript
-const rollbackConfig = {
-  schedule: {
-    rollback: {
-      enabled: true,
-
-      // Automatic rollback triggers
-      triggers: {
-        failedChecks: true, // CI failures
-        conflicts: true, // Merge conflicts
-        teamRejection: true // Team requests rollback
-      },
-
-      // Rollback timing
-      timing: {
-        gracePeriod: 3600, // 1 hour grace period
-        maxRollbackWindow: 86400, // 24 hour window
-        notifyBeforeRollback: true
-      }
-    }
-  }
-}
-```
-
-## Monitoring & Observability
-
-Track scheduling performance and team impact.
-
-### Metrics Collection
-
-```typescript
-const metricsConfig = {
-  schedule: {
-    monitoring: {
-      enabled: true,
-
-      // Metrics to track
-      metrics: {
-        executionTime: true,
-        successRate: true,
-        teamSatisfaction: true,
-        updateVelocity: true
-      },
-
-      // Alerting
-      alerts: {
-        failureThreshold: 0.8, // Alert if <80% success
-        executionTimeout: 7200, // Alert if >2 hours
-        teamFeedback: 'negative' // Alert on negative feedback
-      },
-
-      // Reporting
-      reports: {
-        frequency: 'weekly',
-        recipients: ['tech-lead'],
-        includeRecommendations: true
-      }
-    }
-  }
-}
-```
-
-### Dashboard Integration
-
-```typescript
-const dashboardConfig = {
-  schedule: {
-    dashboard: {
-      enabled: true,
-
-      // External integrations
-      integrations: {
-        grafana: {
-          endpoint: 'https://grafana.company.com',
-          apiKey: process.env.GRAFANA_API_KEY
-        },
-        slack: {
-          webhook: process.env.SLACK_WEBHOOK,
-          channel: '#dependency-updates'
-        },
-        teams: {
-          webhook: process.env.TEAMS_WEBHOOK
-        }
-      }
-    }
-  }
-}
-```
-
-## CLI Scheduling Commands
-
-Manage schedules via command line interface.
-
-### Schedule Management
-
-```bash
-# List active schedules
-buddy schedule list
-
-# Create new schedule
-buddy schedule create --name "security" --cron "0 */6 * * *" --strategy patch
-
-# Update existing schedule
-buddy schedule update security --cron "0 */4 * * *"
-
-# Disable schedule
-buddy schedule disable security
-
-# Test schedule
-buddy schedule test security --dry-run
-
-# Manual trigger
-buddy schedule run security --force
-```
-
-### Schedule Analysis
-
-```bash
-# Analyze schedule performance
-buddy schedule analyze --since "7 days ago"
-
-# Check next execution times
-buddy schedule next
-
-# Validate cron expressions
-buddy schedule validate "0 2 * * 1"
-
-# Optimize schedules
-buddy schedule optimize --suggest
-```
-
-## Integration Examples
-
-### Enterprise Configuration
-
-```typescript
-export default {
-  schedules: [
-    {
-      name: 'security-immediate',
-      trigger: 'security-alert',
-      strategy: 'patch',
-      autoMerge: true,
-      notifications: ['security-team', 'on-call']
-    },
-    {
-      name: 'maintenance-window',
-      cron: '0 2 * * 0', // Sunday 2 AM
-      strategy: 'all',
-      maintainanceMode: true,
-      rollbackWindow: 86400
-    },
-    {
-      name: 'dev-environment',
-      cron: '0 9 * * 1-5', // Weekdays 9 AM
-      strategy: 'major',
-      environment: 'development',
-      autoMerge: true
-    }
-  ],
-
-  // Global scheduling preferences
-  preferences: {
-    respectHolidays: true,
-    pauseDuringIncidents: true,
-    teamCapacityThreshold: 0.8
-  }
+    ],
+  },
 } satisfies BuddyConfig
 ```
 
-See [GitHub Actions Integration](/features/github-actions) for more workflow examples.
+## Global cadence hints
+
+The top-level `schedule` block records the cadence the project intends. It has
+exactly two fields:
+
+```typescript
+export default {
+  schedule: {
+    cron: '0 2 * * *',
+    timezone: 'America/Los_Angeles',
+  },
+} satisfies BuddyConfig
+```
+
+This does not make Buddy run on its own — the workflow trigger does that. It
+is what `buddy schedule` reads when running Buddy as a long-lived process:
+
+```bash
+buddy schedule --strategy patch --verbose
+```
+
+That command keeps the process alive and fires the update job on the
+configured cron, which is useful on a box you control and unnecessary in CI.
+
+## Limiting how much lands at once
+
+A frequent schedule and a large dependency tree can produce more pull requests
+than anyone will review. `maxPRsPerRun` caps them, and `prPriority` decides
+which ones make the cut:
+
+```typescript
+export default {
+  maxPRsPerRun: 3,
+  packages: {
+    rules: [
+      { matchUpdateTypes: ['patch'], prPriority: 10 },
+      { matchUpdateTypes: ['major'], prPriority: -10 },
+    ],
+  },
+} satisfies BuddyConfig
+```
+
+Updates that do not fit are not lost; they are proposed on the next run, and
+they remain listed on the [dependency dashboard](/features/dependency-dashboard)
+in the meantime.
+
+## Security updates
+
+Advisories from [OSV.dev](https://osv.dev) are matched against what you
+actually depend on. With `prioritize`, those updates are proposed ahead of
+routine ones and carry their own label, so a security fix is not queued behind
+a batch of patch bumps:
+
+```typescript
+export default {
+  security: {
+    enabled: true,
+    prioritize: true,
+    label: 'security',
+    minimumSeverity: 'moderate',
+  },
+} satisfies BuddyConfig
+```
+
+Note that `minimumReleaseAge` still applies to security updates — the age gate
+is not bypassed for them. If you run a long cooling-off period and want fixes
+for specific packages to move immediately, exempt them by name:
+
+```typescript
+export default {
+  packages: {
+    minimumReleaseAge: 4320, // three days
+    minimumReleaseAgeExclude: ['openssl', '@types/node'],
+  },
+} satisfies BuddyConfig
+```

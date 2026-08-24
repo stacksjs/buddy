@@ -1,0 +1,94 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+    # Only rebuild when something the site is made of changed.
+    paths:
+      - 'docs/**'
+      - 'bunpress.config.ts'
+      - 'scripts/deploy-docs.ts'
+      - '.github/workflows/docs.yml'
+      - 'package.json'
+      - 'bun.lock'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'bunpress.config.ts'
+      - 'scripts/deploy-docs.ts'
+      - '.github/workflows/docs.yml'
+
+  workflow_dispatch:
+
+# One deploy at a time. Two pushes landing together would otherwise race to
+# publish, and the slower build could win and serve the older site.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+
+      - name: Use cached node_modules
+        uses: actions/cache@v5.0.4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build site
+        run: bun run build:docs
+
+      # A build that produced no home page is a failure the deploy would
+      # otherwise publish as an empty site.
+      - name: Verify build output
+        run: |
+          test -f docs/dist/.bunpress/index.html \
+            || { echo "::error::build produced no index.html"; exit 1; }
+          echo "pages: $(find docs/dist/.bunpress -name '*.html' | wc -l)"
+
+      # On a pull request there are no deploy credentials, so this reports what
+      # would ship and stops. It still catches a build that breaks the site.
+      - name: Preview deploy plan
+        if: github.event_name == 'pull_request'
+        run: bun run deploy:docs -- --dry-run
+
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name != 'pull_request'
+        run: bun run deploy:docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Check the live site answers
+        if: github.event_name != 'pull_request'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            status=$(curl -sL -o /dev/null -w '%{http_code}' https://buddy.sh/ --max-time 20 || true)
+            if [ "$status" = "200" ]; then
+              echo "buddy.sh is serving"
+              exit 0
+            fi
+            echo "attempt $attempt: got '$status', retrying"
+            sleep 10
+          done
+          echo "::error::buddy.sh did not return 200 after the deploy"
+          exit 1

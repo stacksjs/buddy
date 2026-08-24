@@ -142,6 +142,9 @@ export default {
 
 For teams wanting frequent updates:
 
+A group only decides which packages share a pull request, so anything that
+varies by update type belongs in `packages.rules` instead:
+
 ```typescript
 export default {
   schedule: {
@@ -151,34 +154,31 @@ export default {
   packages: {
     strategy: 'all',
     includePrerelease: false, // Stable releases only
-    groups: [
+    rules: [
       {
-        name: 'Patch Updates',
-        patterns: ['*'],
-        updateType: 'patch',
+        matchUpdateTypes: ['patch'],
+        groupName: 'Patch Updates',
         autoMerge: true
       },
       {
-        name: 'Minor Updates',
-        patterns: ['*'],
-        updateType: 'minor',
-        schedule: {
-          cron: '0 2 * * 1' // Weekly for minor
-        }
+        matchUpdateTypes: ['minor'],
+        groupName: 'Minor Updates',
+        schedule: '0 2 * * 1' // Only proposed on a Monday run
       },
       {
-        name: 'Major Updates',
-        patterns: ['*'],
-        updateType: 'major',
-        schedule: {
-          cron: '0 2 1 * *' // Monthly for major
-        },
+        matchUpdateTypes: ['major'],
+        groupName: 'Major Updates',
+        schedule: '0 2 1 * *', // Only proposed on a first-of-month run
         autoMerge: false
       }
     ]
   }
 } satisfies BuddyConfig
 ```
+
+A rule's `schedule` is a window rather than a trigger: the workflow's own cron
+decides when Buddy runs, and the rule decides whether these updates are
+allowed through on that run. See [scheduling](/advanced/scheduling).
 
 ## Workflow Migration
 

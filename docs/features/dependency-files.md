@@ -189,15 +189,32 @@ export default {
 
 ### File-Specific Configuration
 
+Strategy per file type is expressed as a package rule matching on the manifest
+path:
+
 ```typescript
 export default {
   packages: {
-    // Different strategies for different file types
-    fileStrategies: {
-      'package.json': 'minor', // npm packages
-      'deps.yaml': 'patch', // Launchpad/pkgx tools
-      '.deps.yaml': 'all' // Hidden config files
-    }
+    strategy: 'all',
+    rules: [
+      { matchFiles: ['**/package.json'], strategy: 'minor' },
+      { matchFiles: ['**/deps.yaml'], strategy: 'patch' },
+      { matchFiles: ['**/.deps.yaml'], strategy: 'all' }
+    ]
+  }
+} satisfies BuddyConfig
+```
+
+`matchEcosystems` is often the better matcher when you mean "all npm packages"
+rather than "packages declared in this file":
+
+```typescript
+export default {
+  packages: {
+    rules: [
+      { matchEcosystems: ['npm'], strategy: 'minor' },
+      { matchEcosystems: ['github-actions'], strategy: 'all', autoMerge: true }
+    ]
   }
 } satisfies BuddyConfig
 ```
@@ -235,22 +252,27 @@ This PR updates dependencies across multiple formats:
 
 ### Separate PRs Option
 
-Configure separate PRs for different file types:
+To split updates by ecosystem into their own pull requests, give each
+ecosystem its own group name:
 
 ```typescript
 export default {
+  packages: {
+    rules: [
+      { matchEcosystems: ['npm'], groupName: 'npm dependencies' },
+      { matchEcosystems: ['launchpad'], groupName: 'pkgx tools' },
+      { matchEcosystems: ['github-actions'], groupName: 'GitHub Actions' }
+    ]
+  },
   pullRequest: {
-    groupByFileType: true, // Create separate PRs per file type
-
-    // Custom PR titles
-    titleFormat: {
-      'package.json': 'chore(deps): update npm dependencies',
-      'deps.yaml': 'chore(tools): update pkgx dependencies',
-      'default': 'chore(deps): update {fileType} dependencies'
-    }
+    // One format string for every PR; `{title}` is the generated summary.
+    titleFormat: 'chore(deps): {title}'
   }
 } satisfies BuddyConfig
 ```
+
+`titleFormat` is a single template, not a map: the per-ecosystem wording comes
+from the group name that lands in `{title}`.
 
 ## Monorepo Support
 
@@ -279,25 +301,22 @@ monorepo/
 
 ### Monorepo Configuration
 
+Every manifest in the tree is found without being listed. To scope settings to
+a directory, match on the manifest path:
+
 ```typescript
 export default {
   packages: {
-    workspaces: [
-      'packages/*/package.json',
-      'packages/*/deps.{yaml,yml}',
-      'tools/*/deps.yaml'
-    ],
-
-    groups: [
+    rules: [
       {
-        name: 'Frontend Dependencies',
-        patterns: ['react', 'typescript', 'vite'],
-        workspaces: ['packages/frontend/**']
+        matchFiles: ['packages/frontend/**'],
+        matchPackages: ['react', 'typescript', 'vite'],
+        groupName: 'Frontend Dependencies'
       },
       {
-        name: 'Build Tools',
-        patterns: ['esbuild', 'rollup', 'webpack'],
-        workspaces: ['tools/build/**']
+        matchFiles: ['tools/build/**'],
+        matchPackages: ['esbuild', 'rollup', 'webpack'],
+        groupName: 'Build Tools'
       }
     ]
   }

@@ -146,15 +146,17 @@ export default {
   pullRequest: {
     reviewers: ['tech-lead', 'senior-dev'],
 
-    // Review requirements
-    reviewRequirements: {
-      required: 1, // Minimum required reviews
-      teamReviews: true, // Count team reviews
-      dismissStale: true // Dismiss stale reviews
-    }
+    // GitHub teams, requested alongside individual reviewers
+    teamReviewers: ['platform'],
+
+    assignees: ['maintainer']
   }
 } satisfies BuddyConfig
 ```
+
+How many approvals a merge requires is a GitHub branch-protection setting, not
+a Buddy one — Buddy requests reviewers, and the repository decides what
+counts.
 
 #### Package-Based Assignment
 

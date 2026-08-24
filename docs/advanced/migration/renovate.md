@@ -110,7 +110,7 @@ The migration process will:
     groups: [
       {
         name: 'TypeScript definitions',
-        patterns: ['^@types/'],
+        patterns: ['@types/*'],
         updateType: 'all',
         schedule: {
           cron: '0 4 * * 1' // Monday 4 AM
@@ -282,33 +282,29 @@ export default {
   },
   packages: {
     strategy: 'all',
-    groups: [
+    rules: [
       {
-        name: 'TypeScript',
-        patterns: ['^@types/', 'typescript'],
-        updateType: 'all',
+        matchPackages: ['@types/*', 'typescript'],
+        groupName: 'TypeScript',
         autoMerge: true
       },
       {
-        name: 'ESLint',
-        patterns: ['^eslint', '^@typescript-eslint/'],
-        updateType: 'minor',
-        schedule: {
-          cron: '0 2 * * 1' // Weekly for linting tools
-        }
+        matchPackages: ['eslint*', '@typescript-eslint/*'],
+        groupName: 'ESLint',
+        strategy: 'minor',
+        schedule: '0 2 * * 1' // Only proposed on a Monday run
       },
       {
-        name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
-        updateType: 'minor',
+        matchPackages: ['react', 'react-dom', '@types/react'],
+        groupName: 'React Ecosystem',
+        strategy: 'minor',
         autoMerge: false // Requires review
       },
       {
-        name: 'Security Updates',
-        patterns: ['*'],
-        updateType: 'patch',
+        matchUpdateTypes: ['patch'],
+        groupName: 'Patch Updates',
         autoMerge: true,
-        labels: ['security', 'auto-merge']
+        labels: ['auto-merge']
       }
     ]
   },
@@ -316,7 +312,7 @@ export default {
     autoMerge: {
       enabled: true,
       strategy: 'squash',
-      conditions: ['status-success', 'no-conflicts']
+      conditions: ['patch-only']
     },
     titleFormat: 'chore(deps): {action} {packages}',
     labels: ['dependencies', 'automated']

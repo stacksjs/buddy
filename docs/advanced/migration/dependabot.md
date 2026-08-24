@@ -159,34 +159,24 @@ export default {
   },
   packages: {
     strategy: 'all',
-    groups: [
+    rules: [
       {
-        name: 'npm packages',
-        patterns: ['*'],
-        files: ['package.json'],
-        updateType: 'all',
+        matchEcosystems: ['npm'],
+        groupName: 'npm packages',
         assignees: ['frontend-team'],
         labels: ['npm', 'dependencies']
       },
       {
-        name: 'Composer packages',
-        patterns: ['*'],
-        files: ['composer.json'],
-        updateType: 'all',
-        schedule: {
-          cron: '0 2 * * 1' // Weekly override
-        },
+        matchEcosystems: ['composer'],
+        groupName: 'Composer packages',
+        schedule: '0 2 * * 1', // Only proposed on a Monday run
         assignees: ['backend-team'],
         labels: ['composer', 'dependencies']
       },
       {
-        name: 'GitHub Actions',
-        patterns: ['*'],
-        files: ['.github/workflows/*.yml'],
-        updateType: 'all',
-        schedule: {
-          cron: '0 2 1 * *' // Monthly override
-        },
+        matchEcosystems: ['github-actions'],
+        groupName: 'GitHub Actions',
+        schedule: '0 2 1 * *', // Only proposed on a first-of-month run
         assignees: ['devops-team'],
         labels: ['github-actions', 'dependencies']
       }
@@ -247,17 +237,16 @@ export default {
       'react', // Ignore react entirely
       '@types/*', // Ignore all @types packages
     ],
-    groups: [
+    rules: [
       {
-        name: 'ESLint Updates',
-        patterns: ['eslint'],
-        updateType: 'minor', // Only minor/patch for eslint
+        matchPackages: ['eslint'],
+        groupName: 'ESLint Updates',
+        strategy: 'minor', // Only minor/patch for eslint
         autoMerge: false
       },
       {
-        name: 'Auto-merge Updates',
-        patterns: ['*'],
-        updateType: 'patch',
+        matchUpdateTypes: ['patch'],
+        groupName: 'Auto-merge Updates',
         autoMerge: true,
         labels: ['dependencies', 'automerge']
       }
@@ -295,25 +284,22 @@ export default {
 ```typescript
 export default {
   packages: {
-    groups: [
+    rules: [
       {
-        name: 'React Ecosystem',
-        patterns: ['react', 'react-*', '@types/react*'],
-        updateType: 'minor'
+        matchPackages: ['react', 'react-*', '@types/react*'],
+        groupName: 'React Ecosystem',
+        strategy: 'minor'
       },
       {
-        name: 'TypeScript Definitions',
-        patterns: ['^@types/'],
-        updateType: 'all',
+        matchPackages: ['@types/*'],
+        groupName: 'TypeScript Definitions',
         autoMerge: true
       },
       {
-        name: 'Development Tools',
-        patterns: ['eslint*', 'prettier', '@typescript-eslint/*'],
-        updateType: 'minor',
-        schedule: {
-          cron: '0 2 * * 1' // Weekly for dev tools
-        }
+        matchPackages: ['eslint*', 'prettier', '@typescript-eslint/*'],
+        groupName: 'Development Tools',
+        strategy: 'minor',
+        schedule: '0 2 * * 1' // Only proposed on a Monday run
       }
     ]
   }
@@ -328,25 +314,20 @@ export default {
     autoMerge: {
       enabled: true,
       strategy: 'squash',
-      conditions: [
-        'status-success',
-        'no-conflicts',
-        'approved-by-reviewers'
-      ]
+      conditions: ['patch-only'],
+      requireGreenCI: true
     }
   },
   packages: {
-    groups: [
+    rules: [
       {
-        name: 'Safe Updates',
-        patterns: ['*'],
-        updateType: 'patch',
+        matchUpdateTypes: ['patch'],
+        groupName: 'Safe Updates',
         autoMerge: true
       },
       {
-        name: 'Manual Review',
-        patterns: ['*'],
-        updateType: 'major',
+        matchUpdateTypes: ['major'],
+        groupName: 'Manual Review',
         autoMerge: false
       }
     ]

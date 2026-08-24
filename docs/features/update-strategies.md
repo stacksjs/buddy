@@ -157,14 +157,17 @@ Override strategy for specific packages:
 export default {
   packages: {
     strategy: 'minor',
-    overrides: {
-      'react': 'patch', // Keep React very stable
-      'typescript': 'major', // Always get latest TypeScript
-      '@types/*': 'all' // Type definitions can be aggressive
-    }
+    rules: [
+      { matchPackages: ['react'], strategy: 'patch' }, // Keep React very stable
+      { matchPackages: ['typescript'], strategy: 'major' }, // Always latest TypeScript
+      { matchPackages: ['@types/*'], strategy: 'all' } // Types can be aggressive
+    ]
   }
 } satisfies BuddyConfig
 ```
+
+Rules are evaluated in order and later matches override earlier ones per
+field, so a broad rule can set a default and a narrow one refine it.
 
 ## Smart Strategy Selection
 
@@ -172,19 +175,28 @@ Buddy automatically adjusts strategies based on package characteristics:
 
 ### Security Updates
 
-Security patches are always prioritized regardless of strategy:
+Advisories from [OSV.dev](https://osv.dev) are matched against your
+dependencies. With `prioritize` on, those updates are proposed ahead of
+routine ones and carry their own label, so a fix is not queued behind a batch
+of patch bumps:
 
 ```typescript
-// Even with strategy: 'patch', security updates may include minor versions
-const securityConfig = {
-  strategy: 'patch',
-  securityUpdates: {
-    priority: 'high', // Override strategy for security
-    autoApply: true, // Automatically apply security updates
-    minSeverity: 'moderate' // Minimum severity to trigger
+export default {
+  security: {
+    enabled: true,
+    prioritize: true,
+    label: 'security',
+    minimumSeverity: 'moderate' // 'low' | 'moderate' | 'high' | 'critical'
+  },
+  packages: {
+    strategy: 'patch'
   }
-}
+} satisfies BuddyConfig
 ```
+
+Security handling changes ordering and labelling, not the version range: an
+advisory whose fix is a minor release is still subject to the configured
+strategy. Widen `strategy`, or add a rule, if you want those to land.
 
 ### Breaking Change Detection
 
@@ -314,9 +326,13 @@ const monitoringConfig = {
 
 ```typescript
 export default {
+  security: {
+    enabled: true,
+    prioritize: true,
+    minimumSeverity: 'moderate'
+  },
   packages: {
     strategy: 'patch',
-    securityUpdates: { autoApply: true },
     groups: [
       {
         name: 'Development Only',

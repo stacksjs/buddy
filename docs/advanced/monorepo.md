@@ -1,516 +1,163 @@
-# Monorepo Support
+# Monorepos
 
-Buddy provides comprehensive support for monorepo dependency management with intelligent workspace detection and coordinated updates.
+Buddy treats a monorepo as the normal case rather than a mode you switch on.
+There is no `workspaces` setting to configure and no separate workspace
+command: every manifest in the repository is discovered by walking it, and the
+updates from all of them are grouped into pull requests the same way a
+single-package project's are.
 
-## Workspace Detection
+## How discovery works
 
-Automatically detect and manage dependencies across monorepo workspaces.
+Starting at the repository root, Buddy walks the tree and collects every
+manifest and lock file it recognises:
 
-### Auto-Detection
+- `package.json` at any depth, plus `bun.lock`, `package-lock.json`,
+  `yarn.lock` and `pnpm-lock.yaml`
+- `composer.json` and `composer.lock`
+- `deps.yaml`, `dependencies.yaml`, `pkgx.yaml` and their dotted and `.yml`
+  variants
+- `Dockerfile`
+- `.github/workflows/*.yml`
+- `build.zig.zon`
+- `go.mod`, `Cargo.toml`, `pyproject.toml`, `Gemfile`
+
+Directories that never contain first-party manifests are skipped rather than
+descended into — `node_modules`, `vendor`, `dist`, build output, and anything
+whose name begins with a dot. A directory Buddy cannot read is skipped too, so
+a permissions problem in one corner does not abort the scan.
+
+For Bun and npm workspaces, Buddy additionally runs `bun outdated --filter`
+per workspace package and merges those results with the root scan. Where a
+package appears in both, the root result wins, since that is the version the
+installer actually resolved.
+
+## Excluding parts of the repository
+
+`ignorePaths` takes glob patterns, matched against paths relative to the
+repository root. This is the setting to reach for when a monorepo contains
+fixtures, generated projects or an application that is deliberately frozen:
 
 ```typescript
+import type { BuddyConfig } from '@buddysh/buddy'
+
 export default {
   packages: {
-    workspaces: {
-      // Enable automatic workspace detection
-      autoDetect: true,
-
-      // Supported workspace configurations
-      patterns: [
-        'packages/*',
-        'apps/*',
-        'tools/*',
-        'libs/*'
-      ]
-    }
-  }
+    ignorePaths: [
+      'packages/test-*/**',
+      '**/*test-envs/**',
+      'apps/legacy/**',
+      'examples/**',
+    ],
+  },
 } satisfies BuddyConfig
 ```
 
-### Manual Configuration
-
-```typescript
-{
-  packages: {
-    workspaces: {
-      // Explicit workspace definitions
-      workspaces: [
-        {
-          name: 'frontend-apps',
-          path: 'apps/frontend/*',
-          packageManager: 'bun'
-        },
-        {
-          name: 'backend-services',
-          path: 'services/*',
-          packageManager: 'bun'
-        },
-        {
-          name: 'shared-libraries',
-          path: 'packages/*',
-          packageManager: 'bun'
-        }
-      ]
-    }
-  }
-}
-```
-
-## Workspace-Specific Configuration
-
-Tailor dependency management for different workspace types:
-
-```typescript
-const workspaceSpecificConfig = {
-  packages: {
-    workspaces: {
-      configs: {
-        'packages/ui': {
-          strategy: 'patch', // Conservative for UI components
-          autoMerge: true,
-          labels: ['ui', 'safe'],
-          reviewers: ['ui-team']
-        },
-        'apps/web': {
-          strategy: 'minor', // More aggressive for apps
-          reviewers: ['frontend-team'],
-          testing: {
-            e2e: true, // Run E2E tests
-            lighthouse: true // Performance testing
-          }
-        },
-        'services/api': {
-          strategy: 'patch', // Conservative for backend
-          reviewers: ['backend-team', 'devops-team'],
-          testing: {
-            integration: true,
-            loadTesting: true
-          }
-        },
-        'packages/utils': {
-          strategy: 'minor',
-          cascade: true, // Trigger dependent updates
-          downstream: ['packages/ui', 'apps/*']
-        }
-      }
-    }
-  }
-}
-```
-
-## Dependency Coordination
-
-Coordinate updates across workspaces for shared dependencies.
-
-### Shared Dependency Alignment
-
-```typescript
-const sharedDependencyAlignment = {
-  packages: {
-    workspaces: {
-      coordination: {
-        // Align shared dependencies
-        alignSharedDeps: true,
-
-        // Shared dependency groups
-        sharedGroups: {
-          'react-ecosystem': {
-            packages: ['react', 'react-dom', '@types/react'],
-            strategy: 'minor',
-            synchronized: true
-          },
-          'testing-tools': {
-            packages: ['jest', 'vitest', '@testing-library/*'],
-            strategy: 'patch',
-            synchronized: true
-          },
-          'build-tools': {
-            packages: ['typescript', 'vite', 'rollup'],
-            strategy: 'minor',
-            synchronized: false
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Cross-Workspace Dependencies
-
-```typescript
-const crossWorkspaceDeps = {
-  packages: {
-    workspaces: {
-      internalDeps: {
-        // Handle workspace protocol
-        useWorkspaceProtocol: true,
-
-        // Update internal references
-        updateInternalRefs: true,
-
-        // Version synchronization
-        syncVersions: {
-          enabled: true,
-          strategy: 'exact', // 'exact' | 'range' | 'workspace'
-          bumpTogether: true
-        }
-      }
-    }
-  }
-}
-```
-
-## Update Orchestration
-
-Coordinate updates across multiple workspaces intelligently.
-
-### Update Ordering
-
-```typescript
-const updateOrderingConfig = {
-  packages: {
-    workspaces: {
-      updateOrder: {
-        // Define dependency order
-        order: [
-          'packages/utils', // Base utilities first
-          'packages/ui', // UI components next
-          'apps/*', // Applications last
-          'services/*' // Services in parallel
-        ],
-
-        // Parallel execution groups
-        parallelGroups: [
-          ['apps/web', 'apps/mobile'],
-          ['services/api', 'services/worker', 'services/auth']
-        ]
-      }
-    }
-  }
-}
-```
-
-### Cascade Updates
-
-```typescript
-const cascadeUpdatesConfig = {
-  packages: {
-    workspaces: {
-      cascade: {
-        enabled: true,
-
-        // Trigger downstream updates
-        triggers: {
-          'packages/ui': ['apps/web', 'apps/mobile'],
-          'packages/utils': ['packages/ui', 'services/*'],
-          'packages/types': ['**/*'] // Update all workspaces
-        },
-
-        // Cascade delays
-        delays: {
-          'packages/ui': 300, // 5 minute delay
-          'packages/utils': 600 // 10 minute delay
-        }
-      }
-    }
-  }
-}
-```
-
-## Monorepo Patterns
-
-Support common monorepo patterns and tools.
-
-### Nx Support
-
-```typescript
-const nxSupportConfig = {
-  packages: {
-    monorepo: {
-      tool: 'nx',
-
-      // Nx-specific configuration
-      nx: {
-        projectGraph: true,
-        affectedProjects: true,
-        buildTargets: ['build', 'test', 'lint'],
-
-        // Update affected projects only
-        updateStrategy: 'affected',
-        baseBranch: 'main'
-      }
-    }
-  }
-}
-```
-
-### Lerna Support
-
-```typescript
-const lernaSupportConfig = {
-  packages: {
-    monorepo: {
-      tool: 'lerna',
-
-      // Lerna-specific configuration
-      lerna: {
-        version: 'independent',
-        conventionalCommits: true,
-        changelog: true,
-
-        // Package discovery
-        packages: ['packages/*', 'apps/*'],
-        ignoreChanges: ['*.md', '*.test.js']
-      }
-    }
-  }
-}
-```
-
-### Rush Support
-
-```typescript
-const rushSupportConfig = {
-  packages: {
-    monorepo: {
-      tool: 'rush',
-
-      // Rush-specific configuration
-      rush: {
-        rushJson: 'rush.json',
-        variants: ['dev', 'prod'],
-
-        // Bulk operations
-        bulkCommands: {
-          build: 'rush rebuild',
-          test: 'rush test',
-          lint: 'rush lint'
-        }
-      }
-    }
-  }
-}
-```
-
-## Testing & Validation
-
-Comprehensive testing for monorepo updates.
-
-### Cross-Workspace Testing
-
-```typescript
-const crossWorkspaceTestingConfig = {
-  packages: {
-    workspaces: {
-      testing: {
-        // Run tests in dependency order
-        testInOrder: true,
-
-        // Cross-workspace integration tests
-        integrationTests: {
-          enabled: true,
-          testSuites: [
-            {
-              name: 'ui-apps-integration',
-              workspaces: ['packages/ui', 'apps/web'],
-              command: 'bun test:integration'
-            }
-          ]
-        },
-
-        // Regression testing
-        regressionTests: {
-          enabled: true,
-          baseline: 'main',
-          affectedOnly: true
-        }
-      }
-    }
-  }
-}
-```
-
-### Build Validation
-
-```typescript
-const buildValidationConfig = {
-  packages: {
-    workspaces: {
-      validation: {
-        // Validate builds across workspaces
-        buildValidation: {
-          enabled: true,
-          parallel: true,
-          maxConcurrency: 4
-        },
-
-        // Type checking
-        typeChecking: {
-          enabled: true,
-          incremental: true,
-          projectReferences: true
-        },
-
-        // Dependency validation
-        dependencyChecks: {
-          circular: true,
-          unused: true,
-          mismatched: true
-        }
-      }
-    }
-  }
-}
-```
-
-## Performance Optimization
-
-Optimize dependency management for large monorepos.
-
-### Caching Strategy
-
-```typescript
-const cachingStrategyConfig = {
-  packages: {
-    workspaces: {
-      performance: {
-        // Multi-level caching
-        caching: {
-          enabled: true,
-          levels: ['memory', 'disk', 'remote'],
-
-          // Cache keys
-          keyStrategy: 'workspace-hash',
-          invalidation: 'dependency-change'
-        },
-
-        // Parallel processing
-        parallel: {
-          enabled: true,
-          maxWorkers: 8,
-          workspaceChunks: 4
-        }
-      }
-    }
-  }
-}
-```
-
-### Incremental Updates
-
-```typescript
-const incrementalUpdatesConfig = {
-  packages: {
-    workspaces: {
-      incremental: {
-        enabled: true,
-
-        // Change detection
-        changeDetection: {
-          method: 'git-diff',
-          baseBranch: 'main',
-          includeDownstream: true
-        },
-
-        // Update batching
-        batching: {
-          strategy: 'affected',
-          maxBatchSize: 10,
-          respectDependencies: true
-        }
-      }
-    }
-  }
-}
-```
-
-## CLI Commands
-
-Monorepo-specific CLI commands for workspace management.
-
-### Workspace Commands
-
-```bash
-# List all workspaces
-buddy workspaces list
-
-# Scan specific workspace
-buddy scan --workspace packages/ui
-
-# Update specific workspace
-buddy update --workspace apps/web
-
-# Update workspace group
-buddy update --workspace-group frontend
-
-# Cross-workspace updates
-buddy update --cascade --from packages/ui
-```
-
-### Dependency Analysis
-
-```bash
-# Analyze workspace dependencies
-buddy deps --workspace packages/ui --include-internal
-
-# Check for version mismatches
-buddy check-versions --workspace-wide
-
-# Validate workspace integrity
-buddy validate --workspaces
-
-# Generate dependency graph
-buddy graph --workspaces --output deps.json
-```
-
-## Example Configurations
-
-### Large Frontend Monorepo
+Patterns are evaluated with [Bun's `Glob`](https://bun.sh/docs/api/glob), so
+`**` crosses directory boundaries and `*` does not.
+
+To exclude a package everywhere it appears rather than a path, use `ignore`,
+which matches package names:
 
 ```typescript
 export default {
   packages: {
-    workspaces: {
-      autoDetect: true,
+    ignore: ['@types/node', 'legacy-internal-tool'],
+  },
+} satisfies BuddyConfig
+```
 
-      configs: {
-        'packages/design-system': {
-          strategy: 'patch',
-          reviewers: ['design-team'],
-          autoMerge: true,
-          downstream: ['apps/*']
-        },
-        'packages/shared-utils': {
-          strategy: 'minor',
-          reviewers: ['platform-team'],
-          autoMerge: false,
-          downstream: ['packages/*', 'apps/*']
-        },
-        'apps/dashboard': {
-          strategy: 'minor',
-          reviewers: ['dashboard-team'],
-          labels: ['dashboard']
-        },
-        'apps/mobile': {
-          strategy: 'patch',
-          reviewers: ['mobile-team'],
-          labels: ['mobile']
-        }
+## pnpm catalogs
+
+A pnpm workspace using catalogs keeps versions in `pnpm-workspace.yaml` and
+writes `catalog:` in each `package.json`. Updating the `package.json` in that
+case would overwrite the protocol string with itself and change nothing, so
+Buddy reads the catalog instead and updates the version where it actually
+lives.
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+
+catalog:
+  react: ^18.3.1
+  typescript: ^5.8.2
+
+catalogs:
+  build:
+    vite: ^5.4.0
+```
+
+Both the unnamed `catalog:` and named entries under `catalogs:` are read, and
+a dependency written as `catalog:` or `catalog:build` resolves to the right
+one. Updates are applied to the YAML file, so a single change propagates to
+every package that referenced it.
+
+## Grouping across packages
+
+Groups match package names, not paths, so one group collects a dependency
+wherever it appears in the repository. That is usually what you want: bumping
+`typescript` in six packages belongs in one pull request, not six.
+
+```typescript
+export default {
+  packages: {
+    strategy: 'all',
+    groups: [
+      {
+        name: 'TypeScript',
+        patterns: ['typescript', '@types/*'],
+        strategy: 'minor',
       },
-
-      coordination: {
-        alignSharedDeps: true,
-        sharedGroups: {
-          react: {
-            packages: ['react', 'react-dom'],
-            synchronized: true
-          }
-        }
-      }
-    }
-  }
+      {
+        name: 'Build Tools',
+        patterns: ['vite', 'rollup', 'esbuild'],
+        strategy: 'patch',
+      },
+    ],
+  },
 } satisfies BuddyConfig
 ```
 
-See [Package Management](/features/package-management) for more details on package handling strategies.
+Anything not matched by a group is batched by update type in the usual way.
+See [update strategies](/features/update-strategies) for how `strategy`
+interacts with grouping.
+
+## Resolution drift
+
+In a monorepo it is common for a package to sit behind its declared range
+because something else in the tree caps it. `detectResolutionDrift` reports
+those cases rather than opening a pull request that cannot change anything:
+
+```typescript
+export default {
+  packages: {
+    detectResolutionDrift: true,
+  },
+} satisfies BuddyConfig
+```
+
+The finding names the dependant whose range is doing the capping, which is the
+piece that is otherwise tedious to work out by hand.
+
+## Lock files
+
+Every lock file Buddy touched is regenerated with the matching package manager
+before the pull request is pushed, so a monorepo mixing Bun and pnpm ends up
+with both files consistent. A package manager that is not installed on the
+runner is skipped with a warning rather than producing a half-written lock
+file.
+
+## Limiting a run
+
+There is no workspace flag, but a run can be narrowed by package:
+
+```bash
+buddy scan --packages "react,react-dom,typescript"
+buddy scan --pattern "@types/*"
+buddy update --ignore "typescript,vite"
+```
+
+`scan` narrows by package name or glob; `update` narrows by exclusion.
+Combined with `ignorePaths`, that covers the cases a workspace filter would
+otherwise be used for.

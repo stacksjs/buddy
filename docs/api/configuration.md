@@ -770,29 +770,30 @@ type ConditionalConfig<T> = T | ((context: any) => T)
 Validate configuration object.
 
 ```typescript
-function validateConfig(config: BuddyConfig): ValidationResult
+import { assertValidConfig, formatConfigIssues, validateConfig } from '@buddysh/buddy'
 
-interface ValidationResult {
-  /** Is configuration valid */
-  valid: boolean
+/** Every problem found; an empty array means the config is valid. */
+function validateConfig(config: BuddyConfig): ConfigIssue[]
 
-  /** Validation errors */
-  errors: ValidationError[]
+/** Render issues as one human-readable block, one per line. */
+function formatConfigIssues(issues: readonly ConfigIssue[]): string
 
-  /** Validation warnings */
-  warnings: ValidationWarning[]
-}
+/** Validate and throw a ConfigurationError listing every issue. */
+function assertValidConfig(config: BuddyConfig): void
 
-interface ValidationError {
-  /** Error path */
+interface ConfigIssue {
+  /** Dotted path to the offending key, e.g. `packages.groups[0].patterns` */
   path: string
 
-  /** Error message */
+  /** What is wrong and what was expected */
   message: string
-
-  /** Error code */
-  code: string
 }
+```
+
+```typescript
+const issues = validateConfig(config)
+if (issues.length > 0)
+  console.error(formatConfigIssues(issues))
 ```
 
 ## Example Configurations
@@ -830,65 +831,67 @@ export default config
 import type { BuddyConfig } from '@buddysh/buddy'
 
 const config: BuddyConfig = {
+  maxPRsPerRun: 5,
+
   packages: {
     strategy: 'minor',
+    ignorePaths: ['examples/**', 'packages/test-*/**'],
+
+    // Groups decide which packages share a pull request.
     groups: [
       {
         name: 'React Ecosystem',
-        patterns: ['react', 'react-dom'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'patch',
-        reviewers: ['frontend-team']
-      }
+      },
     ],
-    workspaces: {
-      autoDetect: true,
-      configs: {
-        'packages/ui': {
-          strategy: 'patch',
-          autoMerge: true
-        }
-      }
-    }
-  },
-  pullRequest: {
-    labels: {
-      dynamic: {
-        enabled: true,
-        updateType: {
-          patch: 'patch-update',
-          minor: 'minor-update',
-          major: 'major-update'
-        }
-      }
-    },
-    autoMerge: {
-      enabled: true,
-      conditions: [
-        {
-          updateType: 'patch',
-          labels: ['auto-merge-approved']
-        }
-      ]
-    }
-  },
-  schedule: {
-    schedules: [
+
+    // Rules decide everything that varies per update: labels, reviewers,
+    // auto-merge, release age, ordering and scheduling windows.
+    rules: [
       {
-        name: 'security',
-        cron: '0 */6 * * *',
-        strategy: 'patch',
-        autoMerge: true
+        matchPackages: ['react', 'react-dom'],
+        reviewers: ['frontend-team'],
+        autoMerge: false,
       },
       {
-        name: 'weekly',
-        cron: '0 2 * * 1',
-        strategy: 'minor'
-      }
-    ]
-  }
+        matchUpdateTypes: ['patch'],
+        labels: ['patch-update'],
+        prPriority: 10,
+      },
+      {
+        matchUpdateTypes: ['major'],
+        labels: ['major-update'],
+        schedule: '0 0 * * 6,0', // weekends only
+        prPriority: -10,
+      },
+    ],
+  },
+
+  pullRequest: {
+    labels: ['dependencies'],
+    reviewers: ['maintainer'],
+    autoMerge: {
+      enabled: true,
+      strategy: 'squash',
+      conditions: ['patch-only'],
+      requireGreenCI: true,
+    },
+  },
+
+  schedule: {
+    cron: '0 2 * * *',
+    timezone: 'UTC',
+  },
 }
 
 export default config
 ```
+
+Note the split between `groups` and `rules`. A `PackageGroup` has exactly
+three fields — `name`, `patterns` and `strategy` — and only decides batching.
+Anything conditional (labels, reviewers, assignees, auto-merge, release age,
+priority, scheduling windows) belongs in `packages.rules`. See
+[scheduling](/advanced/scheduling) for the full matcher and effect tables.
 
 See [Configuration Guide](/config) for detailed configuration examples and best practices.

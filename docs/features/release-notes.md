@@ -1,546 +1,142 @@
 # Release Notes
 
-Buddy automatically extracts, formats, and includes release notes in pull requests to provide context about package updates and their impact.
+Every pull request Buddy opens carries the actual release notes for the
+versions it is proposing — not a link to go and find them. For a bump from
+`^5.8.0` to `^5.8.3`, that means the notes for `5.8.1`, `5.8.2` and `5.8.3`,
+so the diff you are approving is described rather than implied.
 
-## Automatic Release Notes Extraction
+## Where the notes come from
 
-Buddy intelligently extracts release notes from multiple sources to provide comprehensive update information.
+For each package, Buddy tries these sources in order and uses the first that
+answers:
 
-### Data Sources
+1. **GitHub Releases** for the repository named in the package's metadata —
+   the richest source, and the one most projects actually maintain.
+2. **Git tags**, when a project tags releases but does not publish release
+   objects.
+3. **A changelog file** in the repository (`CHANGELOG.md` and common
+   variants), with the section for each version extracted.
+4. **Registry metadata** — description, homepage, license and publish dates —
+   which is always available and is what the summary table is built from.
 
-#### GitHub Releases
+Composer packages resolve through Packagist to the same underlying repository,
+so a PHP dependency hosted on GitHub gets the same treatment as an npm one.
 
-```typescript
-const githubReleasesConfig = {
-  releaseNotes: {
-    sources: {
-      githubReleases: {
-        enabled: true,
-        includePrerelease: false,
-        includeDraft: false,
-        maxAge: 365 // days
-      }
-    }
-  }
-}
-```
+Because every version between the current and the target is fetched, a bump
+that skips several patches shows each one. Where the source repository is
+known, a compare link between the two versions is included as well.
 
-#### Changelog Files
+## Configuration
 
-```typescript
-const changelogConfig = {
-  releaseNotes: {
-    sources: {
-      changelog: {
-        enabled: true,
-        files: ['CHANGELOG.md', 'HISTORY.md', 'RELEASES.md'],
-        formats: ['keep-a-changelog', 'common-changelog'],
-        maxEntries: 10
-      }
-    }
-  }
-}
-```
-
-#### NPM Registry
+The whole surface is five options:
 
 ```typescript
-const npmRegistryConfig = {
+import type { BuddyConfig } from '@buddysh/buddy'
+
+export default {
   releaseNotes: {
-    sources: {
-      npmRegistry: {
-        enabled: true,
-        includeDescription: true,
-        includeKeywords: true,
-        maxVersionHistory: 5
-      }
-    }
-  }
-}
+    enabled: true,
+    maxReleases: 3,
+    maxBodyLength: 1000,
+    includeCompareLinks: true,
+    sanitizeReferences: true,
+  },
+} satisfies BuddyConfig
 ```
 
-#### Git Commits
+| Option | Default | Does |
+| --- | --- | --- |
+| `enabled` | `true` | Include release notes in pull request bodies at all |
+| `maxReleases` | `3` | How many versions to show per package |
+| `maxBodyLength` | `1000` | Characters kept per release before truncation |
+| `includeCompareLinks` | `true` | Add a `compare/v1...v2` link per package |
+| `sanitizeReferences` | `true` | Defuse issue and PR references — see below |
 
-```typescript
-const gitCommitsConfig = {
-  releaseNotes: {
-    sources: {
-      gitCommits: {
-        enabled: true,
-        conventionalCommits: true,
-        maxCommits: 20,
-        groupByType: true
-      }
-    }
-  }
-}
-```
+`maxReleases` matters on a grouped pull request: ten packages each showing ten
+releases produces a body nobody reads and, past a point, one GitHub will not
+render. The default of three shows the recent history without burying the
+table above it.
 
-## Release Notes Processing
+## Why references are sanitized
 
-Buddy processes and formats release notes for clarity and consistency.
+This is the least obvious setting and the one worth understanding.
 
-### Content Formatting
+Release notes are full of text like `fixes #123` or links to pull requests in
+the upstream repository. Copied verbatim into your pull request body, GitHub
+reads those as references to **your** repository's issues — so opening a
+routine dependency update can notify unrelated people, and leave a
+"referenced this issue" trail on issues that have nothing to do with it. On an
+active repository with a frequent update schedule, that is a steady drip of
+noise aimed at your team.
+
+With `sanitizeReferences` on, the reference is rendered as text instead of a
+link:
+
+| In the upstream notes | In your pull request |
+| --- | --- |
+| `#123` | the same text, wrapped in code formatting |
+| `fixes #456` | `fixes` followed by the number in code formatting |
+| `https://github.com/org/repo/pull/123` | `org/repo#123`, as code rather than a link |
+| `https://github.com/org/repo/issues/456` | `org/repo#456`, as code rather than a link |
+
+The information survives — you can still see which issue was fixed — but it no
+longer cross-links into your tracker.
+
+Code is left alone. Fenced blocks and inline code are protected before
+sanitization runs, so a changelog snippet containing `#include <stdio.h>` or a
+shell comment is not rewritten.
+
+Turn it off only if you genuinely want those cross-links:
 
 ```typescript
 export default {
   releaseNotes: {
-    formatting: {
-      // Markdown processing
-      markdown: {
-        sanitize: true, // Remove unsafe HTML
-        preserveLinks: true, // Keep links intact
-        maxLength: 2000, // Truncate long notes
-        removeEmptyLines: true // Clean up formatting
-      },
-
-      // Content filtering
-      filters: {
-        excludePatterns: [
-          /^chore:/, // Exclude chore commits
-          /^docs:/, // Exclude documentation
-          /dependabot/i // Exclude dependabot commits
-        ],
-        includeTypes: [
-          'feat',
-          'fix',
-          'perf',
-          'security'
-        ]
-      },
-
-      // Content enhancement
-      enhance: {
-        linkIssues: true, // Link issue references
-        linkPRs: true, // Link PR references
-        formatBreaking: true, // Highlight breaking changes
-        addEmojis: false // Add type emojis
-      }
-    }
-  }
+    sanitizeReferences: false,
+  },
 } satisfies BuddyConfig
 ```
 
-### Breaking Changes Detection
+## Turning notes off
 
-Automatically detect and highlight breaking changes:
-
-```typescript
-const breakingChangesConfig = {
-  releaseNotes: {
-    breakingChanges: {
-      detection: {
-        keywords: [
-          'BREAKING CHANGE',
-          'BREAKING:',
-          'breaking change',
-          'breaking',
-          'incompatible'
-        ],
-        semverMajor: true, // Detect from version bump
-        commitFooter: true // Check commit footers
-      },
-
-      formatting: {
-        highlight: true, // Highlight in notes
-        separate: true, // Separate section
-        emoji: '⚠️', // Warning emoji
-        label: 'Breaking Changes'
-      }
-    }
-  }
-}
-```
-
-## Release Notes Templates
-
-Customize how release notes appear in pull requests.
-
-### Template Configuration
+On a repository where update pull requests are auto-merged without review, the
+notes are weight without a reader:
 
 ```typescript
 export default {
   releaseNotes: {
-    template: {
-      // Header template
-      header: '## 📋 Release Notes\n\n',
-
-      // Package section template
-      packageSection: `
-### {packageName} {currentVersion} → {targetVersion}
-
-{releaseNotes}
-
-{breakingChanges}
-
----
-`,
-
-      // Footer template
-      footer: '\n*Release notes extracted from GitHub releases, changelogs, and commit history.*',
-
-      // Empty state
-      empty: 'No release notes available for this update.',
-
-      // Error handling
-      error: 'Unable to fetch release notes. See package documentation for details.'
-    }
-  }
+    enabled: false,
+  },
 } satisfies BuddyConfig
 ```
 
-### Custom Templates
+The dependency table, the version change and the metadata badges remain; only
+the notes section is dropped.
 
-```typescript
-const customTemplatesConfig = {
-  releaseNotes: {
-    customTemplates: {
-      // Security update template
-      security: `
-## 🔒 Security Update
+## What a rendered section looks like
 
-**{packageName}** has been updated from **{currentVersion}** to **{targetVersion}** to address security vulnerabilities.
+````markdown
+### Release Notes
 
-### Security Fixes
-{securityFixes}
+<details>
+<summary>microsoft/TypeScript (typescript)</summary>
 
-### Other Changes
-{otherChanges}
+### [`v5.8.3`](https://github.com/microsoft/TypeScript/releases/tag/v5.8.3)
 
-**Recommendation:** This update should be applied immediately.
-`,
+[Compare Source](https://github.com/microsoft/TypeScript/compare/v5.8.2...v5.8.3)
 
-      // Major update template
-      major: `
-## 🚀 Major Update
+##### Bug Fixes
 
-**{packageName}** has been updated from **{currentVersion}** to **{targetVersion}**.
+- Fix issue with module resolution (`#61234`)
+- Improve error messages
 
-⚠️ **This is a major version update and may contain breaking changes.**
+</details>
+````
 
-### What's New
-{newFeatures}
+Each package gets its own collapsed `<details>` block, so a grouped pull
+request stays scannable and expands only where you want detail.
 
-### Breaking Changes
-{breakingChanges}
+## Related
 
-### Migration Guide
-{migrationGuide}
-
-**Action Required:** Review breaking changes and update code as needed.
-`,
-
-      // Patch update template
-      patch: `
-## 🐛 Bug Fixes
-
-**{packageName}** {currentVersion} → {targetVersion}
-
-{releaseNotes}
-`
-    }
-  }
-}
-```
-
-## Release Notes Aggregation
-
-For pull requests with multiple packages, Buddy intelligently aggregates release notes.
-
-### Grouping Strategies
-
-```typescript
-const groupingStrategiesConfig = {
-  releaseNotes: {
-    aggregation: {
-      // Group by update type
-      groupByType: {
-        enabled: true,
-        types: {
-          security: 'Security Updates',
-          major: 'Major Updates',
-          minor: 'Feature Updates',
-          patch: 'Bug Fixes'
-        }
-      },
-
-      // Group by ecosystem
-      groupByEcosystem: {
-        enabled: true,
-        ecosystems: {
-          react: 'React Ecosystem',
-          vue: 'Vue.js Ecosystem',
-          testing: 'Testing Tools',
-          build: 'Build Tools'
-        }
-      },
-
-      // Priority ordering
-      priorityOrder: [
-        'security',
-        'breaking',
-        'major',
-        'minor',
-        'patch'
-      ]
-    }
-  }
-}
-```
-
-### Summary Generation
-
-```typescript
-const summaryGenerationConfig = {
-  releaseNotes: {
-    summary: {
-      enabled: true,
-
-      // Summary template
-      template: `
-## 📊 Update Summary
-
-- **{totalPackages}** packages updated
-- **{securityUpdates}** security updates
-- **{majorUpdates}** major updates
-- **{minorUpdates}** minor updates
-- **{patchUpdates}** patch updates
-
-{topChanges}
-`,
-
-      // Top changes extraction
-      topChanges: {
-        maxItems: 5,
-        prioritize: ['security', 'breaking', 'new-features'],
-        format: '• {change} ({package})'
-      }
-    }
-  }
-}
-```
-
-## Advanced Features
-
-### Release Notes Caching
-
-```typescript
-const cachingConfig = {
-  releaseNotes: {
-    caching: {
-      enabled: true,
-      ttl: 86400, // 24 hours
-      storage: 'memory', // 'memory' | 'disk' | 'redis'
-
-      // Cache invalidation
-      invalidateOn: [
-        'new-release',
-        'changelog-update',
-        'tag-creation'
-      ]
-    }
-  }
-}
-```
-
-### External Integration
-
-```typescript
-const externalIntegrationConfig = {
-  releaseNotes: {
-    external: {
-      // Custom release notes API
-      api: {
-        enabled: false,
-        endpoint: 'https://api.company.com/release-notes',
-        headers: {
-          Authorization: 'Bearer {token}'
-        }
-      },
-
-      // Webhook notifications
-      webhooks: {
-        onExtract: 'https://api.company.com/webhooks/release-notes',
-        onError: 'https://api.company.com/webhooks/errors'
-      }
-    }
-  }
-}
-```
-
-### Content Enhancement
-
-```typescript
-const contentEnhancementConfig = {
-  releaseNotes: {
-    enhancement: {
-      // Link detection and formatting
-      links: {
-        autoLink: true,
-        domains: ['github.com', 'company.com'],
-        format: '[{text}]({url})'
-      },
-
-      // Issue and PR linking
-      references: {
-        github: {
-          issues: true,
-          pullRequests: true,
-          format: '[#{number}]({url})'
-        }
-      },
-
-      // Emoji enhancement
-      emojis: {
-        enabled: false,
-        mapping: {
-          feat: '✨',
-          fix: '🐛',
-          security: '🔒',
-          breaking: '⚠️'
-        }
-      }
-    }
-  }
-}
-```
-
-## Error Handling
-
-Robust error handling for release notes extraction failures.
-
-### Fallback Strategies
-
-```typescript
-const fallbackStrategiesConfig = {
-  releaseNotes: {
-    errorHandling: {
-      // Fallback sources
-      fallbacks: [
-        'github-releases',
-        'changelog-file',
-        'git-commits',
-        'package-json'
-      ],
-
-      // Retry configuration
-      retry: {
-        maxAttempts: 3,
-        delay: 1000,
-        backoff: 'exponential'
-      },
-
-      // Graceful degradation
-      gracefulDegradation: {
-        enabled: true,
-        minimalTemplate: 'Updated {packageName} from {currentVersion} to {targetVersion}',
-        showErrors: false
-      }
-    }
-  }
-}
-```
-
-## CLI Commands
-
-Manage release notes via CLI:
-
-```bash
-# Extract release notes for a package
-buddy release-notes react 18.0.0 18.2.0
-
-# Preview release notes for current updates
-buddy release-notes --preview
-
-# Cache release notes
-buddy release-notes --cache-update
-
-# Test release notes template
-buddy release-notes --template-test
-```
-
-## Integration Examples
-
-### Security-Focused Configuration
-
-```typescript
-export default {
-  releaseNotes: {
-    prioritize: ['security', 'breaking'],
-
-    template: {
-      header: '## 🔒 Security & Critical Updates\n\n',
-      packageSection: `
-### {packageName} Security Update
-**Version:** {currentVersion} → {targetVersion}
-**Severity:** {severity}
-
-{securityNotes}
-
-{additionalNotes}
-`
-    },
-
-    breakingChanges: {
-      highlight: true,
-      separate: true,
-      requireAcknowledgment: true
-    }
-  }
-} satisfies BuddyConfig
-```
-
-### Minimal Configuration
-
-```typescript
-export default {
-  releaseNotes: {
-    sources: {
-      githubReleases: { enabled: true },
-      changelog: { enabled: false },
-      gitCommits: { enabled: false }
-    },
-
-    formatting: {
-      maxLength: 500,
-      filters: {
-        includeTypes: ['fix', 'security']
-      }
-    },
-
-    template: {
-      packageSection: '**{packageName}** {currentVersion} → {targetVersion}\n{releaseNotes}\n'
-    }
-  }
-} satisfies BuddyConfig
-```
-
-## Performance Optimization
-
-### Parallel Processing
-
-```typescript
-const performanceConfig = {
-  releaseNotes: {
-    performance: {
-      parallel: {
-        enabled: true,
-        maxConcurrency: 5,
-        batchSize: 10
-      },
-
-      // Request optimization
-      requests: {
-        timeout: 10000,
-        retries: 2,
-        rateLimit: {
-          requests: 60,
-          window: 60000
-        }
-      }
-    }
-  }
-}
-```
-
-See [Pull Request Generation](/features/pull-requests) for how release notes integrate into the complete PR workflow.
+- [Pull request generation](/features/pull-requests) — the body the notes sit in
+- [Update strategies](/features/update-strategies) — what gets proposed in the first place
+- [Configuration reference](/config) — every option in one place

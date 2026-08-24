@@ -608,31 +608,34 @@ dependencies:
 
 For monorepos with multiple `package.json` and dependency files:
 
+Workspaces are found by walking the repository — there is nothing to list.
+Scope settings to a directory by matching the manifest path:
+
 ```typescript
 // buddy.config.ts
 export default {
   packages: {
-    workspaces: [
-      'packages/*',
-      'apps/*',
-      'tools/*',
-    ],
     strategy: 'patch',
-    groups: [
+    ignorePaths: ['examples/**'],
+    rules: [
       {
-        name: 'Frontend Apps',
-        patterns: ['packages/web', 'packages/mobile'],
+        matchFiles: ['packages/web/**', 'packages/mobile/**'],
+        groupName: 'Frontend Apps',
         strategy: 'minor',
       },
       {
-        name: 'Backend Services',
-        patterns: ['apps/api', 'apps/worker'],
+        matchFiles: ['apps/api/**', 'apps/worker/**'],
+        groupName: 'Backend Services',
         strategy: 'patch',
       },
     ],
   },
 } satisfies BuddyConfig
 ```
+
+Note that `patterns` on a group matches **package names**, not paths. To scope
+by path, use a rule with `matchFiles` as above. See
+[monorepos](/advanced/monorepo).
 
 ## Testing
 

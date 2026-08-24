@@ -131,24 +131,21 @@ const packageStructure = {
 
 ### Configuration
 
+Discovery needs no configuration. Buddy walks the repository, recognises every
+manifest it supports, and picks the package manager per project from whichever
+lock file is present. Directories such as `node_modules`, `dist`, `build` and
+`vendor` are never descended into.
+
+What you configure is what to leave alone:
+
 ```typescript
 export default {
   packages: {
-    // Package manager preference
-    manager: 'bun', // 'bun' | 'npm' | 'yarn' | 'pnpm'
-
-    // Discovery patterns
-    include: [
-      'package.json',
-      'apps/_/package.json',
-      'packages/*/package.json'
-    ],
-
-    // Exclude patterns
-    exclude: [
-      'node_modules/**/package.json',
-      'dist/**/package.json',
-      'build/**/package.json'
+    // Paths to skip, as globs relative to the repository root
+    ignorePaths: [
+      'examples/**',
+      'packages/test-*/**',
+      'apps/legacy/**'
     ]
   }
 } satisfies BuddyConfig
@@ -311,18 +308,17 @@ export default {
       'react', // Manual React updates
       'vue', // Manual Vue updates
       '@internal/*', // Internal packages
-      'workspace:*' // Workspace packages
-    ],
-
-    // Ignore by pattern
-    ignorePatterns: [
-      '**/@types/**', // All type definitions
-      '**/eslint-_', // All ESLint packages
+      '@types/*', // All type definitions
+      'eslint-*', // All ESLint packages
       'babel-*' // All Babel packages
     ]
   }
 } satisfies BuddyConfig
 ```
+
+`ignore` entries are matched as globs against the package name, so one list
+covers both exact names and whole families. To exclude by file path instead,
+use `ignorePaths`.
 
 ### Include/Exclude by Scope
 
@@ -355,14 +351,12 @@ export default {
       {
         name: 'React Ecosystem',
         patterns: ['react', 'react-dom', '@types/react', '@types/react-dom'],
-        strategy: 'minor',
-        description: 'Core React framework and types'
+        strategy: 'minor'
       },
       {
         name: 'Testing Framework',
         patterns: ['jest', '@types/jest', 'jest-environment-jsdom'],
-        strategy: 'patch',
-        autoMerge: true
+        strategy: 'patch'
       },
       {
         name: 'Build Tools',
@@ -418,14 +412,14 @@ export default {
       typescript: '~5.0.0' // Pin to TypeScript 5.0.x
     },
 
-    // Version ranges
-    ranges: {
-      'vue': '^3.0.0', // Vue 3.x only
-      '@angular/core': '^16.0.0 || ^17.0.0' // Multiple ranges
-    }
   }
 } satisfies BuddyConfig
 ```
+
+`pin` takes any range the ecosystem understands, so holding a package inside a
+major series and expressing a floor use the same mechanism. To hold back a
+version series conditionally, use a rule with `matchCurrentVersion` instead —
+see [package rules](/advanced/scheduling#package-rules).
 
 ### Version Prefix Preservation
 
@@ -472,63 +466,40 @@ const customResolversConfig = {
 
 ## Monorepo Support
 
-Advanced support for monorepo package management.
+Monorepos need no configuration. Buddy walks the whole repository, finds every
+manifest at any depth, and groups the updates from all of them together — so a
+`typescript` bump appearing in six packages produces one pull request, not six.
 
-### Workspace Detection
+For Bun and npm workspaces, Buddy additionally runs `bun outdated --filter` per
+workspace package and merges those results with the root scan. pnpm catalogs in
+`pnpm-workspace.yaml` are read and updated where the version actually lives,
+rather than writing the `catalog:` protocol string over itself.
+
+To keep part of the tree out of scope, use `ignorePaths`:
 
 ```typescript
 export default {
   packages: {
-    workspaces: {
-      // Auto-detect workspaces
-      autoDetect: true,
-
-      // Manual workspace patterns
-      patterns: [
-        'packages/*',
-        'apps/*',
-        'tools/*'
-      ],
-
-      // Workspace-specific configuration
-      configs: {
-        'packages/ui': {
-          strategy: 'patch',
-          autoMerge: true
-        },
-        'apps/web': {
-          strategy: 'minor',
-          reviewers: ['frontend-team']
-        }
-      }
-    }
+    ignorePaths: ['apps/legacy/**', 'packages/test-*/**']
   }
 } satisfies BuddyConfig
 ```
 
-### Cross-Workspace Dependencies
+To apply different settings to a directory, match on the manifest path with a
+rule:
 
 ```typescript
-const workspaceConfig = {
+export default {
   packages: {
-    workspaces: {
-      // Handle internal dependencies
-      internalDeps: {
-        strategy: 'workspace', // Use workspace protocol
-        autoUpdate: true, // Update internal refs
-        linkLocal: true // Link local packages
-      },
-
-      // Shared dependencies
-      sharedDeps: {
-        hoist: true, // Hoist common dependencies
-        dedupe: true, // Remove duplicates
-        align: true // Align versions across workspaces
-      }
-    }
+    rules: [
+      { matchFiles: ['packages/ui/**'], strategy: 'patch', autoMerge: true },
+      { matchFiles: ['apps/web/**'], strategy: 'minor', reviewers: ['frontend-team'] }
+    ]
   }
-}
+} satisfies BuddyConfig
 ```
+
+See [monorepos](/advanced/monorepo) for the full picture.
 
 ## Performance Optimization
 

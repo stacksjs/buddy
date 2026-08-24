@@ -67,12 +67,13 @@
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
     "release": "bunx --bun bumpx -r",
     "typecheck": "bunx tsc --noEmit",
-    "dev:docs": "bun --bun vitepress dev docs",
-    "build:docs": "bun --bun vitepress build docs",
-    "preview:docs": "bun --bun vitepress preview docs",
+    "dev:docs": "bun --bun bunpress dev",
+    "build:docs": "bun --bun bunpress build",
+    "preview:docs": "bun --bun bunpress preview --outdir docs/dist",
     "release:patch": "bunx --bun bumpx patch --recursive --commit --tag --push --yes",
     "release:minor": "bunx --bun bumpx minor --recursive --commit --tag --push --yes",
-    "release:major": "bunx --bun bumpx major --recursive --commit --tag --push --yes"
+    "release:major": "bunx --bun bumpx major --recursive --commit --tag --push --yes",
+    "deploy:docs": "bun scripts/deploy-docs.ts"
   },
   "dependencies": {
     "prompts": "^2.4.2",
@@ -86,6 +87,7 @@
     "@stacksjs/clarity": "^0.3.33",
     "@stacksjs/gitlint": "^0.1.8",
     "@stacksjs/logsmith": "^0.2.11",
+    "@stacksjs/ts-cloud": "^0.12.0",
     "@types/bun": "^1.4.0",
     "@types/prompts": "^2.4.9",
     "bun-git-hooks": "^0.3.3",

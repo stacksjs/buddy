@@ -25,39 +25,40 @@ hero:
       content: |
         $ buddy review
 
-                       __
-              (\,------'()'--o          buddy v0.11
-               (_    ___    /~"         fetch. read. speak up.
-                (_)_)  (_)_)
+                     __
+            (\,------'()'--o    buddy v0.11
+             (_    ___    /~"   fetch. read. speak up.
+              (_)_)  (_)_)
 
-           analyzers   secrets · actionlint · shellcheck · hadolint
-           diff        14 files, 412 changed lines
+          analyzers  secrets, actionlint, shellcheck
+          diff       14 files, 412 changed lines
 
-           src/auth/session.ts:82   major   correctness
-             Token refresh drops the error, so an expired
-             session reads as a successful login.
+          src/auth/session.ts:82  major  correctness
+            Token refresh drops the error, so an
+            expired session reads as a good login.
 
-           .github/workflows/ci.yml:19  minor  security
-             Interpolates a PR title into `run:`.
+          .github/workflows/ci.yml:19  minor  security
+            Interpolates a PR title into `run:`.
 
-           2 findings. 1 posted inline, 1 already reported.
+          2 findings. 1 inline, 1 already reported.
     - file: "in the thread"
       lang: "ascii"
       content: |
-        @buddy review          review new changes since last time
-        @buddy full-review     re-read the whole diff
-        @buddy summary         a fresh summary, no inline notes
-        @buddy resolve         resolve the threads Buddy opened
-        @buddy pause / resume  stop or restart on this PR
-        @buddy fix-ci          diagnose and try to fix the failing checks
-        @buddy plan            turn an issue into an implementation plan
-        @buddy rebase          rebase a dependency update
-        @buddy merge           re-check auto-merge conditions now
-        @buddy remember <text> keep a note for future runs
-        @buddy help            show the table
+        @buddy review        new changes since last time
+        @buddy full-review   re-read the whole diff
+        @buddy summary       a summary, no inline notes
+        @buddy resolve       resolve the threads it opened
+        @buddy pause         stop reviewing this PR
+        @buddy resume        start again
+        @buddy fix-ci        diagnose the failing checks
+        @buddy plan          turn an issue into a plan
+        @buddy rebase        rebase a dependency update
+        @buddy merge         re-check auto-merge now
+        @buddy remember ...  keep a note for future runs
+        @buddy help          show the table
 
-        ...anything else after the mention is treated
-        as a question, and answered in the thread.
+        ...anything else is treated as a question,
+        and answered in the thread.
     - file: "buddy.config.ts"
       lang: "ts"
       content: |
@@ -71,12 +72,16 @@ hero:
           packages: {
             strategy: 'all',
             groups: [
-              { name: 'TypeScript Types', patterns: ['@types/*'] },
+              { name: 'Types', patterns: ['@types/*'] },
             ],
           },
           pullRequest: {
             labels: ['dependencies'],
-            autoMerge: { enabled: true, strategy: 'squash', conditions: ['patch-only'] },
+            autoMerge: {
+              enabled: true,
+              strategy: 'squash',
+              conditions: ['patch-only'],
+            },
           },
         } satisfies BuddyConfig
 
@@ -185,7 +190,7 @@ Underneath sits the release notes for every version in the range, a compare link
 | PHP | `composer.json` | `composer.lock` |
 | pkgx / Launchpad | `deps.yaml`, `dependencies.yaml`, `pkgx.yaml` | `pantry.lock` |
 | GitHub Actions | `.github/workflows/*.yml` | — |
-| Docker | `Dockerfile`, `docker-compose.yml` | — |
+| Docker | `Dockerfile` | — |
 | Go, Rust, Python, Ruby | `go.mod`, `Cargo.toml`, `pyproject.toml`, `Gemfile` | `go.sum`, `Cargo.lock`, `poetry.lock`, `Gemfile.lock` |
 
 More in [pull request generation](/features/pull-requests), [the dashboard](/features/dependency-dashboard) and [ecosystems](/advanced/ecosystems).

@@ -571,7 +571,7 @@ const config: BuddyConfig = {
 const groups: PackageGroup[] = [
   {
     name: 'Frontend',
-    packages: ['react', 'vue'],
+    patterns: ['react', 'vue'],
     strategy: 'minor',
   },
 ]
