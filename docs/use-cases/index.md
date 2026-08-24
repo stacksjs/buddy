@@ -63,7 +63,7 @@ features:
     linkText: "Close the loop"
 ---
 
-## Not sure which one you are?
+## Not sure which one you are
 
 Answer one question: **what is the thing you keep not getting to?**
 
