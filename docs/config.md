@@ -91,17 +91,17 @@ const config: BuddyConfig = {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'minor',
       },
       {
         name: 'Build Tools',
-        packages: ['typescript', 'vite', 'rollup'],
+        patterns: ['typescript', 'vite', 'rollup'],
         strategy: 'patch',
       },
       {
         name: 'Testing',
-        packages: ['jest', '@types/jest', 'testing-library/_'],
+        patterns: ['jest', '@types/jest', 'testing-library/*'],
         strategy: 'minor',
       },
     ],
@@ -603,7 +603,7 @@ export default {
     groups: [
       {
         name: 'Core Dependencies',
-        packages: ['react_', 'vue*'],
+        patterns: ['react*', 'vue*'],
         strategy: 'minor', // More conservative for core
       },
     ],

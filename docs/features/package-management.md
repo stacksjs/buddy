@@ -310,7 +310,7 @@ export default {
       '@types/node', // Keep Node types stable
       'react', // Manual React updates
       'vue', // Manual Vue updates
-      '@internal/_', // Internal packages
+      '@internal/*', // Internal packages
       'workspace:*' // Workspace packages
     ],
 
@@ -318,7 +318,7 @@ export default {
     ignorePatterns: [
       '**/@types/**', // All type definitions
       '**/eslint-_', // All ESLint packages
-      'babel-_' // All Babel packages
+      'babel-*' // All Babel packages
     ]
   }
 } satisfies BuddyConfig
@@ -354,13 +354,13 @@ export default {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react', '@types/react-dom'],
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom'],
         strategy: 'minor',
         description: 'Core React framework and types'
       },
       {
         name: 'Testing Framework',
-        packages: ['jest', '@types/jest', 'jest-environment-jsdom'],
+        patterns: ['jest', '@types/jest', 'jest-environment-jsdom'],
         strategy: 'patch',
         autoMerge: true
       },
@@ -383,18 +383,18 @@ const patternGroupsConfig = {
     groups: [
       {
         name: 'Type Definitions',
-        pattern: '@types/_',
+        pattern: '@types/*',
         strategy: 'minor',
         autoMerge: true
       },
       {
         name: 'ESLint Ecosystem',
-        pattern: 'eslint_',
+        pattern: 'eslint*',
         strategy: 'patch'
       },
       {
         name: 'Babel Plugins',
-        pattern: 'babel-_',
+        pattern: 'babel-*',
         strategy: 'minor'
       }
     ]
@@ -461,7 +461,7 @@ const customResolversConfig = {
         // Custom logic for React versions
         return available.filter(v => v.major === 18).pop()
       },
-      '@types/_': (current, available) => {
+      '@types/*': (current, available) => {
         // Always get latest types
         return available[available.length - 1]
       }
@@ -485,9 +485,9 @@ export default {
 
       // Manual workspace patterns
       patterns: [
-        'packages/_',
-        'apps/_',
-        'tools/_'
+        'packages/*',
+        'apps/*',
+        'tools/*'
       ],
 
       // Workspace-specific configuration

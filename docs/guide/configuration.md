@@ -86,17 +86,17 @@ packages: {
   groups: [
     {
       name: 'TypeScript Types',
-      patterns: ['@types/_'],
+      patterns: ['@types/*'],
       strategy: 'minor'
     },
     {
       name: 'ESLint Ecosystem',
-      patterns: ['eslint_', '@typescript-eslint/_'],
+      patterns: ['eslint*', '@typescript-eslint/*'],
       strategy: 'patch'
     },
     {
       name: 'React',
-      patterns: ['react', 'react-dom', '@types/react_'],
+      patterns: ['react', 'react-dom', '@types/react*'],
       strategy: 'minor'
     }
   ]

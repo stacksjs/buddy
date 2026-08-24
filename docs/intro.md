@@ -1,12 +1,30 @@
 <p align="center"><img src="https://github.com/stacksjs/buddy/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
 
-# Intelligent Dependency Management
+# Meet Buddy
 
-> Automated dependency updates with professional pull requests, smart scheduling, and team integration.
+> AI code review and dependency updates, in one teammate that runs on your CI with your keys.
 
-Buddy is a modern dependency management tool that automatically scans your project for outdated packages and creates professional pull requests with detailed release notes, impact analysis, and intelligent labeling. Built on Bun's lightning-fast package manager, it provides enterprise-grade automation for keeping your dependencies up-to-date.
+Buddy does two jobs that are usually split across two bots and two subscriptions.
 
-## Key Features
+**It reviews code.** Pull requests and your local working tree alike: inline findings anchored to the lines you actually changed, a summary that is worth reading, `@buddy` commands answered in the thread, merge gates published as real check runs, and CI repair when a failure has an unambiguous fix. Where a hosted reviewer installs an app on your repository and sends your diff to its own infrastructure, Buddy runs as a step in your own workflow against a provider you choose — or against no provider at all, in which case you keep the static analyzers.
+
+**It manages dependencies.** Scanning, grouping, real changelogs, security advisories from [OSV.dev](https://osv.dev), auto-merge, lock file regeneration and a pinned dashboard issue — across npm, Bun, yarn, pnpm, Composer, Docker, GitHub Actions, pkgx, Launchpad, Go, Rust, Python, Ruby and Zig. It will migrate your existing Renovate or Dependabot configuration for you.
+
+Neither half depends on the other. Run the reviewer alone, run the updater alone, or run both.
+
+## Code Review Features
+
+- **🔍 Inline Findings** - Anchored to changed lines, stating the failure rather than a preference
+- **♻️ Incremental** - A second push gets new findings, not the ones you already read
+- **💬 Conversational** - `@buddy review`, `full-review`, `summary`, `resolve`, `pause`, `resume`, `plan`, `remember`, or a plain question
+- **💻 Local Review** - `buddy review` reads the working tree, so problems surface before the PR exists
+- **🦴 No Key Required** - `--light` runs secret scanning, actionlint, shellcheck, hadolint, markdownlint and syntax checks offline
+- **🚦 Merge Gates** - Title format, description quality, linked issue and dependency policy, published as a check run
+- **🛠️ CI Repair** - `buddy fix-ci` classifies a failing run and opens the fix when it is clear
+- **🔌 Pipeable** - `--format json`, `github` annotations, or `agent` to hand findings to a coding agent
+- **🧠 Your Provider** - Anthropic, OpenAI, Google, OpenRouter, or any OpenAI-compatible endpoint
+
+## Dependency Features
 
 - **🔍 Smart Scanning** - Lightning-fast dependency detection using Bun, ts-pkgx, and GitHub API
 - **🤖 Automated PRs** - Professional pull requests with three separate dependency tables
@@ -139,7 +157,7 @@ export default {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'minor',
       },
     ],

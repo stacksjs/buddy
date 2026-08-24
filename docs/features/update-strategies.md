@@ -131,12 +131,12 @@ export default {
     groups: [
       {
         name: 'Core Framework',
-        packages: ['react', 'react-dom', 'vue'],
+        patterns: ['react', 'react-dom', 'vue'],
         strategy: 'minor' // More conservative for core
       },
       {
         name: 'Development Tools',
-        packages: ['eslint', 'prettier', 'typescript'],
+        patterns: ['eslint', 'prettier', 'typescript'],
         strategy: 'major' // More aggressive for dev tools
       },
       {
@@ -222,7 +222,7 @@ const week3Config = {
   groups: [
     {
       name: 'Development',
-      packages: ['eslint', 'prettier', 'webpack'],
+      patterns: ['eslint', 'prettier', 'webpack'],
       strategy: 'major'
     }
   ]
@@ -257,12 +257,12 @@ const config = {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react*', '@react*'],
+        patterns: ['react*', '@react*'],
         strategy: 'minor' // React ecosystem moves together
       },
       {
         name: 'Node Types',
-        packages: ['@types/node'],
+        patterns: ['@types/node'],
         strategy: 'patch' // Node types should match Node version
       },
       {
@@ -320,7 +320,7 @@ export default {
     groups: [
       {
         name: 'Development Only',
-        packages: ['@types/*', 'eslint*', 'prettier'],
+        patterns: ['@types/*', 'eslint*', 'prettier'],
         strategy: 'minor'
       }
     ]
@@ -337,12 +337,12 @@ export default {
     groups: [
       {
         name: 'Core Dependencies',
-        packages: ['react', 'vue', 'angular'],
+        patterns: ['react', 'vue', 'angular'],
         strategy: 'patch'
       },
       {
         name: 'Development Tools',
-        packages: ['typescript', 'webpack', 'vite'],
+        patterns: ['typescript', 'webpack', 'vite'],
         strategy: 'major'
       }
     ]
@@ -359,7 +359,7 @@ export default {
     groups: [
       {
         name: 'Database & Infrastructure',
-        packages: ['prisma', 'mongoose', 'redis'],
+        patterns: ['prisma', 'mongoose', 'redis'],
         strategy: 'minor' // More careful with data layers
       }
     ]

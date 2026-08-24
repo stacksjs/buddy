@@ -207,10 +207,20 @@ const cli = new CLI('buddy')
 
 cli.usage(`[command] [options]
 
-🤖 Buddy - Your companion dependency manager
+🐶 Buddy - AI code review and dependency updates, in one teammate
 
-Supports npm, Bun, yarn, pnpm, Composer, pkgx, Launchpad, GitHub Actions, and Dockerfiles
-Automatically migrates from Renovate and Dependabot
+Reviews pull requests and local changes, answers @buddy comments, gates merges,
+repairs failing CI, and keeps dependencies current across npm, Bun, yarn, pnpm,
+Composer, pkgx, Launchpad, GitHub Actions, Docker, Go, Rust, Python and Ruby.
+
+CODE REVIEW & AI:
+  review        🔍 Review a pull request, or local changes when no number is given
+  gate          🚦 Run pre-merge gates and publish the result as a check run
+  fix-ci        🛠️  Diagnose a failing workflow run and repair it when the fix is clear
+  handle-comment 💬 Handle an @buddy command from a GitHub event payload
+  handle-issue  🎫 Post quick-links on a new issue, or run a ticked action
+  post-merge    ✅ Run post-merge actions for a merged pull request
+  run           ⚡ Run a prompt headlessly, with optional schema-validated output
 
 DEPENDENCY MANAGEMENT:
   setup         🚀 Interactive setup for automated updates (recommended)
@@ -235,22 +245,33 @@ BRANCH MANAGEMENT:
   cleanup       🧹 Clean up stale buddy branches
   list-branches 📋 List all buddy branches and their status
 
+REPORTING & DIAGNOSTICS:
+  report        📈 Generate a dependency-health and activity report
+  doctor        🩺 Diagnose credentials, git state and analyzer tooling
+
 CONFIGURATION & SETUP:
   open-settings 🔧 Open GitHub repository and organization settings pages
 
 Examples:
+  buddy review                     # Review your working tree before pushing
+  buddy review --staged --light    # Analyzers only, no API key, for a git hook
+  buddy review 128 --format github # Review PR #128 as Actions annotations
+  buddy gate 128                   # Run pre-merge gates on PR #128
+  buddy fix-ci --run-id 42         # Explain and repair a failing run
   buddy setup                      # Interactive setup with migration
   buddy setup --non-interactive    # Automated setup for CI/CD
   buddy scan --verbose             # Scan for updates (npm + Composer + Dockerfiles)
   buddy rebase 17                  # Rebase PR #17
   buddy update-check               # Auto-rebase checked PRs
   buddy cleanup                    # Clean up stale branches
-  buddy list-branches              # List all buddy branches
   buddy info laravel/framework     # Get Composer package info
-  buddy info react                 # Get npm package info
   buddy versions react --latest 5  # Show recent versions
-  buddy search "test framework"    # Search packages
-  buddy open-settings              # Open GitHub settings
+  buddy doctor                     # Check this environment
+
+In a pull request, talk to Buddy directly:
+  @buddy review | full-review | summary | resolve | pause | resume
+  @buddy fix-ci | plan | rebase | merge | remember <text> | help
+  Anything else after the mention is treated as a question.
 
 Migration:
   - Automatically detects Renovate and Dependabot configurations

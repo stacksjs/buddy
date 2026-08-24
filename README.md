@@ -8,13 +8,31 @@
 
 # 🐶 Buddy
 
-> The fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects _(and PHP, Zig)_.
+> AI code review and dependency updates, in one teammate that runs on your CI with your keys.
 
-Buddy is a lightning-fast alternative to Dependabot and Renovate, purpose-built for modern JavaScript, TypeScript, PHP, and Zig ecosystems. It intelligently scans your projects, detects outdated & deprecated dependencies across multiple package managers, and creates beautifully formatted pull requests with comprehensive changelogs and metadata.
+Buddy does two jobs that usually take two bots and two subscriptions.
+
+It **reviews code** — pull requests and your local working tree — posting inline findings anchored to the lines you changed, answering `@buddy` questions in the thread, gating merges with real check runs, and repairing failing CI when the fix is unambiguous. An alternative to CodeRabbit and friends, except it runs as a step in your own workflow, against a provider you choose, with no third-party app installed on your repository.
+
+It also **manages dependencies** — scanning across npm, Bun, yarn, pnpm, Composer, Docker, GitHub Actions, pkgx, Launchpad, Go, Rust, Python, Ruby and Zig, grouping related packages, fetching real changelogs, and keeping a pinned dashboard issue. An alternative to Dependabot and Renovate, and it will migrate your existing config from either.
+
+Neither half requires the other. Run the reviewer with no dependency workflows, run the updater with no API key, or run both.
 
 ![Buddy Pull Request Example](.github/art/screenshot.png)
 
 ## Features
+
+### 🔍 **AI Code Review**
+
+- **Inline Findings**: _Anchored to changed lines, describing the failure rather than a style preference_
+- **Incremental by Default**: _A second push gets new findings, not the ones you already read_
+- **Conversational**: _`@buddy review`, `full-review`, `summary`, `resolve`, `pause`, `resume`, `plan`, `remember` — or just ask a question_
+- **Local Review**: _`buddy review` reads your working tree, so problems are found before the PR exists_
+- **Works Without a Key**: _`--light` runs secret scanning, actionlint, shellcheck, hadolint, markdownlint and syntax checks with no model and no network_
+- **Merge Gates**: _Title format, description quality, linked issue and dependency policy published as a check run_
+- **CI Repair**: _`buddy fix-ci` classifies a failing run and opens the fix when it is clear_
+- **Pipeable**: _`--format json`, `github` annotations, or `agent` to hand findings straight to a coding agent_
+- **Your Provider**: _Anthropic, OpenAI, Google, OpenRouter, or any OpenAI-compatible endpoint_
 
 ### 🚀 **Performance & Speed**
 
@@ -283,12 +301,12 @@ const config: BuddyConfig = {
     groups: [
       {
         name: 'TypeScript Types',
-        patterns: ['@types/_'],
+        patterns: ['@types/*'],
         strategy: 'minor'
       },
       {
         name: 'ESLint Ecosystem',
-        patterns: ['eslint_', '@typescript-eslint/_'],
+        patterns: ['eslint*', '@typescript-eslint/*'],
         strategy: 'patch'
       }
     ]
@@ -808,12 +826,12 @@ Group related packages to create cleaner, more focused pull requests:
   groups: [
     {
       name: 'React Ecosystem',
-      patterns: ['react_', '@types/react_'],
+      patterns: ['react*', '@types/react*'],
       strategy: 'minor'
     },
     {
       name: 'Development Tools',
-      patterns: ['eslint_', 'prettier_', '@typescript-eslint/*'],
+      patterns: ['eslint*', 'prettier*', '@typescript-eslint/*'],
       strategy: 'patch'
     }
   ]

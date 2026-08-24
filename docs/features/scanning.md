@@ -106,12 +106,12 @@ export default {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'minor'
       },
       {
         name: 'Build Tools',
-        packages: ['typescript', 'vite', 'rollup'],
+        patterns: ['typescript', 'vite', 'rollup'],
         strategy: 'patch'
       }
     ]
@@ -226,7 +226,7 @@ export default {
     groups: [
       {
         name: 'Security Updates',
-        packages: ['helmet', 'cors', 'express-rate-limit'],
+        patterns: ['helmet', 'cors', 'express-rate-limit'],
         strategy: 'all' // Always get security updates
       }
     ]
@@ -244,7 +244,7 @@ export default {
     groups: [
       {
         name: 'Frontend',
-        packages: ['react*', 'vue*', '@vue/*'],
+        patterns: ['react*', 'vue*', '@vue/*'],
         strategy: 'minor' // Allow minor updates for frontend
       }
     ]

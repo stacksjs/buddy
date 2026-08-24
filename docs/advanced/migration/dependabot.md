@@ -250,7 +250,7 @@ export default {
     groups: [
       {
         name: 'ESLint Updates',
-        packages: ['eslint'],
+        patterns: ['eslint'],
         updateType: 'minor', // Only minor/patch for eslint
         autoMerge: false
       },

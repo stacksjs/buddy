@@ -82,7 +82,7 @@ The migration process will:
     groups: [
       {
         name: 'React packages',
-        packages: ['react', 'react-dom'],
+        patterns: ['react', 'react-dom'],
         updateType: 'all'
       }
     ]

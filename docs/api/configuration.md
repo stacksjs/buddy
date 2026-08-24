@@ -835,7 +835,7 @@ const config: BuddyConfig = {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom'],
+        patterns: ['react', 'react-dom'],
         strategy: 'patch',
         reviewers: ['frontend-team']
       }

@@ -222,12 +222,12 @@ const config: BuddyConfig = {
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'minor',
       },
       {
         name: 'Build Tools',
-        packages: ['vite', 'rollup', 'esbuild'],
+        patterns: ['vite', 'rollup', 'esbuild'],
         strategy: 'patch',
       },
     ],
@@ -613,20 +613,20 @@ For monorepos with multiple `package.json` and dependency files:
 export default {
   packages: {
     workspaces: [
-      'packages/_',
-      'apps/_',
-      'tools/_',
+      'packages/*',
+      'apps/*',
+      'tools/*',
     ],
     strategy: 'patch',
     groups: [
       {
         name: 'Frontend Apps',
-        packages: ['packages/web', 'packages/mobile'],
+        patterns: ['packages/web', 'packages/mobile'],
         strategy: 'minor',
       },
       {
         name: 'Backend Services',
-        packages: ['apps/api', 'apps/worker'],
+        patterns: ['apps/api', 'apps/worker'],
         strategy: 'patch',
       },
     ],

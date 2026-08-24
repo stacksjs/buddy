@@ -174,12 +174,12 @@ export default {
     groups: [
       {
         name: 'Development Tools',
-        packages: ['eslint', 'prettier', 'typescript'],
+        patterns: ['eslint', 'prettier', 'typescript'],
         strategy: 'minor'
       },
       {
         name: 'Runtime Dependencies',
-        packages: ['node', 'python', 'bun'],
+        patterns: ['node', 'python', 'bun'],
         strategy: 'patch' // Conservative for runtimes
       }
     ]
@@ -291,12 +291,12 @@ export default {
     groups: [
       {
         name: 'Frontend Dependencies',
-        packages: ['react', 'typescript', 'vite'],
+        patterns: ['react', 'typescript', 'vite'],
         workspaces: ['packages/frontend/**']
       },
       {
         name: 'Build Tools',
-        packages: ['esbuild', 'rollup', 'webpack'],
+        patterns: ['esbuild', 'rollup', 'webpack'],
         workspaces: ['tools/build/**']
       }
     ]

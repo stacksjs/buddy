@@ -358,12 +358,12 @@ const buddy = new Buddy({
     groups: [
       {
         name: 'React Ecosystem',
-        packages: ['react', 'react-dom', '@types/react'],
+        patterns: ['react', 'react-dom', '@types/react'],
         strategy: 'minor'
       },
       {
         name: 'Testing Tools',
-        packages: ['jest', '@types/jest', 'testing-library/*'],
+        patterns: ['jest', '@types/jest', 'testing-library/*'],
         strategy: 'patch'
       }
     ]
