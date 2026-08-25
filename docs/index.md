@@ -47,11 +47,9 @@ hero:
         @buddy review        new changes since last time
         @buddy full-review   re-read the whole diff
         @buddy summary       a summary, no inline notes
-        @buddy resolve       resolve the threads it opened
         @buddy pause         stop reviewing this PR
         @buddy resume        start again
         @buddy fix-ci        diagnose the failing checks
-        @buddy plan          turn an issue into a plan
         @buddy rebase        rebase a dependency update
         @buddy merge         re-check auto-merge now
         @buddy remember ...  keep a note for future runs
@@ -92,7 +90,7 @@ features:
     details: "Inline findings anchored to the lines you actually changed, each with the failure it causes rather than a style opinion. Buddy remembers what it already said, so a second push gets new findings — not the same ones again."
   - title: "Talks back in the thread"
     icon: "💬"
-    details: "Mention @buddy to re-review, summarise, resolve its own threads, pause on a noisy PR, or just ask a question about the diff."
+    details: "Mention @buddy to re-review, summarise, pause on a noisy PR, or just ask a question about the diff."
   - title: "Works without an API key"
     icon: "🦴"
     details: "buddy review --light runs secret scanning, actionlint, shellcheck, hadolint and syntax checks with no model and no network. Fast enough for a pre-commit hook."
@@ -104,7 +102,7 @@ features:
     details: "buddy fix-ci reads a failing workflow run, classifies the failure, and opens the repair when the fix is unambiguous."
   - title: "Also minds the dependencies"
     icon: "📦"
-    details: "The whole Renovate/Dependabot job — scanning, grouping, changelogs, a pinned dashboard, auto-merge — across npm, Composer, Docker, Actions, Go, Rust, Python and Ruby."
+    details: "The whole Renovate/Dependabot job — scanning, grouping, changelogs, a pinned dashboard, auto-merge — across npm, Composer, Docker, Actions, pkgx, Zig, Go, Rust, Python and Ruby."
   - title: "Your CI, your keys, your model"
     icon: "🏠"
     span: 2
@@ -191,6 +189,7 @@ Underneath sits the release notes for every version in the range, a compare link
 | pkgx / Launchpad | `deps.yaml`, `dependencies.yaml`, `pkgx.yaml` | `pantry.lock` |
 | GitHub Actions | `.github/workflows/*.yml` | — |
 | Docker | `Dockerfile` | — |
+| Zig | `build.zig.zon` | — |
 | Go, Rust, Python, Ruby | `go.mod`, `Cargo.toml`, `pyproject.toml`, `Gemfile` | `go.sum`, `Cargo.lock`, `poetry.lock`, `Gemfile.lock` |
 
 More in [pull request generation](/features/pull-requests), [the dashboard](/features/dependency-dashboard) and [ecosystems](/advanced/ecosystems).
@@ -204,7 +203,7 @@ More in [pull request generation](/features/pull-requests), [the dashboard](/fea
 | Runs on | Your CI, your keys | Hosted app | Hosted or self-hosted | GitHub-hosted |
 | Works with no API key | Analyzers only | — | n/a | n/a |
 | Local pre-push review | Yes | — | — | — |
-| Config | TypeScript, JSON or YAML | YAML | JSON / JS | YAML |
+| Config | TypeScript, JavaScript or JSON | YAML | JSON / JS | YAML |
 | Migration in | From Renovate and Dependabot | — | — | — |
 
 The full matrix — including Greptile, Qodo Merge, Graphite, Sourcery and Snyk —

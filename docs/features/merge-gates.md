@@ -38,7 +38,7 @@ hero:
           ✔ tests-updated    behaviour change covered
 
           error · 1 failing gate
-          check run published: buddy/gate
+          check run published: buddy/gates
     - file: "buddy.config.ts"
       lang: "ts"
       content: |
@@ -113,7 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Then mark `buddy/gate` as a required check in your branch protection rules. That is the whole enforcement story: GitHub blocks the merge, Buddy just reports the truth.
+Then mark `buddy/gates` as a required check in your branch protection rules. That is the whole enforcement story: GitHub blocks the merge, Buddy just reports the truth.
 
 ## Deterministic first {#deterministic}
 

@@ -191,9 +191,8 @@ Buddy automatically generates optimized GitHub Actions workflows:
 buddy setup
 
 # Generated files
-# .github/workflows/buddy-dashboard.yml
-# .github/workflows/buddy-check.yml
-# .github/workflows/buddy-update.yml
+# .github/workflows/buddy.yml           — checks, updates and the dashboard
+# .github/workflows/buddy-security.yml  — the security audit
 ```
 
 ### Removing Old Configurations

@@ -183,7 +183,7 @@ name: Dependency Dashboard
 on:
   schedule:
 
-    - cron: '0 9 _ _ 1,3,5' # Monday, Wednesday, Friday at 9 AM UTC
+    - cron: '0 9 * * 1,3,5' # Monday, Wednesday, Friday at 9 AM UTC
 
 jobs:
   update-dashboard:
@@ -200,7 +200,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**💡 Ready-to-use workflow**: Buddy includes a pre-built dashboard workflow at `.github/workflows/buddy-dashboard.yml` that you can use directly. It includes manual triggering, dry-run mode, and customizable options.
+**💡 Ready-to-use workflow**: you rarely need the workflow above. `buddy setup` writes a single `.github/workflows/buddy.yml` whose dashboard job already refreshes the issue on the `15 */2 * * *` schedule, and it can be run on demand from the Actions tab — pick **Buddy**, then **Run workflow**, then set **Which job to run** to `dashboard`. The same dispatch takes a custom title, a specific issue number and the pin toggle.
 
 ### Auto-Update
 

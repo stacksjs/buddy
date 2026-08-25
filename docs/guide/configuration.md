@@ -50,8 +50,8 @@ Configure how Buddy interacts with your repository:
 
 ```typescript
 repository: {
-  // Git provider
-  provider: 'github', // 'github' | 'gitlab' | 'bitbucket'
+  // Git provider — only 'github' is implemented today
+  provider: 'github',
 
   // Repository owner (organization or user)
   owner: 'stacksjs',
@@ -203,7 +203,7 @@ Choose from predefined workflow configurations:
 ### Standard (Default)
 
 ```bash
-buddy setup --preset standard
+buddy setup --non-interactive --preset standard
 ```
 
 - Dashboard updates 3x/week
@@ -212,7 +212,7 @@ buddy setup --preset standard
 ### High Frequency
 
 ```bash
-buddy setup --preset high-frequency
+buddy setup --non-interactive --preset high-frequency
 ```
 
 - Updates multiple times per day
@@ -221,7 +221,7 @@ buddy setup --preset high-frequency
 ### Security Focused
 
 ```bash
-buddy setup --preset security
+buddy setup --non-interactive --preset security
 ```
 
 - Frequent security patches
@@ -230,7 +230,7 @@ buddy setup --preset security
 ### Minimal
 
 ```bash
-buddy setup --preset minimal
+buddy setup --non-interactive --preset minimal
 ```
 
 - Weekly checks only
@@ -239,11 +239,11 @@ buddy setup --preset minimal
 ### Testing
 
 ```bash
-buddy setup --preset testing
+buddy setup --non-interactive --preset testing
 ```
 
-- Every 5 minutes
-- Dry run by default
+- Manual dashboard trigger, frequent update checks
+- Patch updates only, no auto-merge
 - For development/testing
 
 ## Migration from Other Tools
@@ -313,7 +313,7 @@ Create custom integrations in `.buddy/plugins/`:
   "enabled": true,
   "triggers": [
     { "event": "setup_complete" },
-    { "event": "pr_created" }
+    { "event": "validation_error" }
   ],
   "configuration": {
     "webhook_url": "https://your-webhook.com/notify"

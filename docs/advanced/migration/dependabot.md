@@ -376,9 +376,8 @@ buddy dashboard
 
 Check generated GitHub Actions:
 
-- `.github/workflows/buddy-dashboard.yml`
-- `.github/workflows/buddy-check.yml`
-- `.github/workflows/buddy-update.yml`
+- `.github/workflows/buddy.yml` — the unified workflow: rebase checks, dependency updates and the dashboard
+- `.github/workflows/buddy-security.yml` — the security audit, kept separate so it triggers on its own path filters
 
 ### 6. Monitor and Adjust
 

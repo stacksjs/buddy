@@ -12,62 +12,49 @@ buddy open-settings [options]
 
 ### Description
 
-Quickly open the GitHub settings pages needed to configure permissions for buddy. This includes repository settings, organization settings, and Actions configurations.
+Quickly open the GitHub settings pages needed to configure permissions for buddy. It opens the repository's Actions settings, follows with the organization's, and prints the exact options to change on each.
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--type <type>` | Settings type to open | `'repo'` |
 | `--verbose, -v` | Enable verbose logging | `false` |
-
-### Settings Types
-
-- **`repo`** - Repository settings page
-- **`actions`** - Repository Actions settings
-- **`org`** - Organization settings
-- **`tokens`** - Personal access tokens page
 
 ### Examples
 
 ```bash
-# Open repository settings
+# Open the Actions settings pages for this repository
 buddy open-settings
 
-# Open Actions settings
-buddy open-settings --type actions
-
-# Open organization settings
-buddy open-settings --type org
-
-# Open personal tokens page
-buddy open-settings --type tokens
+# Show how the repository was resolved
+buddy open-settings --verbose
 ```
 
 ### What Opens
 
-#### Repository Settings (`--type repo`)
+The repository comes from `repository.owner` and `repository.name` in `buddy.config.ts`, falling back to `git remote get-url origin`.
 
-- General repository settings
-- Collaborators and teams
-- Branches and protection rules
+#### Repository Actions settings
 
-#### Actions Settings (`--type actions`)
+`https://github.com/<owner>/<repo>/settings/actions`
 
-- GitHub Actions permissions
-- Workflow permissions
-- Runner settings
+- Workflow permissions — select "Read and write permissions"
+- "Allow GitHub Actions to create and approve pull requests"
 
-#### Organization Settings (`--type org`)
+#### Organization Actions settings
 
-- Member privileges
-- Third-party access
-- GitHub Apps
+`https://github.com/organizations/<owner>/settings/actions`
 
-#### Tokens (`--type tokens`)
+- The same two settings one level up, which may override the repository's
 
-- Personal access tokens management
-- Fine-grained tokens
+If neither the config nor the git remote identifies a repository, buddy prints both URLs with placeholders instead of opening anything.
+
+### Related Pages
+
+buddy does not open these, but setup points you at them:
+
+- Personal access tokens — `https://github.com/settings/tokens`
+- Repository secrets — `https://github.com/<owner>/<repo>/settings/secrets/actions`
 
 ## schedule
 
@@ -79,53 +66,47 @@ buddy schedule [options]
 
 ### Description
 
-Execute buddy updates on a predefined schedule. This command is typically used in CI/CD environments or cron jobs for automated dependency management.
+Starts a scheduler in the foreground: it works out the next run from a cron expression, scans for updates when that time arrives, and opens pull requests for what it finds. The process stays alive until you stop it with Ctrl+C, so it belongs on a machine that stays up. On a CI runner, put the cadence in the workflow trigger and run `buddy update` instead, as the CI/CD Integration section below shows.
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--cron <expression>` | Cron expression for scheduling | From config |
-| `--timezone <tz>` | Timezone for scheduling | `'UTC'` |
-| `--dry-run` | Show what would be updated without making changes | `false` |
-| `--strategy <type>` | Update strategy override | From config |
+| `--strategy <type>` | Update strategy, and the cadence that goes with it | `all` |
 | `--verbose, -v` | Enable verbose logging | `false` |
 
 ### Examples
 
 ```bash
-# Run scheduled updates (uses config)
+# Run scheduled updates
 buddy schedule
 
-# Override cron schedule
-buddy schedule --cron "0 2 * * 1"
-
-# Different timezone
-buddy schedule --timezone "America/New*York"
-
-# Dry run to preview changes
-buddy schedule --dry-run
-
-# Override update strategy
+# Daily patch updates
 buddy schedule --strategy patch
+
+# Watch what the scheduler is doing
+buddy schedule --verbose
 ```
 
-### Cron Expressions
+### Schedules
 
-Common scheduling patterns:
+The strategy picks the cadence, so that larger updates arrive less often:
+
+| Strategy | Cron |
+|----------|------|
+| `patch` | `0 2 * * *` |
+| `minor` | `0 2 * * 1,4` |
+| `major` | `0 2 * * 1` |
+| `all` | `0 2 * * 1` |
+
+The next run is derived from the hour and minute fields; the day-of-month and day-of-week fields are not evaluated, so all four of these fire at 2 AM every day. When the day has to matter, drive the cadence from a real cron daemon or a workflow `schedule:` trigger.
+
+On start the scheduler prints the expression it settled on and when it will next fire:
 
 ```bash
-# Every day at 2 AM UTC
-buddy schedule --cron "0 2 * * *"
-
-# Weekly on Monday at 2 AM
-buddy schedule --cron "0 2 * * 1"
-
-# Every 6 hours
-buddy schedule --cron "0 */6 * * *"
-
-# Weekdays at 9 AM
-buddy schedule --cron "0 9 * * 1-5"
+✅ Scheduler started with cron: 0 2 * * 1
+📅 Next run: 2026-09-01T02:00:00.000Z
+🛑 Press Ctrl+C to stop the scheduler
 ```
 
 ### Configuration Integration
@@ -135,16 +116,24 @@ The schedule command uses settings from `buddy.config.ts`:
 ```typescript
 export default {
   schedule: {
-    cron: '0 2 * * 1', // Weekly on Monday at 2 AM
-    timezone: 'UTC',
+    timezone: 'America/New_York', // Time zone the cron is read in
   },
-  packages: {
-    strategy: 'patch', // Used by scheduler
+  repository: {
+    provider: 'github',
+    owner: 'your-org',
+    name: 'your-repo',
+  },
+  pullRequest: {
+    labels: ['dependencies'],
   },
 } satisfies BuddyConfig
 ```
 
+Repository details are required: without `repository.provider`, `repository.owner` and `repository.name`, the command exits before the scheduler starts. Pull requests are only opened when `pullRequest` is configured as well — otherwise a run scans, reports what it found, and stops there.
+
 ### CI/CD Integration
+
+A runner exits when the job does, so there is nothing for a long-lived scheduler to wait for. Let the workflow trigger carry the schedule and run `buddy update`:
 
 **GitHub Actions**
 ```yaml
@@ -163,18 +152,22 @@ jobs:
     steps:
 
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-      - run: bunx @buddysh/buddy schedule
+      - uses: oven-sh/setup-bun@v2
+      - run: bunx @buddysh/buddy update --strategy patch --verbose
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+Same reasoning on a server you own — cron supplies the cadence, `update` does the work:
+
 **Cron Job**
 ```bash
 # Add to crontab
-0 2 * * 1 cd /path/to/project && bunx @buddysh/buddy schedule
+0 2 * * 1 cd /path/to/project && bunx @buddysh/buddy update --strategy patch
 ```
+
+Reach for `buddy schedule` when you want one resident process instead, supervised by systemd or a process manager.
 
 ### Output
 
@@ -189,7 +182,7 @@ The schedule command provides detailed information about:
 
 **Schedule not running:**
 
-- Check cron expression syntax
+- Check the strategy you passed, and the cadence it maps to
 - Verify timezone settings
 - Ensure GitHub token is valid
 

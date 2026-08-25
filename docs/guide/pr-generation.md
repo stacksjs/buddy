@@ -64,10 +64,14 @@ pullRequest: {
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `{title}` | Generated title | "update typescript to 5.8.3" |
-| `{package}` | Package name | "typescript" |
-| `{from}` | Current version | "5.8.2" |
-| `{to}` | New version | "5.8.3" |
-| `{type}` | Update type | "patch" |
+| `{group}` | Update group name | "Non-Major Updates" |
+| `{packages}` | Comma-separated package names | "typescript, vitest" |
+| `{count}` | Number of packages in the PR | "2" |
+| `{update_type}` | Highest semver impact in the group | "patch" |
+| `{strategy}` | Configured update strategy | "minor" |
+
+Unknown tokens are left in place rather than blanked, so a typo shows up in the
+title instead of silently disappearing.
 
 ### Examples
 
@@ -76,12 +80,12 @@ pullRequest: {
 titleFormat: 'chore(deps): {title}'
 // Result: "chore(deps): update typescript to 5.8.3"
 
-// Simple style
-titleFormat: 'Update {package} to {to}'
-// Result: "Update typescript to 5.8.3"
+// Group style
+titleFormat: 'Update {group} ({count} packages)'
+// Result: "Update Non-Major Updates (2 packages)"
 
-// With type
-titleFormat: '[{type}] {title}'
+// With update type
+titleFormat: '[{update_type}] {title}'
 // Result: "[patch] update typescript to 5.8.3"
 ```
 
@@ -111,11 +115,14 @@ Buddy automatically adds contextual labels:
 
 | Label | Condition |
 |-------|-----------|
-| `major-update` | Major version change |
-| `minor-update` | Minor version change |
-| `patch-update` | Patch version change |
-| `security` | Security vulnerability fix |
+| `dependencies` | Always applied |
+| `major` | Major version change |
+| `minor` | Minor version change |
+| `patch` | Patch version change |
+| `security` | Resolves a published advisory |
 | `npm` | npm package update |
+| `composer` | Composer package update |
+| `zig` | Zig package update |
 | `github-actions` | Workflow update |
 
 ## Reviewers and Assignees
@@ -183,9 +190,13 @@ pullRequest: {
 
 | Condition | Description |
 |-----------|-------------|
-| `patch-only` | Only patch updates |
-| `minor-and-patch` | Minor and patch updates |
+| `patch-only` | Every update in the PR is a patch |
+| `minor-only` | Every update is minor or patch |
+| `security-only` | The PR resolves a security advisory |
 | `all` | All updates (use cautiously) |
+
+A PR qualifies when any listed condition accepts it. An empty or missing list
+means nothing auto-merges.
 
 ## Rebase Feature
 
@@ -202,7 +213,7 @@ Every PR includes a rebase checkbox:
 ### How It Works
 
 1. Check the box in the PR description
-2. `buddy-check.yml` workflow detects checked boxes
+2. Editing the PR body triggers the `buddy.yml` workflow, which detects checked boxes
 3. PR is automatically updated with latest versions
 4. Checkbox is unchecked after successful update
 

@@ -59,6 +59,15 @@ buddy <command> [options] [arguments]
 | [`compare`](/cli/package#compare) | Compare two versions of a package |
 | [`search`](/cli/package#search) | Search for packages in the registry |
 
+### 📊 Dashboard & Review
+
+| Command | Description |
+|---------|-------------|
+| [`dashboard`](/features/dependency-dashboard) | Create or update the dependency dashboard issue |
+| [`review`](/cli/review) | Review local changes, or a pull request |
+| [`security`](/features/workflow-security) | Static-analyse GitHub Actions workflows |
+| [`doctor`](/cli/review#diagnosing-setup) | Diagnose credentials, git state and analyzer tooling |
+
 ### ⏰ Automation & Scheduling
 
 | Command | Description |
@@ -67,13 +76,15 @@ buddy <command> [options] [arguments]
 
 ## Global Options
 
-All commands support these global options:
+Every command accepts these:
 
 ```bash
---verbose, -v    Enable verbose logging
+--config <path>  Path to a buddy config file
 --help, -h       Show help information
 --version        Show version information
 ```
+
+Almost every command also takes `--verbose, -v` for detailed logging. Options are matched strictly: a flag a command does not declare is an error, not something quietly ignored.
 
 ## Examples
 
@@ -153,14 +164,14 @@ export default {
 Buddy uses these environment variables:
 
 ```bash
-# Required for GitHub operations
+# Required for GitHub operations. GH_TOKEN is accepted as an alias
 GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 
-# Optional: Explicitly set GitHub token
-GH_TOKEN=ghp_xxxxxxxxxxxx
+# Optional: a PAT with 'repo' and 'workflow' scopes, used ahead of GITHUB_TOKEN
+BUDDY_TOKEN=ghp_xxxxxxxxxxxx
 
-# Optional: Configure Bun
-BUN_CONFIG_DIR=/path/to/config
+# Optional: output level - silent, error, warn, info, debug
+BUDDY_LOG_LEVEL=debug
 ```
 
 ## Exit Codes
@@ -168,8 +179,7 @@ BUN_CONFIG_DIR=/path/to/config
 Buddy uses standard exit codes:
 
 - **0**: Success
-- **1**: General error (configuration, network, etc.)
-- **2**: Command not found or invalid arguments
+- **1**: Any failure — configuration, network, an unknown command, or an option the command does not accept
 
 ## Debugging
 
@@ -252,8 +262,8 @@ done
 ## Performance Tips
 
 1. **Use specific strategies**: `--strategy patch` is faster than `all`
-2. **Filter packages**: Use `--packages` for targeted updates
-3. **Enable caching**: Set `BUN_CONFIG_NO_CACHE=false`
+2. **Filter packages**: Use `buddy scan --packages` to check a short list
+3. **Skip the noise**: Leave `--verbose` off unless you are debugging
 4. **Parallel execution**: Run multiple commands in parallel for monorepos
 
 ## Getting Help
@@ -271,7 +281,7 @@ buddy update --help
 
 ### Documentation
 
-- **Full Documentation**: [<https://buddy.sh/doc>s](https://buddy.sh/docs)
+- **Full Documentation**: [buddy.sh/docs](https://buddy.sh/docs)
 - **Configuration Guide**: [/config](/config)
 - **GitHub Setup**: [/features/github-actions](/features/github-actions)
 

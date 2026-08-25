@@ -15,7 +15,7 @@ Buddy uses multiple scanning approaches depending on the file type:
 
 ### Dependency File Scanning
 
-- **pkgx Integration**: Uses `ts-pkgx` library for parsing dependency files
+- **pkgx Integration**: Uses `ts-pantry` library for parsing dependency files
 - **Registry Compatibility**: Full compatibility with pkgx registry ecosystem
 - **Format Support**: Handles multiple YAML formats (`.yaml`, `.yml`)
 - **Launchpad Support**: Compatible with Launchpad dependency files
@@ -67,15 +67,28 @@ export default {
 
 #### Ignore Packages
 
-Skip specific packages from scanning:
+Skip specific packages from scanning. Entries are compared by exact name — no
+globs:
 
 ```typescript
 export default {
   packages: {
     ignore: [
-      '@types/node', // Specific package
-      '@types/*', // Glob patterns
+      '@types/node', // Exact package name
       'react', // Dependencies you want to control manually
+    ]
+  }
+}
+```
+
+To skip a whole family, use a rule with `matchPackages`, which does take
+patterns:
+
+```typescript
+export default {
+  packages: {
+    rules: [
+      { matchPackages: ['@types/*'], enabled: false }
     ]
   }
 }

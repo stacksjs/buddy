@@ -115,11 +115,12 @@ Found 2 available integration(s):
 ### Pre-flight Validation
 
 ```
-🔍 Pre-flight Validation
-✅ Git repository detected
-✅ Bun v1.2.19 detected
-⚠️  Found 2 existing workflows. Some may conflict with Buddy workflows.
-💡 GitHub CLI detected. This can help with authentication.
+🔍 Pre-flight Validation:
+⚠️  Warnings:
+   • Found 2 existing workflow(s). Some may conflict with Buddy workflows.
+💡 Suggestions:
+   • Using Bun v1.2.19
+   • GitHub CLI detected. This can help with authentication.
 ```
 
 **Environment Checks:**
@@ -163,9 +164,9 @@ Found 2 available integration(s):
 ### Interactive Progress Tracking
 
 ```
-📊 Setup Progress: 75% [███████████████░░░░░]
-🔄 Current Step: Workflow Generation (6/8)
-✅ Completed: Pre-flight checks, Project analysis, Repository Detection, GitHub Token Setup, Repository Settings
+📊 Setup Progress: 80% [████████████████░░░░]
+🔄 Current Step: Workflow Configuration (8/10)
+✅ Completed: Detecting existing configurations, Discovering integrations, Running pre-flight checks, Analyzing project, Repository Detection, GitHub Token Setup, Repository Settings
 ```
 
 **Progress Features:**
@@ -176,10 +177,10 @@ Found 2 available integration(s):
 - **Time tracking** - Monitors setup duration for performance insights
 - **Recovery support** - Maintains progress state for resumption after interruptions
 
-### Step 3: Repository Detection & Validation
+### Step 5: Repository Detection & Validation
 
 ```
-📍 Step 1: Repository Detection
+📍 Repository Detection
 ✅ Detected repository: your-org/your-repo
 🔗 GitHub URL: https://github.com/your-org/your-repo
 ```
@@ -193,24 +194,24 @@ Automatically detects your GitHub repository from `git remote get-url origin` an
 - **Private repository support** - Enhanced validation for private repositories with appropriate token scopes
 - **Organization settings** - Checks for organization-level restrictions that might affect setup
 
-### Step 4: GitHub Token Setup
+### Step 6: GitHub Token Setup
 
 ```
-🔑 Step 2: GitHub Token Setup
-For full functionality, Buddy needs a Personal Access Token (PAT).
+🔑 GitHub Token Setup
+For full functionality, Buddy needs appropriate GitHub permissions.
 This enables workflow file updates and advanced GitHub Actions features.
 ```
 
 Provides three options:
 
-- **Create new token** - Full guidance through PAT creation process
-- **Have existing token** - Setup for existing PAT
-- **Skip for now** - Use limited GITHUB_TOKEN permissions
+- **Use organization/repository secrets** - A PAT is already configured as an organization or repository secret
+- **Set up a new Personal Access Token** - Full guidance through PAT creation and secret configuration
+- **Use default GITHUB_TOKEN only** - Limited permissions; workflow file updates will not work
 
-### Step 5: Repository Settings
+### Step 7: Repository Settings
 
 ```
-🔧 Step 3: Repository Settings
+🔧 Repository Settings
 ```
 
 Guides you through configuring GitHub Actions permissions:
@@ -219,32 +220,35 @@ Guides you through configuring GitHub Actions permissions:
 2. Select "Read and write permissions"
 3. Enable "Allow GitHub Actions to create and approve pull requests"
 
-### Step 6: Workflow Configuration
+### Step 8: Workflow Configuration
 
 ```
-⚙️ Step 4: Workflow Configuration
-What type of update schedule would you like?
+⚙️  Workflow Configuration
+? What type of update schedule would you like?
 ```
 
 Choose from carefully crafted presets:
 
 #### Available Presets
 
-| Preset | Description | Dashboard | Updates | Auto-merge |
-|--------|-------------|-----------|---------|------------|
-| **Standard Setup** | Balanced approach for most projects | 3x/week | Mon/Wed/Fri | Patch only |
-| **High Frequency** | Multiple checks per day | Daily | Every 6 hours | Patch only |
-| **Security Focused** | Security-first approach | Daily | Every 4 hours | Security patches |
-| **Minimal Updates** | Low-frequency updates | Weekly | Monday only | Manual |
-| **Development/Testing** | Testing and debugging | Manual | Every 15 min | Disabled |
-| **Custom Configuration** | Build your own schedule | Custom | Custom | Custom |
+| Preset | Description |
+|--------|-------------|
+| **Standard Setup (Recommended)** | Dashboard updates 3x/week, dependency updates on schedule |
+| **High Frequency** | Check for updates multiple times per day |
+| **Security Focused** | Frequent patch updates with security-first approach |
+| **Minimal Updates** | Weekly checks, lower frequency |
+| **Development/Testing** | Manual triggers + frequent checks for testing |
+| **Custom Configuration** | Create your own schedule |
 
-### Step 7: Configuration File Generation
+The preset names the intent you picked; the workflow it writes is the same either way. See [Preset Details](#preset-details) for what that means once setup is done.
+
+### Step 9: Configuration File Generation
 
 ```
-📝 Step 5: Configuration File
-✅ Created buddy.config.json with your repository settings.
+📝 Configuration File
+✅ Created buddy.config.ts with your repository settings.
 💡 You can edit this file to customize Buddy's behavior.
+🔧 The TypeScript config provides better IntelliSense and type safety.
 ```
 
 Creates a complete configuration file with:
@@ -255,46 +259,45 @@ Creates a complete configuration file with:
 - Package strategies
 - Default options
 
-### Step 8: Workflow Generation
+### Step 10: Workflow Generation
 
 ```
-🔄 Step 6: Workflow Generation
-✨ Setting up Standard Setup...
-📋 Dashboard updates 3x/week, balanced dependency updates
+🔄 Workflow Generation
+✨ Setting up Standard Project...
+📋 Daily patch updates, weekly minor updates, monthly major updates
+Generated unified buddy workflow (combines check, update, and dashboard)
+Generated GitHub Actions security audit workflow (buddy-security.yml)
+✓ Generated unified workflow in .github/workflows
 ```
 
-Generates three core workflows:
+Generates two workflows:
 
-#### 1. Dashboard Workflow (`buddy-dashboard.yml`)
+#### 1. Unified Workflow (`buddy.yml`)
 
-- **Schedule**: Monday, Wednesday, Friday at 9 AM UTC
-- **Purpose**: Manages dependency dashboard issue
-- **Features**: Manual triggers, dry-run mode, verbose logging
+- **Schedule**: dependency updates every 2 hours, dashboard 15 minutes later, cleanup daily at 4 AM UTC, health report Monday at 9 AM UTC
+- **Events**: `pull_request`, `issues`, `issue_comment`, `pull_request_review_comment` and `workflow_run`, so a ticked rebase box or an `@buddy` comment is acted on immediately rather than waited for
+- **Purpose**: One workflow covering checks, updates, the dashboard, reviews and comment commands
+- **Features**: `workflow_dispatch` with a `job` input to run a single job by hand
 
-#### 2. Update Check Workflow (`buddy-check.yml`)
+#### 2. Security Audit Workflow (`buddy-security.yml`)
 
-- **Schedule**: Every 15 minutes
-- **Purpose**: Auto-rebase PRs with checked rebase boxes
-- **Features**: Automatic PR updates, conflict resolution
+- **Schedule**: Monday at 6 AM UTC, plus every push and pull request touching `.github/workflows/**`
+- **Purpose**: Static-analyses your GitHub Actions workflows for supply-chain footguns
+- **Features**: Kept separate so its path filters fire independently of the dependency pipeline
 
-#### 3. Update Workflow (`buddy-update.yml`)
-
-- **Schedule**: Based on selected preset
-- **Purpose**: Scheduled dependency updates
-- **Features**: Manual triggers, strategy selection, package filtering
+If an earlier version of Buddy left `buddy-check.yml`, `buddy-update.yml`, `buddy-dashboard.yml` or `gh-audit.yml` behind, setup deletes them — their jobs now live in `buddy.yml` and `buddy-security.yml`.
 
 ### Workflow Validation & Testing
 
 ```
 🔍 Validating Generated Workflows
-✅ buddy-dashboard.yml validated successfully
-✅ buddy-check.yml validated successfully
-✅ buddy-update.yml validated successfully
 ```
+
+The checks live in `validateWorkflowGeneration`, exported from `@buddysh/buddy/setup`, so you can run them over a workflow of your own as well.
 
 **Validation Features:**
 
-- **YAML syntax validation** - Ensures all generated workflows are syntactically correct
+- **YAML syntax validation** - Ensures a workflow is syntactically correct
 - **Required field verification** - Validates presence of name, on, jobs, and other essential fields
 - **Security best practices** - Checks token usage, permissions, and security configurations
 - **Buddy integration** - Verifies workflows include proper buddy execution commands
@@ -307,17 +310,13 @@ Generates three core workflows:
 - **Secret handling** - Validates secure handling of tokens and sensitive information
 - **Workflow permissions** - Checks for explicit permission definitions and security boundaries
 
-### Step 9: Final Instructions & Integration Notifications
+### Final Instructions & Integration Notifications
 
 ```
 🎉 Setup Complete!
-✅ Generated 3 core workflows in .github/workflows/:
-
-   - buddy-dashboard.yml (Dependency Dashboard Management)
-   - buddy-check.yml (Auto-rebase PR checker)
-   - buddy-update.yml (Scheduled dependency updates)
-
-📁 Configuration file: buddy.config.json
+✅ Generated unified buddy workflow in .github/workflows/:
+   - buddy.yml (Combined check, update, and dashboard management)
+📁 Configuration file: buddy.config.ts
 ```
 
 Provides clear next steps with:
@@ -425,16 +424,17 @@ buddy setup --non-interactive --token-setup new-pat
 
 ### Preset Options
 
+Every preset writes the same `buddy.yml`: dependency updates every 2 hours on the `patch` strategy, the dashboard 15 minutes behind them, and a manual trigger for running any single job. The preset records the cadence you intended — change the cadence itself in the workflow's `schedule:` block afterwards.
+
 #### Standard Preset
 
 ```bash
 buddy setup --non-interactive --preset standard
 ```
 
-- Balanced approach for most projects
-- Every 2 hours schedule for testing
-- Dry-run enabled by default
-- Manual triggers available
+- Reported as **Standard Project**
+- Daily patch updates, weekly minor updates, monthly major updates
+- The default when `--preset` is omitted
 
 #### Testing Preset
 
@@ -442,10 +442,9 @@ buddy setup --non-interactive --preset standard
 buddy setup --non-interactive --preset testing
 ```
 
+- Reported as **Development/Testing**
+- Manual trigger + every 20 minutes (for testing)
 - Optimized for development and testing
-- Every 2 hours schedule with enhanced logging
-- Dry-run mode by default
-- Verbose output and detailed summaries
 
 #### Security Preset
 
@@ -453,10 +452,9 @@ buddy setup --non-interactive --preset testing
 buddy setup --non-interactive --preset security
 ```
 
-- Security-focused configuration
-- Every 2 hours schedule for rapid security updates
-- Enhanced monitoring and reporting
-- Security-first update strategy
+- Reported as **Security Focused**
+- Frequent patch updates with security-first approach
+- Suitable for security-critical applications
 
 #### High-Frequency Preset
 
@@ -464,9 +462,8 @@ buddy setup --non-interactive --preset security
 buddy setup --non-interactive --preset high-frequency
 ```
 
-- Multiple updates per day
-- Every 2 hours schedule
-- Aggressive update strategy
+- Reported as **High Frequency Updates**
+- Check for updates 4 times per day (6AM, 12PM, 6PM, 12AM)
 - Suitable for active development
 
 #### Minimal Preset
@@ -475,10 +472,9 @@ buddy setup --non-interactive --preset high-frequency
 buddy setup --non-interactive --preset minimal
 ```
 
-- Low-frequency updates
-- Every 2 hours schedule (same as others)
-- Conservative approach
-- Minimal noise and disruption
+- Reported as **Minimal Updates**
+- Weekly patch updates, monthly minor/major updates
+- Conservative approach for stable projects
 
 ### CI/CD Integration Examples
 
@@ -576,76 +572,99 @@ echo "Buddy setup complete!"
 
 The setup process creates several files:
 
-### Configuration File (`buddy.config.json`)
+### Configuration File (`buddy.config.ts`)
 
-```json
-{
-  "repository": {
-    "owner": "your-org",
-    "name": "your-repo",
-    "provider": "github"
+```typescript
+import type { BuddyConfig } from '@buddysh/buddy'
+
+const config: BuddyConfig = {
+  repository: {
+    owner: 'your-org',
+    name: 'your-repo',
+    provider: 'github',
+    // Uses GITHUB_TOKEN by default
   },
-  "dashboard": {
-    "enabled": true,
-    "pin": false,
-    "title": "Dependency Dashboard"
+  dashboard: {
+    enabled: true,
+    title: 'Dependency Dashboard',
+    // issueNumber: undefined, // Auto-generated
   },
-  "workflows": {
-    "enabled": true,
-    "outputDir": ".github/workflows",
-    "templates": {
-      "daily": true,
-      "weekly": true,
-      "monthly": true
-    }
+  workflows: {
+    enabled: true,
+    outputDir: '.github/workflows',
+    templates: {
+      daily: true,
+      weekly: true,
+      monthly: true,
+    },
+    custom: [],
   },
-  "packages": {
-    "strategy": "all",
-    "ignore": []
+  packages: {
+    strategy: 'all',
+    ignore: [],
+    ignorePaths: [],
   },
-  "verbose": false
+  verbose: false,
 }
+
+export default config
 ```
 
 ### Workflow Files
 
-#### Dashboard Workflow
+#### Unified Workflow (`buddy.yml`)
 
 ```yaml
-name: Buddy Dashboard
+name: Buddy
 
 on:
+  pull_request:
+    types: [edited, opened, ready_for_review, synchronize, closed]
+
+  issues:
+    types: [edited, opened]
+
+  issue_comment:
+    types: [created]
+
+  pull_request_review_comment:
+    types: [created]
+
+  workflow_run:
+    types: [completed]
+
   schedule:
 
-    - cron: '0 9 _ _ 1,3,5' # Monday, Wednesday, Friday at 9 AM UTC
+    - cron: '0 */2 * * *' # Dependency updates
+    - cron: '15 */2 * * *' # Dashboard, 15 minutes behind
+    - cron: '0 4 * * *' # Branch cleanup
+    - cron: '0 9 * * 1' # Weekly dependency-health report
 
-  workflow_dispatch: # Manual triggering
+  workflow_dispatch: # Manual trigger, with job/strategy/dry_run inputs
 ```
 
-#### Update Check Workflow
+#### Security Audit Workflow (`buddy-security.yml`)
 
 ```yaml
-name: Buddy Check
+name: GH Actions Security Audit
 
 on:
+  push:
+    branches: [main]
+    paths:
+
+      - '.github/workflows/**'
+
+  pull_request:
+    paths:
+
+      - '.github/workflows/**'
+
   schedule:
 
-    - cron: '_/15 _ _ _ _' # Check every 15 minutes
+    - cron: '0 6 * * 1' # Monday 06:00 UTC — weekly drift check
 
-  workflow_dispatch: # Manual trigger
-```
-
-#### Update Workflow
-
-```yaml
-name: Buddy Update
-
-on:
-  schedule:
-
-    - cron: '0 9 _ * 1,3,5' # Mon, Wed, Fri
-
-  workflow_dispatch: # Manual trigger with options
+  workflow_dispatch:
 ```
 
 ## Token Setup Guide
@@ -716,44 +735,36 @@ Configure GitHub Actions permissions:
 
 ## Preset Details
 
+A preset is a statement of intent. Setup prints the one you chose and then writes the same `buddy.yml` for every preset: dependency updates every 2 hours (`0 */2 * * *`) on the `patch` strategy, the dashboard 15 minutes later, branch cleanup daily at 4 AM UTC and a dependency-health report on Monday at 9 AM UTC. Edit that `schedule:` block to change the cadence.
+
 ### Standard Setup (Recommended)
 
-- **Dashboard**: Monday, Wednesday, Friday at 9 AM UTC
-- **Updates**: Monday, Wednesday, Friday at 9 AM UTC
-- **Strategy**: All updates (major, minor, patch)
-- **Auto-merge**: Disabled (manual review required)
+- **Reported as**: Standard Project
+- **Intent**: Daily patch updates, weekly minor updates, monthly major updates
 - **Best for**: Most projects wanting balanced automation
 
 ### High Frequency
 
-- **Dashboard**: Daily at 9 AM UTC
-- **Updates**: Every 6 hours
-- **Strategy**: All updates
-- **Auto-merge**: Disabled
+- **Reported as**: High Frequency Updates
+- **Intent**: Check for updates 4 times per day (6AM, 12PM, 6PM, 12AM)
 - **Best for**: Active projects needing quick updates
 
 ### Security Focused
 
-- **Dashboard**: Daily at 9 AM UTC
-- **Updates**: Every 4 hours
-- **Strategy**: All updates
-- **Auto-merge**: Disabled
+- **Reported as**: Security Focused
+- **Intent**: Frequent patch updates with security-first approach
 - **Best for**: Security-critical applications
 
 ### Minimal Updates
 
-- **Dashboard**: Weekly on Monday at 9 AM UTC
-- **Updates**: Monday only at 9 AM UTC
-- **Strategy**: All updates
-- **Auto-merge**: Disabled
+- **Reported as**: Minimal Updates
+- **Intent**: Weekly patch updates, monthly minor/major updates
 - **Best for**: Stable projects with low change frequency
 
 ### Development/Testing
 
-- **Dashboard**: Manual trigger only
-- **Updates**: Every 15 minutes
-- **Strategy**: Patch updates only
-- **Auto-merge**: Disabled
+- **Reported as**: Development/Testing
+- **Intent**: Manual trigger + every 20 minutes (for testing)
 - **Best for**: Testing Buddy functionality
 
 ## Post-Setup
@@ -764,7 +775,7 @@ After running setup, follow these steps:
 
 ```bash
 # Check configuration
-cat buddy.config.json
+cat buddy.config.ts
 
 # Review workflows
 ls -la .github/workflows/
@@ -776,15 +787,18 @@ ls -la .github/workflows/
 # Test repository detection
 buddy scan --verbose
 
-# Test dashboard creation
-buddy dashboard --dry-run
+# See what an update run would open, without opening it
+buddy update --dry-run
+
+# Create or refresh the dashboard issue
+buddy dashboard
 ```
 
 ### 3. Commit Changes
 
 ```bash
 # Add generated files
-git add .github/workflows/ buddy.config.json
+git add .github/workflows/ buddy.config.ts
 
 # Commit setup
 git commit -m "Add Buddy dependency management workflows"
@@ -797,7 +811,7 @@ git push
 
 1. Go to repository **Actions** tab
 2. Verify workflows appear in the list
-3. Test manual trigger on dashboard workflow
+3. Test the manual trigger on the Buddy workflow, picking the `dashboard` job
 4. Check workflow permissions if needed
 
 ## Troubleshooting
@@ -884,7 +898,7 @@ buddy setup --verbose
 buddy setup --non-interactive --preset testing --verbose
 
 # If setup completes, test scanning
-buddy scan --dry-run
+buddy scan --verbose
 ```
 
 ## Technical Implementation

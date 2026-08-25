@@ -16,7 +16,7 @@ Neither half depends on the other. Run the reviewer alone, run the updater alone
 
 - **🔍 Inline Findings** - Anchored to changed lines, stating the failure rather than a preference
 - **♻️ Incremental** - A second push gets new findings, not the ones you already read
-- **💬 Conversational** - `@buddy review`, `full-review`, `summary`, `resolve`, `pause`, `resume`, `plan`, `remember`, or a plain question
+- **💬 Conversational** - `@buddy review`, `full-review`, `summary`, `pause`, `resume`, `ignore`, `rebase`, `merge`, `fix-ci`, `remember`, or a plain question
 - **💻 Local Review** - `buddy review` reads the working tree, so problems surface before the PR exists
 - **🦴 No Key Required** - `--light` runs secret scanning, actionlint, shellcheck, hadolint, markdownlint and syntax checks offline
 - **🚦 Merge Gates** - Title format, description quality, linked issue and dependency policy, published as a check run
@@ -26,7 +26,7 @@ Neither half depends on the other. Run the reviewer alone, run the updater alone
 
 ## Dependency Features
 
-- **🔍 Smart Scanning** - Lightning-fast dependency detection using Bun, ts-pkgx, and GitHub API
+- **🔍 Smart Scanning** - Lightning-fast dependency detection using Bun, ts-pantry, and GitHub API
 - **🤖 Automated PRs** - Professional pull requests with three separate dependency tables
 - **📁 Multi-Format Support** - Handles package.json, pkgx, Launchpad dependency files, and GitHub Actions
 - **🏷️ Dynamic Labeling** - Contextual labels based on update type and package ecosystem
@@ -96,15 +96,14 @@ Choose from carefully crafted presets:
 
 #### 📝 Step 5: Configuration Generation
 
-- Creates `buddy.config.json` with your repository settings
+- Creates `buddy.config.ts` with your repository settings
 - Includes sensible defaults and customization options
 
 **🔄 Step 6: Workflow Generation**
-Generates three core GitHub Actions workflows:
+Generates two GitHub Actions workflows:
 
-- `buddy-dashboard.yml` - Dependency Dashboard Management
-- `buddy-check.yml` - Auto-rebase PR checker
-- `buddy-update.yml` - Scheduled dependency updates
+- `buddy.yml` - Unified workflow covering checks, updates and the dashboard
+- `buddy-security.yml` - Workflow security audit, on its own path filters
 
 #### 🎯 Step 7: Final Instructions
 
@@ -116,7 +115,7 @@ Generates three core GitHub Actions workflows:
 
 After the enhanced setup completes, you'll have:
 
-- ✅ **Complete automation** - Three production-ready workflows with validation
+- ✅ **Complete automation** - Two production-ready workflows with validation
 - ✅ **Professional dashboard** - Single issue tracking all dependencies
 - ✅ **Interactive rebasing** - Checkbox-based PR updates with conflict resolution
 - ✅ **Smart scheduling** - Optimized update frequency based on project analysis
@@ -232,14 +231,16 @@ jobs:
 
 ```bash
 # Daily security patches
-buddy update --strategy patch --auto-merge
+buddy update --strategy patch
 
 # Weekly minor updates
-buddy update --strategy minor --reviewers team-lead
+buddy update --strategy minor
 
-# Monthly major updates
-buddy update --strategy major --assignees senior-dev
+# Monthly major updates, holding back one package
+buddy update --strategy major --ignore legacy-package
 ```
+
+Reviewers, assignees, labels and auto-merge are not command line flags — set them once under `pullRequest` in `buddy.config.ts` and every run picks them up.
 
 ## 🏗️ Architecture
 
@@ -257,7 +258,7 @@ Buddy is built with modern tools and best practices:
 |---------|-------|------------|----------|
 | **Speed** | ⚡ Bun-native | 🐌 Slower | 🐌 Slower |
 | **Package Managers** | Bun, npm, yarn, pnpm, pkgx, Launchpad | Limited | Limited |
-| **Configuration** | TypeScript, YAML, JSON/JS, package.json | YAML | JSON/JS |
+| **Configuration** | TypeScript, JS, JSON | YAML | JSON/JS |
 | **Grouping** | ✅ Flexible | ✅ Basic | ✅ Advanced |
 | **Zero Config** | ✅ Yes | ✅ Yes | ❌ Complex |
 | **Self-hosted** | ✅ Yes | ❌ GitHub only | ✅ Yes |

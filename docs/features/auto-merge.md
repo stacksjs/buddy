@@ -31,8 +31,10 @@ A PR qualifies when **any** listed condition accepts it.
 |---|---|
 | `patch-only` | Every update in the PR is a patch bump |
 | `minor-only` | Every update is minor or patch (no majors) |
-| `security-only` | The PR carries the configured `security.label` |
+| `security-only` | The PR carries the configured `security.label` (default `security`) |
 | `all` | Any Buddy PR, including major upgrades |
+
+`security-only` reads a label, and Buddy does not apply that label on its own — a PR gets it because you put it there, either through `pullRequest.labels` or a package rule. Configure `security-only` without arranging for the label and nothing will ever match it.
 
 Unknown condition names are rejected by config validation rather than ignored, so a typo like `patch_only` fails loudly instead of widening what merges unreviewed.
 

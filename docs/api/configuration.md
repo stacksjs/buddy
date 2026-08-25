@@ -2,772 +2,745 @@
 
 TypeScript interfaces and types for buddy configuration.
 
+Everything on this page comes from `BuddyConfig` in `src/types.ts` and
+`PackageRule` in `src/rules/engine.ts`. A config file — `buddy.config.ts`,
+`buddy.config.js` or `buddy.config.json` — is merged over the packaged
+defaults and validated before any network or git work happens.
+
 ## Core Configuration
 
 ### `BuddyConfig`
 
-Main configuration interface for buddy.
+Every key is optional, and every section is inert until you set it.
 
 ```typescript
 interface BuddyConfig {
-  /** Repository configuration */
-  repository?: RepositoryConfig
-
-  /** Package management settings */
-  packages?: PackageConfig
-
-  /** Pull request configuration */
-  pullRequest?: PullRequestConfig
-
-  /** Scheduling configuration */
-  schedule?: ScheduleConfig
-
-  /** Release notes configuration */
-  releaseNotes?: ReleaseNotesConfig
-
-  /** Git provider settings */
-  git?: GitProviderConfig
-
-  /** Registry configuration */
-  registries?: RegistryConfig[]
-
-  /** Global settings */
-  global?: GlobalConfig
+  verbose?: boolean
+  logLevel?: LogLevel
+  repository?: RepositorySettings
+  registries?: RegistrySettings
+  security?: SecuritySettings
+  schedule?: ScheduleSettings
+  packages?: PackageSettings
+  gates?: GateSettings
+  issues?: IssueSettings
+  reports?: ReportSettings
+  analysis?: AnalysisSettings
+  ai?: AiSettings
+  notifications?: NotificationSettings
+  maxPRsPerRun?: number
+  pullRequest?: PullRequestSettings
+  releaseNotes?: ReleaseNotesSettings
+  workflows?: WorkflowSettings
+  dashboard?: DashboardSettings
 }
+
+type BuddyOptions = Partial<BuddyConfig>
 ```
 
-## Repository Configuration
+The nested type names above are for reading convenience; in source they are
+inline object types on `BuddyConfig`. Each is described below, in declaration
+order.
 
-### `RepositoryConfig`
-
-Repository-specific settings.
+## Logging
 
 ```typescript
-interface RepositoryConfig {
+interface BuddyConfig {
+  /** Enable verbose logging. Equivalent to `logLevel: 'debug'`. */
+  verbose?: boolean
+
+  /** How much output to emit. Overrides `verbose` when both are set. */
+  logLevel?: LogLevel
+}
+
+type LogLevel = 'silent' | 'error' | 'warn' | 'info' | 'debug'
+```
+
+Use `'silent'` when embedding buddy in another tool that owns its own output.
+`logLevel` can also be set with the `BUDDY_LOG_LEVEL` environment variable.
+The packaged defaults set `verbose: true`.
+
+## Repository
+
+```typescript
+interface RepositorySettings {
+  /** Git provider */
+  provider: GitProviderName
+
   /** Repository owner/organization */
   owner: string
 
   /** Repository name */
   name: string
 
-  /** Default branch */
-  defaultBranch?: string
+  /** Base branch for PRs */
+  baseBranch?: string
 
-  /** Repository URL */
-  url?: string
+  /** Access token for API operations */
+  token?: string
 
-  /** Clone configuration */
-  clone?: {
-    depth?: number
-    sparse?: boolean
-    submodules?: boolean
-  }
+  /** REST API base URL */
+  apiUrl?: string
+
+  /** Web base URL used for links in PR bodies and the dashboard */
+  serverUrl?: string
 }
 ```
 
-## Package Configuration
+Only `github` is implemented. `gitlab` and `bitbucket` type-check but are
+rejected at validation with a link to the issue tracking them, so a config
+typo cannot reach a workflow run.
 
-### `PackageConfig`
+`apiUrl` defaults to `GITHUB_API_URL` when set — GitHub Actions exports it on
+both github.com and Enterprise Server runners — otherwise
+`https://api.github.com`. Set it explicitly for GitHub Enterprise Server, for
+example `https://github.acme.com/api/v3`. `serverUrl` defaults to
+`GITHUB_SERVER_URL`, otherwise `https://github.com`.
 
-Package management and update configuration.
+## Registries
+
+Package registry endpoints, for private or self-hosted mirrors.
 
 ```typescript
-interface PackageConfig {
-  /** Update strategy */
-  strategy?: UpdateStrategy
+interface RegistrySettings {
+  /** npm registry base URL (default: `.npmrc` `registry=`, else registry.npmjs.org) */
+  npm?: string
 
-  /** Package manager to use */
-  manager?: PackageManager
+  /** Per-scope npm registry overrides, keyed by scope including the `@` */
+  npmScopes?: Record<string, string>
+
+  /** Composer/Packagist base URL (default: packagist.org) */
+  composer?: string
+
+  /** Per-host container registry credentials, keyed by host */
+  docker?: Record<string, {
+    username?: string
+    /** Environment variable holding the password */
+    passwordEnv?: string
+    /** Environment variable holding a pre-issued bearer token */
+    tokenEnv?: string
+  }>
+}
+```
+
+Docker secrets are referenced by environment variable name, never inlined, so
+a registry can be committed to the repository without committing the
+credential that reaches it. `ghcr.io` falls back to `GITHUB_TOKEN`
+automatically, so private GHCR images work in Actions with no config.
+
+## Security
+
+```typescript
+interface SecuritySettings {
+  /** Query the OSV.dev advisory database (default: true) */
+  enabled?: boolean
+
+  /** Move advisory-resolving updates to the front of the queue (default: true) */
+  prioritize?: boolean
+
+  /** Label name associated with advisory-resolving PRs (default: `security`) */
+  label?: string
+
+  /** Minimum severity to act on (default: `low`, i.e. everything) */
+  minimumSeverity?: VulnerabilitySeverity
+}
+
+type VulnerabilitySeverity = 'low' | 'moderate' | 'high' | 'critical'
+```
+
+Disable `enabled` for fully offline runs. `prioritize` is what lets a security
+update survive the `maxPRsPerRun` cap. `label` is the label name that
+auto-merge's `security-only` condition looks for on a pull request.
+
+## Schedule
+
+```typescript
+interface ScheduleSettings {
+  /** Cron expression for scheduled runs */
+  cron?: string
+
+  /** Time zone for scheduling */
+  timezone?: string
+}
+```
+
+Per-update scheduling windows live on `packages.rules[].schedule`, not here.
+
+## Packages
+
+```typescript
+interface PackageSettings {
+  /** Update strategy for dependencies */
+  strategy: 'major' | 'minor' | 'patch' | 'all'
 
   /** Packages to ignore */
   ignore?: string[]
 
-  /** Package groups */
+  /** File/directory paths to ignore using glob patterns */
+  ignorePaths?: string[]
+
+  /** Packages to pin to specific versions */
+  pin?: Record<string, string>
+
+  /** Group related packages together */
   groups?: PackageGroup[]
 
-  /** Workspace configuration */
-  workspaces?: WorkspaceConfig
+  /** Include prerelease versions (alpha, beta, rc, etc.) */
+  includePrerelease?: boolean
 
-  /** Version constraints */
-  constraints?: Record<string, string>
+  /** Exclude major version updates (even if strategy allows them) */
+  excludeMajor?: boolean
 
-  /** Include/exclude patterns */
-  include?: string[]
-  exclude?: string[]
+  /** Respect "latest" and "*" version indicators (default: true) */
+  respectLatest?: boolean
+
+  /** Minimum age in minutes a version must have before installation (default: 0) */
+  minimumReleaseAge?: number
+
+  /** Package names exempt from the minimum release age */
+  minimumReleaseAgeExclude?: string[]
+
+  /** Conditional rules applied to matching updates */
+  rules?: PackageRule[]
+
+  /** Report updates held back by a range declared elsewhere (default: true) */
+  detectResolutionDrift?: boolean
 }
 ```
 
-### `UpdateStrategy`
+A strategy names the greatest semver impact a run may propose, and admits
+everything gentler beneath it:
 
-Available update strategies.
+| `strategy` | Admits |
+|---|---|
+| `all` | major, minor and patch |
+| `major` | major only |
+| `minor` | minor and patch |
+| `patch` | patch only |
 
-```typescript
-type UpdateStrategy = 'patch' | 'minor' | 'major' | 'all'
-```
+`rules` are evaluated in order and later matches override earlier ones per
+field, so a broad rule can set a default and a narrow one refine it.
 
-### `PackageManager`
-
-Supported package managers.
-
-```typescript
-type PackageManager = 'bun' | 'npm' | 'yarn' | 'pnpm' | 'auto'
-```
+`detectResolutionDrift` surfaces packages held below their latest version by a
+range declared elsewhere in the dependency tree. These cannot be fixed by
+updating this repository — somebody has to widen a range in the dependant — so
+they are reported on the dashboard rather than turned into pull requests.
 
 ### `PackageGroup`
-
-Package grouping configuration.
 
 ```typescript
 interface PackageGroup {
   /** Group name */
   name: string
 
-  /** Packages in group */
-  packages: string[]
+  /** Package patterns to include */
+  patterns: string[]
 
-  /** Group-specific strategy */
-  strategy?: UpdateStrategy
-
-  /** Group labels */
-  labels?: string[]
-
-  /** Group reviewers */
-  reviewers?: string[]
-
-  /** Auto-merge for group */
-  autoMerge?: boolean
-
-  /** Group description */
-  description?: string
+  /** Update strategy for this group */
+  strategy?: 'major' | 'minor' | 'patch' | 'all'
 }
 ```
 
-### `WorkspaceConfig`
+A group has exactly these three fields, and only decides batching — which
+packages share a pull request. Anything conditional belongs in
+`packages.rules`.
 
-Monorepo workspace configuration.
+## Gates
+
+Pre-merge gates and post-merge actions.
 
 ```typescript
-interface WorkspaceConfig {
-  /** Auto-detect workspaces */
-  autoDetect?: boolean
+interface GateSettings {
+  /** Require a conventional-commit pull request title */
+  titleFormat?: 'off' | 'warning' | 'error'
 
-  /** Workspace patterns */
-  patterns?: string[]
+  /** Require a description, optionally with named sections */
+  description?: {
+    mode: 'off' | 'warning' | 'error'
+    requireSections?: string[]
+  }
 
-  /** Workspace-specific configs */
-  configs?: Record<string, WorkspacePackageConfig>
+  /** Block dependencies by licence, advisory or deprecation */
+  dependencyGate?: {
+    mode: 'off' | 'warning' | 'error'
+    licenseAllowlist?: string[]
+    blockVulnerable?: boolean
+    blockDeprecated?: boolean
+    /** Block base images whose release cycle no longer gets security fixes */
+    blockEol?: boolean
+  }
 
-  /** Coordination settings */
-  coordination?: WorkspaceCoordination
-}
+  /** Check that a change addresses the issue it says it closes */
+  linkedIssue?: 'off' | 'warning' | 'error'
 
-interface WorkspacePackageConfig extends PackageConfig {
-  /** Workspace path */
-  path?: string
+  /** Repository-specific natural-language assertions */
+  custom?: Array<{
+    name: string
+    assertion: string
+    mode?: 'off' | 'warning' | 'error'
+  }>
 
-  /** Downstream workspaces */
-  downstream?: string[]
-
-  /** Requires testing */
-  requiresTesting?: boolean
-}
-
-interface WorkspaceCoordination {
-  /** Align shared dependencies */
-  alignSharedDeps?: boolean
-
-  /** Shared dependency groups */
-  sharedGroups?: Record<string, SharedGroupConfig>
-
-  /** Update ordering */
-  updateOrder?: string[]
+  /** What to do once a pull request merges */
+  postMerge?: {
+    changelog?: { enabled?: boolean, path?: string }
+    commentOnIssues?: boolean
+    refreshDashboard?: boolean
+  }
 }
 ```
 
-## Pull Request Configuration
+The deterministic gates need no AI. The assertion gates — `linkedIssue` and
+`custom` — degrade to a neutral result rather than a pass when no provider is
+configured, so a check that could not run never reads as one that succeeded.
 
-### `PullRequestConfig`
-
-Pull request generation settings.
+## Issues
 
 ```typescript
-interface PullRequestConfig {
-  /** PR title template */
+interface IssueSettings {
+  /** Post the quick-links comment on new issues (default: false) */
+  quickLinks?: boolean
+
+  /** Include dependency context when the issue names a known package */
+  dependencyContext?: boolean
+}
+```
+
+Both actions are opt-in checkboxes on the posted comment: an issue is a
+request for a conversation as often as for code, and a bot that opens a pull
+request against every new issue is one a maintainer turns off in a week.
+
+## Reports
+
+Scheduled dependency-health and activity reports.
+
+```typescript
+interface ReportSettings {
+  /** Generate reports (default: false) */
+  enabled?: boolean
+
+  /** Cron expression for the scheduled run */
+  schedule?: string
+
+  /** Reporting window (default: `30d`) */
+  period?: '7d' | '30d' | '90d'
+
+  /** What the AI narrative should emphasise */
+  prompt?: string
+
+  /** Title of the report issue (default: `Dependency Report`) */
   title?: string
 
-  /** PR body template */
-  body?: string
-
-  /** PR labels */
-  labels?: LabelConfig
-
-  /** Assignees */
-  assignees?: AssigneeConfig
-
-  /** Reviewers */
-  reviewers?: ReviewerConfig
-
-  /** Auto-merge settings */
-  autoMerge?: AutoMergeConfig
-
-  /** Draft PR settings */
-  draft?: boolean
-
-  /** Branch naming */
-  branchNaming?: BranchNamingConfig
-}
-```
-
-### `LabelConfig`
-
-Label configuration for pull requests.
-
-```typescript
-interface LabelConfig {
-  /** Static labels (always applied) */
-  static?: string[]
-
-  /** Dynamic labeling rules */
-  dynamic?: DynamicLabelConfig
-
-  /** Pattern-based labels */
-  patterns?: Record<string, string[]>
-
-  /** Conditional labels */
-  conditions?: LabelCondition[]
-}
-
-interface DynamicLabelConfig {
-  /** Enable dynamic labeling */
-  enabled?: boolean
-
-  /** Update type labels */
-  updateType?: Record<UpdateStrategy, string>
-
-  /** Ecosystem detection */
-  ecosystems?: Record<string, string[]>
-
-  /** Custom rules */
-  rules?: LabelRule[]
-}
-
-interface LabelCondition {
-  /** Condition function */
-  when: (pr: PullRequestContext) => boolean
-
-  /** Labels to apply */
-  apply: string[]
-}
-
-interface LabelRule {
-  /** Rule condition */
-  condition: string
-
-  /** Label to apply */
-  label: string
-}
-```
-
-### `AssigneeConfig`
-
-Assignee configuration.
-
-```typescript
-interface AssigneeConfig {
-  /** Static assignees */
-  static?: string[]
-
-  /** Dynamic assignment rules */
-  rules?: AssigneeRule[]
-
-  /** Maximum assignees */
-  maxAssignees?: number
-
-  /** Require assignee */
-  requiresAssignee?: boolean
-}
-
-interface AssigneeRule {
-  /** Rule condition */
-  condition: string
-
-  /** Assignees to assign */
-  assignees: string[]
-}
-```
-
-### `ReviewerConfig`
-
-Reviewer configuration.
-
-```typescript
-interface ReviewerConfig {
-  /** Default reviewers */
-  default?: string[]
-
-  /** Package-based reviewers */
-  packageOwners?: Record<string, string[]>
-
-  /** Team configuration */
-  teams?: Record<string, TeamConfig>
-
-  /** Review requirements */
-  requirements?: ReviewRequirements
-
-  /** Fallback reviewers */
-  fallback?: string[]
-}
-
-interface TeamConfig {
-  /** Team members */
-  members: string[]
-
-  /** Packages owned by team */
-  packages: string[]
-
-  /** Required reviews from team */
-  requiredReviews?: number
-
-  /** Auto-assign to team */
-  autoAssign?: boolean
-}
-
-interface ReviewRequirements {
-  /** Minimum required reviews */
-  required?: number
-
-  /** Count team reviews */
-  teamReviews?: boolean
-
-  /** Dismiss stale reviews */
-  dismissStale?: boolean
-}
-```
-
-### `AutoMergeConfig`
-
-Auto-merge configuration.
-
-```typescript
-interface AutoMergeConfig {
-  /** Enable auto-merge */
-  enabled?: boolean
-
-  /** Required status checks */
-  requiredChecks?: string[]
-
-  /** Merge method */
-  method?: MergeMethod
-
-  /** Conditions for auto-merge */
-  conditions?: AutoMergeCondition[]
-
-  /** Delay before merge */
-  delay?: number
-}
-
-type MergeMethod = 'merge' | 'squash' | 'rebase'
-
-interface AutoMergeCondition {
-  /** Update type */
-  updateType?: UpdateStrategy
-
-  /** Package patterns */
-  packages?: string[]
-
-  /** Labels required */
+  /** Labels applied to the report issue */
   labels?: string[]
-
-  /** Reviews required */
-  reviews?: number
 }
 ```
 
-### `BranchNamingConfig`
+The report is computed from scan results and pull request history, so it works
+with no AI provider. A configured provider adds a narrative around the
+numbers; it never produces them.
 
-Branch naming configuration.
-
-```typescript
-interface BranchNamingConfig {
-  /** Branch prefix */
-  prefix?: string
-
-  /** Include update type */
-  includeUpdateType?: boolean
-
-  /** Include package count */
-  includePackageCount?: boolean
-
-  /** Custom template */
-  template?: string
-
-  /** Separator character */
-  separator?: string
-}
-```
-
-## Schedule Configuration
-
-### `ScheduleConfig`
-
-Scheduling and automation settings.
+## Analysis
 
 ```typescript
-interface ScheduleConfig {
-  /** Cron expression */
-  cron?: string
-
-  /** Timezone */
-  timezone?: string
-
-  /** Enable scheduling */
+interface AnalysisSettings {
+  /** Turn all analyzers off (default: true, they are cheap and local) */
   enabled?: boolean
 
-  /** Multiple schedules */
-  schedules?: NamedSchedule[]
-
-  /** Environment-based scheduling */
-  environments?: Record<string, EnvironmentSchedule>
-
-  /** Trigger-based updates */
-  triggers?: TriggerConfig
-}
-
-interface NamedSchedule {
-  /** Schedule name */
-  name: string
-
-  /** Cron expression */
-  cron: string
-
-  /** Schedule-specific strategy */
-  strategy?: UpdateStrategy
-
-  /** Schedule labels */
-  labels?: string[]
-
-  /** Schedule reviewers */
-  reviewers?: string[]
-
-  /** Auto-merge for schedule */
-  autoMerge?: boolean
-}
-
-interface EnvironmentSchedule extends NamedSchedule {
-  /** Environment name */
-  environment?: string
-
-  /** Require approval */
-  requireApproval?: boolean
-}
-
-interface TriggerConfig {
-  /** Security triggers */
-  security?: SecurityTrigger
-
-  /** Major release triggers */
-  majorRelease?: MajorReleaseTrigger
-
-  /** Batch threshold triggers */
-  batchThreshold?: BatchThresholdTrigger
+  /** Per-analyzer switches, keyed by name. Absent means enabled. */
+  tools?: Record<string, boolean>
 }
 ```
 
-## Release Notes Configuration
+Recognised tool names are `secrets`, `github-actions`, `syntax`, `linter`,
+`actionlint`, `shellcheck`, `hadolint` and `markdownlint`. Analyzers run
+whether or not an AI provider is configured, so a repository with no key still
+gets secret scanning, workflow auditing and whatever external linters the
+runner has installed.
 
-### `ReleaseNotesConfig`
-
-Release notes extraction and formatting.
-
-```typescript
-interface ReleaseNotesConfig {
-  /** Data sources */
-  sources?: ReleaseNotesSource
-
-  /** Content formatting */
-  formatting?: ReleaseNotesFormatting
-
-  /** Template configuration */
-  template?: ReleaseNotesTemplate
-
-  /** Aggregation settings */
-  aggregation?: ReleaseNotesAggregation
-
-  /** Caching configuration */
-  caching?: CacheConfig
-}
-
-interface ReleaseNotesSource {
-  /** GitHub releases */
-  githubReleases?: GitHubReleasesConfig
-
-  /** Changelog files */
-  changelog?: ChangelogConfig
-
-  /** NPM registry */
-  npmRegistry?: NpmRegistryConfig
-
-  /** Git commits */
-  gitCommits?: GitCommitsConfig
-}
-
-interface ReleaseNotesFormatting {
-  /** Markdown processing */
-  markdown?: MarkdownConfig
-
-  /** Content filters */
-  filters?: ContentFilters
-
-  /** Content enhancement */
-  enhance?: ContentEnhancement
-}
-
-interface ReleaseNotesTemplate {
-  /** Header template */
-  header?: string
-
-  /** Package section template */
-  packageSection?: string
-
-  /** Footer template */
-  footer?: string
-
-  /** Empty state message */
-  empty?: string
-
-  /** Error message */
-  error?: string
-}
-```
-
-## Git Provider Configuration
-
-### `GitProviderConfig`
-
-Git provider settings.
+## AI
 
 ```typescript
-interface GitProviderConfig {
-  /** Provider type */
-  provider: GitProvider
+interface AiSettings {
+  /** Turn all AI features off even when a key is present */
+  enabled?: boolean
 
-  /** Provider-specific settings */
-  github?: GitHubConfig
-  gitlab?: GitLabConfig
+  /** Which provider to use */
+  provider?: 'anthropic' | 'openai' | 'google' | 'openrouter' | 'openai-compatible'
 
-  /** Authentication */
-  auth?: AuthConfig
+  /** Model alias or concrete ID */
+  model?: string
 
-  /** API configuration */
-  api?: ApiConfig
-}
+  /** Reasoning depth to request (default: provider default) */
+  effort?: 'low' | 'medium' | 'high'
 
-type GitProvider = 'github' | 'gitlab'
+  /** Environment variable holding the API key, when not the provider default */
+  apiKeyEnv?: string
 
-interface GitHubConfig {
-  /** GitHub API URL */
-  apiUrl?: string
-
-  /** GitHub Enterprise URL */
+  /** Base URL override, for gateways and OpenAI-compatible endpoints */
   baseUrl?: string
 
-  /** App ID for GitHub App */
-  appId?: string
+  /** Hard ceiling on output tokens generated per run */
+  maxTokensPerRun?: number
 
-  /** Installation ID */
-  installationId?: string
-
-  /** Private key path */
-  privateKeyPath?: string
-}
-
-interface GitLabConfig {
-  /** GitLab instance URL */
-  url?: string
-
-  /** Project ID */
-  projectId?: number
-
-  /** Group ID */
-  groupId?: number
-}
-
-interface AuthConfig {
-  /** Personal access token */
-  token?: string
-
-  /** Token environment variable */
-  tokenEnv?: string
-
-  /** OAuth configuration */
-  oauth?: OAuthConfig
-}
-
-interface ApiConfig {
-  /** Request timeout */
-  timeout?: number
-
-  /** Retry attempts */
-  retries?: number
-
-  /** Rate limiting */
-  rateLimit?: RateLimitConfig
+  majorUpgrades?: MajorUpgradeSettings
+  review?: ReviewSettings
 }
 ```
 
-## Registry Configuration
+Every AI-powered feature is off unless a provider key is available, and
+degrades to a no-op rather than failing the run — the dependency bot works
+exactly as before with no AI configured.
 
-### `RegistryConfig`
+With `provider` omitted, the first provider with an available API key is
+chosen, in the order anthropic, openai, google, openrouter. Model aliases
+(`opus`, `sonnet`, `haiku`) resolve to current Anthropic models; every other
+provider needs a concrete ID. `BUDDY_MODEL` overrides `model` per run. Once
+`maxTokensPerRun` is reached, further requests fail rather than spending more.
 
-Package registry settings.
+### `ai.majorUpgrades`
 
 ```typescript
-interface RegistryConfig {
-  /** Registry name */
-  name: string
+interface MajorUpgradeSettings {
+  /** Analyse major updates (default: false — opt in, it costs tokens) */
+  enabled?: boolean
 
-  /** Registry URL */
-  url: string
+  /** Attempt the migration rather than only analysing it (default: false) */
+  autoMigrate?: boolean
 
-  /** Authentication token */
-  token?: string
+  /** Open as a draft below this confidence (default: `high`) */
+  draftBelowConfidence?: 'high' | 'medium'
 
-  /** Scope for scoped registries */
-  scope?: string
+  /** Maximum agent attempts per upgrade */
+  maxAttempts?: number
 
-  /** Registry type */
-  type?: RegistryType
-
-  /** Cache configuration */
-  cache?: CacheConfig
+  /** Globs limiting which packages are analysed; empty means all majors */
+  packages?: string[]
 }
-
-type RegistryType = 'npm' | 'github' | 'private'
 ```
 
-## Global Configuration
+`autoMigrate` defaults off because a wrong migration is far more expensive
+than a missing one.
 
-### `GlobalConfig`
-
-Global settings and defaults.
+### `ai.review`
 
 ```typescript
-interface GlobalConfig {
-  /** Verbose logging */
-  verbose?: boolean
+interface ReviewSettings {
+  /** Enable AI review (default: false until you opt in) */
+  enabled?: boolean
 
-  /** Dry run mode */
-  dryRun?: boolean
+  /** How thorough to be */
+  profile?: 'chill' | 'assertive'
 
-  /** Concurrency limit */
-  concurrency?: number
+  /** Review draft pull requests too (default: false) */
+  drafts?: boolean
 
-  /** Timeout settings */
-  timeout?: number
+  /** Review automatically on open and push (default: true when enabled) */
+  autoReview?: boolean
 
-  /** Error handling */
-  errorHandling?: ErrorHandlingConfig
+  /** Skip pull requests whose title contains any of these, e.g. `wip` */
+  ignoreTitleKeywords?: string[]
 
-  /** Performance settings */
-  performance?: PerformanceConfig
-}
+  /** Skip pull requests opened by these users */
+  ignoreUsernames?: string[]
 
-interface ErrorHandlingConfig {
-  /** Retry configuration */
-  retry?: RetryConfig
+  /** Request changes at this severity, or never (default: never) */
+  requestChangesOn?: 'never' | 'critical'
 
-  /** Fallback strategies */
-  fallback?: FallbackConfig
+  /** Post only the summary and walkthrough, no inline findings */
+  summaryOnly?: boolean
 
-  /** Error reporting */
-  reporting?: ErrorReportingConfig
-}
+  /** Gitignore-style path filters; `!` excludes */
+  pathFilters?: string[]
 
-interface PerformanceConfig {
-  /** Caching strategy */
-  cache?: CacheStrategy
+  /** Guidance applied when reviewing files matching a glob */
+  pathInstructions?: Array<{ path: string, instructions: string }>
 
-  /** Parallel processing */
-  parallel?: ParallelConfig
+  /** Convention files read from the base branch, or `false` to disable */
+  guidelineFiles?: string[] | false
 
-  /** Memory management */
-  memory?: MemoryConfig
+  /** Global guidance prepended to every review */
+  instructions?: string
 }
 ```
 
-## Utility Types
+`chill` reports only confident defects; `assertive` also reports
+lower-confidence findings, marked so they can be filtered downstream.
+`pathFilters` apply on top of the built-in exclusions for lock files and build
+output. `guidelineFiles` defaults to the usual convention files — CLAUDE.md,
+AGENTS.md, .cursorrules and similar — and a list overrides those defaults.
 
-### `PullRequestContext`
-
-Context object passed to conditional functions.
+## Notifications
 
 ```typescript
-interface PullRequestContext {
-  /** Packages being updated */
-  packages: PackageUpdate[]
+interface NotificationSettings {
+  slack?: { webhookEnv?: string, events?: string[] }
+  discord?: { webhookEnv?: string, events?: string[] }
 
-  /** Update type */
-  updateType: UpdateStrategy
-
-  /** Total package count */
-  packageCount: number
-
-  /** Has breaking changes */
-  hasBreakingChanges: boolean
-
-  /** Is security update */
-  isSecurityUpdate: boolean
-
-  /** Repository information */
-  repository: RepositoryContext
-}
-
-interface PackageUpdate {
-  /** Package name */
-  name: string
-
-  /** Current version */
-  currentVersion: string
-
-  /** Target version */
-  targetVersion: string
-
-  /** Update type */
-  updateType: UpdateStrategy
-
-  /** Has breaking changes */
-  hasBreakingChanges: boolean
-
-  /** Is dev dependency */
-  isDevDependency: boolean
-
-  /** Release notes */
-  releaseNotes?: string
+  /** Signed JSON POSTs to your own endpoints */
+  webhooks?: Array<{ url: string, secretEnv?: string, events?: string[] }>
 }
 ```
 
-### Helper Types
+Credentials are referenced by environment variable name, never inlined, so a
+destination can be committed without committing its credential.
+
+## Pull Requests
 
 ```typescript
-/** Deep partial type */
-type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
+interface BuddyConfig {
+  /** Maximum number of PRs to create per workflow run (default: 10) */
+  maxPRsPerRun?: number
+
+  pullRequest?: PullRequestSettings
 }
 
-/** Configuration with environment overrides */
-type ConfigWithEnv<T> = T & {
-  env?: Record<string, DeepPartial<T>>
-}
+interface PullRequestSettings {
+  /** Commit message format */
+  commitMessageFormat?: string
 
-/** Conditional configuration */
-type ConditionalConfig<T> = T | ((context: any) => T)
+  /** PR title format */
+  titleFormat?: string
+
+  /** PR body template */
+  bodyTemplate?: string
+
+  /** Auto-merge settings */
+  autoMerge?: {
+    enabled: boolean
+    strategy: 'merge' | 'squash' | 'rebase'
+    conditions?: string[]
+    requireGreenCI?: boolean
+    optOutLabel?: string
+  }
+
+  /** Reviewers to assign */
+  reviewers?: string[]
+
+  /** GitHub teams to request review from, by team slug */
+  teamReviewers?: string[]
+
+  /** Assignees to assign */
+  assignees?: string[]
+
+  /** Labels to add */
+  labels?: string[]
+}
 ```
+
+`reviewers`, `assignees` and `labels` are plain string arrays. `teamReviewers`
+takes team slugs without the organisation prefix. Reviewers and assignees
+configured here are unioned with whatever the matching `packages.rules`
+contributed for the updates in the pull request.
+
+The labels a generated pull request carries are derived from its update types
+and the ecosystems it touches — `dependencies`, `major`/`minor`/`patch`,
+`npm`, `composer`, `zig`, `system`, `github-actions`, plus the package name
+itself on a single-package PR — unioned with the `labels` effect of any
+matching `packages.rules`. Per-update labelling therefore belongs in
+`packages.rules[].labels`.
+
+### `pullRequest.autoMerge`
+
+`conditions` accepts `patch-only`, `minor-only`, `security-only` and `all`. A
+pull request qualifies when any listed condition accepts it. An empty or
+missing list means nothing auto-merges — the safe reading of a half-written
+config. Update types are read from the metadata manifest embedded in the PR
+body, not from its title, and a PR whose manifest is missing or truncated is
+never eligible.
+
+`requireGreenCI` defaults to `true` and is only meaningful on repositories
+without branch protection, where buddy merges directly instead of handing the
+pull request to GitHub's own auto-merge queue. `optOutLabel` defaults to
+`no-auto-merge`; a pull request carrying it never merges unattended.
+
+## Release Notes
+
+```typescript
+interface ReleaseNotesSettings {
+  /** Enable release notes in PRs (default: true) */
+  enabled?: boolean
+
+  /** Sanitize GitHub references (#123, issue/PR URLs) to prevent spam notifications (default: true) */
+  sanitizeReferences?: boolean
+
+  /** Maximum number of releases to show per package (default: 3) */
+  maxReleases?: number
+
+  /** Maximum character length per release body (default: 1000) */
+  maxBodyLength?: number
+
+  /** Include compare links between versions (default: true) */
+  includeCompareLinks?: boolean
+}
+```
+
+## Workflows
+
+```typescript
+interface WorkflowSettings {
+  /** Enable workflow generation */
+  enabled?: boolean
+
+  /** Output directory for workflows (default: `.github/workflows`) */
+  outputDir?: string
+
+  /** Workflow templates to generate */
+  templates?: {
+    comprehensive?: boolean
+    daily?: boolean
+    weekly?: boolean
+    monthly?: boolean
+    docker?: boolean
+    monorepo?: boolean
+  }
+
+  /** Custom workflow configurations */
+  custom?: Array<{
+    name: string
+    schedule: string
+    strategy?: 'major' | 'minor' | 'patch' | 'all'
+    autoMerge?: boolean
+    reviewers?: string[]
+    assignees?: string[]
+    labels?: string[]
+  }>
+}
+```
+
+## Dashboard
+
+```typescript
+interface DashboardSettings {
+  /** Enable dependency dashboard */
+  enabled?: boolean
+
+  /** Dashboard title (default: `Dependency Dashboard`) */
+  title?: string
+
+  /** Dashboard body template */
+  bodyTemplate?: string
+
+  /** Labels to add to dashboard issue */
+  labels?: string[]
+
+  /** Assignees to assign to dashboard issue */
+  assignees?: string[]
+
+  /** Include package.json dependencies */
+  includePackageJson?: boolean
+
+  /** Include dependency files (deps.yaml, etc.) */
+  includeDependencyFiles?: boolean
+
+  /** Include GitHub Actions */
+  includeGitHubActions?: boolean
+
+  /** Show open PRs section */
+  showOpenPRs?: boolean
+
+  /** Show detected dependencies section */
+  showDetectedDependencies?: boolean
+
+  /** Show deprecated dependencies section */
+  showDeprecatedDependencies?: boolean
+
+  /** Issue number to update (if it exists) */
+  issueNumber?: number
+
+  /** Pin the dashboard issue to the top of the issue list (default: false) */
+  pin?: boolean
+}
+```
+
+GitHub allows at most three pinned issues per repository; when that limit is
+already reached the dashboard is still created, just unpinned.
+
+## Package Rules
+
+### `PackageRule`
+
+The main extension point. Rules live on `packages.rules` and are the place for
+everything that varies per update.
+
+```typescript
+interface PackageRule {
+  // Matchers — all present matchers must match (AND within a rule)
+  /** Package names or globs */
+  matchPackages?: string[]
+  matchEcosystems?: RuleEcosystem[]
+  matchDepTypes?: string[]
+  matchUpdateTypes?: Array<'major' | 'minor' | 'patch'>
+  /** Globs on the manifest path, for monorepo directories */
+  matchFiles?: string[]
+  /** Semver range the currently installed version must satisfy */
+  matchCurrentVersion?: string
+  /** Cron expression describing when these updates may be proposed */
+  schedule?: string
+  /** IANA time zone `schedule` is written in (default: the runner's) */
+  scheduleTimezone?: string
+
+  // Effects
+  /** `false` drops matching updates entirely */
+  enabled?: boolean
+  strategy?: 'major' | 'minor' | 'patch' | 'all'
+  groupName?: string
+  labels?: string[]
+  reviewers?: string[]
+  assignees?: string[]
+  autoMerge?: boolean
+  /** Minutes a version must have been published, overriding the global */
+  minimumReleaseAge?: number
+  /** Ordering within the per-run PR cap; higher goes first */
+  prPriority?: number
+  /** Attempt the migration for matching majors, overriding the global */
+  autoMigrate?: boolean
+}
+
+type RuleEcosystem =
+  | 'npm' | 'composer' | 'github-actions' | 'docker' | 'pkgx'
+  | 'zig' | 'python' | 'rust' | 'go' | 'ruby'
+```
+
+Matchers combine with AND, so a rule with several matchers is a conjunction. A
+rule with no matchers at all matches everything, which is why validation rejects
+it and asks for an explicit matcher rather than accepting silence. Write the
+deliberate catch-all as `matchPackages: ['**']`: a glob `*` stops at `/`, so it
+matches `react` but not `@types/node`.
+
+`matchCurrentVersion` lets a rule target a version series rather than a
+package — holding back everything still on `<2.0.0` while letting the rest
+through. Declared versions are stripped to their concrete floor first, so
+`^1.2.3` is tested as `1.2.3`.
+
+`schedule` describes a window, not a firing minute: `0 0 * * 6,0` holds
+updates back on a weekday run and releases them on a weekend one.
+
+### How effects combine
+
+`labels`, `reviewers` and `assignees` accumulate across every matching rule.
+A package matching both a "security" and a "frontend" rule carries both sets,
+rather than whichever rule happened to be last.
+
+```typescript
+rules: [
+  { matchUpdateTypes: ['patch'], labels: ['patch-update'] },
+  { matchPackages: ['react*'], labels: ['frontend'], reviewers: ['ui-team'] },
+]
+// A patch update to react-dom carries both labels and the ui-team reviewer.
+```
+
+Every other effect — `enabled`, `strategy`, `groupName`, `autoMerge`,
+`minimumReleaseAge`, `prPriority`, `autoMigrate` — is a per-field override,
+and the last matching rule wins.
+
+When several updates share one pull request, their resolved effects are merged
+for the group: labels, reviewers and assignees union; `prPriority` takes the
+maximum; `autoMerge` requires every update to have opted in, because one
+package that must not merge unattended has to hold back the whole PR;
+`autoMigrate` needs only one, because migrating what can be migrated leaves
+the rest unchanged.
 
 ## Configuration Validation
-
-### `validateConfig`
-
-Validate configuration object.
 
 ```typescript
 import { assertValidConfig, formatConfigIssues, validateConfig } from '@buddysh/buddy'
@@ -796,6 +769,10 @@ if (issues.length > 0)
   console.error(formatConfigIssues(issues))
 ```
 
+`getConfig()` calls `assertValidConfig` for you, before any network or git
+work happens. A malformed strategy or a group with no patterns otherwise
+produces a run that silently does the wrong thing and reports success.
+
 ## Example Configurations
 
 ### Basic Configuration
@@ -805,21 +782,18 @@ import type { BuddyConfig } from '@buddysh/buddy'
 
 const config: BuddyConfig = {
   repository: {
+    provider: 'github',
     owner: 'myorg',
-    name: 'myproject'
+    name: 'myproject',
+    token: process.env.GITHUB_TOKEN,
   },
   packages: {
     strategy: 'minor',
-    ignore: ['react']
+    ignore: ['react'],
   },
   pullRequest: {
-    labels: {
-      static: ['dependencies']
-    },
-    reviewers: {
-      default: ['team-lead']
-    }
-  }
+    reviewers: ['team-lead'],
+  },
 }
 
 export default config
@@ -869,7 +843,6 @@ const config: BuddyConfig = {
   },
 
   pullRequest: {
-    labels: ['dependencies'],
     reviewers: ['maintainer'],
     autoMerge: {
       enabled: true,
@@ -888,10 +861,6 @@ const config: BuddyConfig = {
 export default config
 ```
 
-Note the split between `groups` and `rules`. A `PackageGroup` has exactly
-three fields — `name`, `patterns` and `strategy` — and only decides batching.
-Anything conditional (labels, reviewers, assignees, auto-merge, release age,
-priority, scheduling windows) belongs in `packages.rules`. See
-[scheduling](/advanced/scheduling) for the full matcher and effect tables.
-
-See [Configuration Guide](/config) for detailed configuration examples and best practices.
+See [Configuration Guide](/config) for detailed configuration examples and
+best practices, and [scheduling](/advanced/scheduling) for the full matcher
+and effect tables.
