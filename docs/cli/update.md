@@ -19,6 +19,8 @@ buddy scan [options]
 - `--pattern <pattern>` - Glob pattern to match packages
 - `--strategy <type>` - Update strategy: major|minor|patch|all (default: all)
 - `--ignore <names>` - Comma-separated list of packages to ignore
+- `--respect-latest` - Leave `latest`, `*` and other dynamic ranges alone (default)
+- `--no-respect-latest` - Propose updates for dynamic ranges too
 
 ### Examples
 
@@ -40,6 +42,9 @@ buddy scan --strategy minor
 
 # Ignore specific packages
 buddy scan --ignore "eslint,prettier"
+
+# Include packages pinned to "latest" or "*"
+buddy scan --no-respect-latest
 ```
 
 ### Output
@@ -73,6 +78,8 @@ buddy update [options]
 - `--strategy <type>` - Update strategy: major|minor|patch|all (default: all)
 - `--ignore <names>` - Comma-separated list of packages to ignore
 - `--dry-run` - Preview changes without making them
+- `--respect-latest` - Leave `latest`, `*` and other dynamic ranges alone (default)
+- `--no-respect-latest` - Update dynamic ranges too
 
 ### Examples
 
@@ -91,6 +98,9 @@ buddy update --verbose
 
 # Ignore specific packages
 buddy update --ignore "@types/node,eslint"
+
+# Include packages pinned to "latest" or "*"
+buddy update --no-respect-latest
 ```
 
 ### Dry Run Output
@@ -238,37 +248,57 @@ When checked (marked with `x`):
 
 All update commands respect configuration from `buddy.config.ts`:
 
-### Strategy Override
+### Strategy
 
-```typescript
-// Config strategy can be overridden by CLI
-export default {
-  packages: {
-    strategy: 'patch' // Default strategy
-  }
-}
-```
+`scan` and `update` always send a strategy of their own — `all` unless `--strategy` says otherwise — so `packages.strategy` is what the programmatic API and your own tooling read, not what these two commands run with. On the command line, name the strategy you want:
 
 ```bash
-# Override config strategy
-buddy update --strategy minor
+# Patch releases only, for this run
+buddy update --strategy patch
+```
+
+To hold a strategy for particular packages rather than the whole run, put it in a package rule. Rules run after the global strategy filter, so a rule narrows what those packages may propose whatever `--strategy` was passed:
+
+```typescript
+export default {
+  packages: {
+    strategy: 'all',
+    rules: [
+      {
+        matchPackages: ['react', 'react-dom'],
+        strategy: 'patch' // React moves at patch pace regardless
+      }
+    ]
+  }
+}
 ```
 
 ### Ignore Lists
 
 ```typescript
-// Combine config and CLI ignore lists
 export default {
   packages: {
-    ignore: ['@types/node'] // Always ignored
+    ignore: ['@types/node'] // Ignored on every run
+  }
+}
+```
+
+Names in `ignore` are matched exactly — `@types/*` matches no package at all. Use a rule for patterns:
+
+```typescript
+export default {
+  packages: {
+    rules: [
+      { matchPackages: ['@types/*'], enabled: false }
+    ]
   }
 }
 ```
 
 ```bash
-# Additional ignores for this run
+# Ignore a different set for this run
 buddy update --ignore "eslint,prettier"
-# Result: ignores @types/node, eslint, and prettier
+# Result: ignores eslint and prettier; the config list is not consulted
 ```
 
 ## Error Handling
@@ -346,7 +376,7 @@ name: Dependency Updates
 on:
   schedule:
 
-    - cron: '0 2 _ _ 1' # Weekly on Monday
+    - cron: '0 2 * * 1' # Weekly on Monday
 
   workflow_dispatch:
 

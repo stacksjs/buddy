@@ -19,7 +19,7 @@ Buddy automatically detects and updates the following dependency file formats:
 
 ## How It Works
 
-Buddy uses the `ts-pkgx` library to parse and resolve dependency files, ensuring full compatibility with the pkgx registry ecosystem while supporting tools like Launchpad that reuse the same registry format.
+Buddy uses the `ts-pantry` library to parse and resolve dependency files, ensuring full compatibility with the pkgx registry ecosystem while supporting tools like Launchpad that reuse the same registry format.
 
 ### Automatic Detection
 
@@ -260,7 +260,7 @@ export default {
   packages: {
     rules: [
       { matchEcosystems: ['npm'], groupName: 'npm dependencies' },
-      { matchEcosystems: ['launchpad'], groupName: 'pkgx tools' },
+      { matchEcosystems: ['pkgx'], groupName: 'pkgx tools' },
       { matchEcosystems: ['github-actions'], groupName: 'GitHub Actions' }
     ]
   },
@@ -325,31 +325,45 @@ export default {
 
 ## CLI Commands
 
-### Scan Specific File Types
+### Scanning
+
+Every manifest in the repository is scanned in one pass; there is no flag that
+narrows a run to one file type. What the CLI does take is a package filter and
+a strategy:
 
 ```bash
-# Scan only package.json files
-buddy scan --file-type package.json
+# Scan every dependency file Buddy supports
+buddy scan
 
-# Scan only dependency files
-buddy scan --file-type deps.yaml
+# Scan named packages only
+buddy scan --packages "bun,typescript"
 
-# Scan specific files
-buddy scan --files "deps.yaml,package.json"
+# Scan a family of packages by pattern
+buddy scan --pattern "@types/*"
+
+# Scan with a specific strategy
+buddy scan --strategy patch
 ```
 
-### Update Specific Formats
+### Restricting Formats
 
-```bash
-# Update only npm dependencies
-buddy update --package-manager npm
+Narrowing by file or ecosystem is config, not a flag. A rule with
+`enabled: false` drops matching updates entirely, so the run only proposes what
+is left:
 
-# Update only pkgx dependencies
-buddy update --package-manager pkgx
-
-# Update with different strategies per type
-buddy update --strategy package.json:minor,deps.yaml:patch
+```typescript
+export default {
+  packages: {
+    rules: [
+      // Leave the pkgx/Launchpad files alone; npm only
+      { matchEcosystems: ['pkgx'], enabled: false }
+    ]
+  }
+} satisfies BuddyConfig
 ```
+
+Per-format strategies work the same way — see
+[file-specific configuration](#file-specific-configuration) above.
 
 ## Troubleshooting
 
@@ -366,8 +380,8 @@ cat deps.yaml
 
 **pkgx resolution errors:**
 ```bash
-# Verify ts-pkgx can parse the file
-bunx ts-pkgx resolve deps.yaml
+# Verify ts-pantry can parse the file
+bunx ts-pantry resolve-deps deps.yaml
 
 # Check for syntax errors
 yamllint deps.yaml
@@ -380,14 +394,11 @@ yamllint deps.yaml
 # ❌ Avoid: 1.*, ^1.0, ~2
 ```
 
-### Debug Mode
+### Verbose Mode
 
 ```bash
-# Enable verbose logging for dependency files
-buddy scan --verbose --debug dependency-files
-
-# Show file detection process
-buddy scan --show-files
+# Log the file detection and resolution process
+buddy scan --verbose
 ```
 
 ## Best Practices

@@ -17,9 +17,9 @@ npm i -g @buddysh/buddy
 ```
 
 ```sh [bun]
-bun install --dev buddy
+bun install --dev @buddysh/buddy
 # bun add --dev @buddysh/buddy
-# bun i -d buddy
+# bun i -d @buddysh/buddy
 
 # or, install globally via
 bun add --global @buddysh/buddy
@@ -35,10 +35,10 @@ pnpm add --global @buddysh/buddy
 
 ```sh [yarn]
 yarn add --dev @buddysh/buddy
-# yarn i -d buddy
+# yarn i -d @buddysh/buddy
 
 # or, install globally via
-yarn global add buddy
+yarn global add @buddysh/buddy
 ```
 
 ```sh [brew]
@@ -90,61 +90,82 @@ Choose the binary that matches your platform and architecture:
 ::: code-group
 
 ```sh [macOS (arm64)]
-# Download the binary
-curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-darwin-arm64 -o buddy
+# Download the archive
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/buddy-darwin-arm64.zip -o buddy-darwin-arm64.zip
+
+# Unpack it
+unzip buddy-darwin-arm64.zip
 
 # Make it executable
-chmod +x buddy
+chmod +x buddy-darwin-arm64
 
 # Move it to your PATH
-mv buddy /usr/local/bin/buddy
+mv buddy-darwin-arm64 /usr/local/bin/buddy
 ```
 
 ```sh [macOS (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-darwin-x64 -o buddy
+# Download the archive
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/buddy-darwin-x64.zip -o buddy-darwin-x64.zip
+
+# Unpack it
+unzip buddy-darwin-x64.zip
 
 # Make it executable
-chmod +x buddy
+chmod +x buddy-darwin-x64
 
 # Move it to your PATH
-mv buddy /usr/local/bin/buddy
+mv buddy-darwin-x64 /usr/local/bin/buddy
 ```
 
 ```sh [Linux (arm64)]
-# Download the binary
-curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-linux-arm64 -o buddy
+# Download the archive
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/buddy-linux-arm64.zip -o buddy-linux-arm64.zip
+
+# Unpack it
+unzip buddy-linux-arm64.zip
 
 # Make it executable
-chmod +x buddy
+chmod +x buddy-linux-arm64
 
 # Move it to your PATH
-mv buddy /usr/local/bin/buddy
+mv buddy-linux-arm64 /usr/local/bin/buddy
 ```
 
 ```sh [Linux (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-linux-x64 -o buddy
+# Download the archive
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/buddy-linux-x64.zip -o buddy-linux-x64.zip
+
+# Unpack it
+unzip buddy-linux-x64.zip
 
 # Make it executable
-chmod +x buddy
+chmod +x buddy-linux-x64
 
 # Move it to your PATH
-mv buddy /usr/local/bin/buddy
+mv buddy-linux-x64 /usr/local/bin/buddy
 ```
 
 ```sh [Windows (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/buddy/releases/download/v0.9.1/buddy-windows-x64.exe -o buddy.exe
+# Download the archive
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/buddy-windows-x64.zip -o buddy-windows-x64.zip
+
+# Unpack it
+tar -xf buddy-windows-x64.zip
 
 # Move it to your PATH (adjust the path as needed)
-move buddy.exe C:\Windows\System32\buddy.exe
+move buddy-windows-x64.exe C:\Windows\System32\buddy.exe
 ```
 
 :::
 
 ::: tip
-You can also find the `buddy` binaries in GitHub [releases](https://github.com/stacksjs/buddy/releases).
+You can also find the `buddy` archives in GitHub [releases](https://github.com/stacksjs/buddy/releases). Every release publishes a `checksums.txt` alongside them, so you can verify a download before unpacking it:
+
+```sh
+curl -L https://github.com/stacksjs/buddy/releases/latest/download/checksums.txt -o checksums.txt
+shasum -a 256 -c checksums.txt --ignore-missing
+```
+
 :::
 
 ## GitHub Setup
@@ -216,8 +237,8 @@ buddy --version
 # Test GitHub authentication
 buddy scan --verbose
 
-# Generate sample configuration
-buddy init
+# Diagnose credentials, git state and analyzer tooling
+buddy doctor
 ```
 
 ## IDE Integration
@@ -250,7 +271,7 @@ COPY package.json bun.lockb ./
 RUN bun install
 
 COPY . .
-RUN bun install -g buddy
+RUN bun install -g @buddysh/buddy
 
 CMD ["buddy", "scan"]
 ```

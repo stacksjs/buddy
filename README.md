@@ -26,7 +26,7 @@ Neither half requires the other. Run the reviewer with no dependency workflows, 
 
 - **Inline Findings**: _Anchored to changed lines, describing the failure rather than a style preference_
 - **Incremental by Default**: _A second push gets new findings, not the ones you already read_
-- **Conversational**: _`@buddy review`, `full-review`, `summary`, `resolve`, `pause`, `resume`, `plan`, `remember` — or just ask a question_
+- **Conversational**: _`@buddy review`, `full-review`, `summary`, `pause`, `resume`, `rebase`, `remember` — or just ask a question_
 - **Local Review**: _`buddy review` reads your working tree, so problems are found before the PR exists_
 - **Works Without a Key**: _`--light` runs secret scanning, actionlint, shellcheck, hadolint, markdownlint and syntax checks with no model and no network_
 - **Merge Gates**: _Title format, description quality, linked issue and dependency policy published as a check run_
@@ -206,17 +206,17 @@ Choose from several carefully crafted presets with smart recommendations:
 
 #### 📝 Step 7: Enhanced Configuration Generation
 
-- Creates `buddy.config.json` with repository-specific settings
+- Creates `buddy.config.ts` with repository-specific settings
 - **Project-aware defaults** - Configuration optimized for detected project type
 - **Ecosystem integration** - Includes detected package managers and dependency files
 - Includes sensible defaults and customization options
 
 **🔄 Step 8: Workflow Generation & Validation**
 
-- Generates three core GitHub Actions workflows:
-  - `buddy-dashboard.yml` - Dependency Dashboard Management
-  - `buddy-check.yml` - Auto-rebase PR checker
-  - `buddy-update.yml` - Scheduled dependency updates
+- Generates two GitHub Actions workflows:
+  - `buddy.yml` - Unified workflow (rebase checks, dependency updates, dashboard management)
+  - `buddy-security.yml` - Security audit, kept separate so it can trigger on its own path filters
+- Removes stale `buddy-check.yml`, `buddy-update.yml` and `buddy-dashboard.yml` files from earlier versions
 - **YAML validation** - Ensures generated workflows are syntactically correct
 - **Security best practices** - Validates token usage and permissions
 - **Workflow testing** - Verifies generated workflows meet requirements
@@ -269,7 +269,7 @@ buddy update-check --dry-run
 buddy update-check --verbose
 
 # Get help
-buddy help
+buddy --help
 ```
 
 ### Configuration
@@ -532,7 +532,7 @@ All Buddy pull requests include a rebase checkbox at the bottom:
 ### Using the Rebase Feature
 
 1. **Check the box**: In any Buddy PR, check the rebase checkbox
-2. **Automatic detection**: The rebase workflow runs every minute to detect checked boxes
+2. **Automatic detection**: Editing the PR body fires the workflow, which detects the checked box
 3. **Updates applied**: The PR is automatically updated with the latest dependency versions
 4. **Checkbox unchecked**: After successful rebase, the checkbox is automatically unchecked
 
@@ -553,9 +553,9 @@ buddy update-check --verbose
 
 ### Automated Rebase Workflow
 
-Buddy includes a pre-built GitHub Actions workflow (`.github/workflows/buddy-check.yml`) that:
+Buddy includes a pre-built GitHub Actions workflow (`.github/workflows/buddy.yml`) that:
 
-- **🕐 Runs every minute**: Automatically checks for rebase requests
+- **🕐 Event-driven**: Triggers on `pull_request: [edited]` and `issues: [edited]`, so ticking a checkbox runs it immediately — no polling
 - **🔍 Scans all PRs**: Finds Buddy PRs with checked rebase boxes
 - **📦 Updates dependencies**: Re-scans for latest versions and updates files
 - **📝 Updates PR content**: Refreshes PR title, body, and file changes
@@ -598,9 +598,9 @@ buddy dashboard --title "My Dependencies"
 
 ### Automated Dashboard Updates
 
-Buddy includes a pre-built GitHub workflow (`.github/workflows/buddy-dashboard.yml`) that automatically updates your dependency dashboard:
+The unified workflow (`.github/workflows/buddy.yml`) automatically updates your dependency dashboard:
 
-- **📅 Scheduled**: Runs Monday, Wednesday, Friday at 9 AM UTC
+- **📅 Scheduled**: Runs every 2 hours, 15 minutes after the dependency update run
 - **🖱️ Manual**: Trigger from Actions tab with custom options
 - **📌 Auto-Pin**: Keeps dashboard pinned by default
 - **🔍 Dry-Run**: Preview mode available
@@ -684,7 +684,7 @@ Detected anywhere in the tree, in all three naming conventions:
 - `<prefix>.dockerfile` - e.g. `docker/api.dockerfile`, common in monorepos
 - `Containerfile`, `<prefix>.containerfile` - the OCI/Podman spelling
 
-All dependency files are parsed using the `ts-pkgx` library to ensure compatibility with the pkgx registry ecosystem while maintaining support for tools like Launchpad that reuse the same registry format. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
+All dependency files are parsed using the `ts-pantry` library to ensure compatibility with the pkgx registry ecosystem while maintaining support for tools like Launchpad that reuse the same registry format. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
 
 ### Pull Request Format
 
@@ -748,8 +748,8 @@ Each table is followed by detailed release notes, changelogs, and package statis
 
 - **`all`**: Update all dependencies regardless of semver impact
 - **`major`**: Only major version updates
-- **`minor`**: Major and minor updates (no patch-only)
-- **`patch`**: All updates (major, minor, and patch)
+- **`minor`**: Minor and patch updates (no majors)
+- **`patch`**: Only patch updates
 
 ## Auto-Merge Configuration
 
@@ -1033,7 +1033,7 @@ bun run build
 
 ## Changelog
 
-Please see our [releases](https://github.com/stacksjs/stacks/releases) page for more information on what has changed recently.
+Please see our [releases](https://github.com/stacksjs/buddy/releases) page for more information on what has changed recently.
 
 ## Contributing
 
@@ -1043,7 +1043,7 @@ Please see the [Contributing Guide](https://github.com/stacksjs/contributing) fo
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/stacks/discussions)
+[Discussions on GitHub](https://github.com/stacksjs/buddy/discussions)
 
 For casual chit-chat with others using this package:
 
@@ -1078,8 +1078,8 @@ The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
 Made with 💙
 
 <!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/buddy?style=flat-square
-[npm-version-href]: https://npmjs.com/package/buddy
+[npm-version-src]: https://img.shields.io/npm/v/%40buddysh%2Fbuddy?style=flat-square
+[npm-version-href]: https://npmjs.com/package/%40buddysh%2Fbuddy
 [github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/buddy/ci.yml?style=flat-square&branch=main
 [github-actions-href]: https://github.com/stacksjs/buddy/actions?query=workflow%3Aci
 

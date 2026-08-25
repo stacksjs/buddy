@@ -108,7 +108,7 @@ jobs:
         run: bun test
 ```
 
-All dependency files are parsed using the `ts-pkgx` library to ensure compatibility with the pkgx registry ecosystem. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
+All dependency files are parsed using the `ts-pantry` library to ensure compatibility with the pkgx registry ecosystem. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
 
 ### Project Structure Detection
 
@@ -297,28 +297,45 @@ Platform requirements are automatically excluded from updates:
 
 Control which packages are managed by buddy.
 
-### Ignore Patterns
+### Ignore List
 
 ```typescript
 export default {
   packages: {
-    // Global ignore list
+    // Global ignore list — exact package names
     ignore: [
       '@types/node', // Keep Node types stable
       'react', // Manual React updates
-      'vue', // Manual Vue updates
-      '@internal/*', // Internal packages
-      '@types/*', // All type definitions
-      'eslint-*', // All ESLint packages
-      'babel-*' // All Babel packages
+      'vue' // Manual Vue updates
     ]
   }
 } satisfies BuddyConfig
 ```
 
-`ignore` entries are matched as globs against the package name, so one list
-covers both exact names and whole families. To exclude by file path instead,
-use `ignorePaths`.
+`ignore` entries are compared by **exact name equality**. A glob such as
+`@types/*` matches no package at all, so it silently ignores nothing rather
+than failing loudly.
+
+### Ignore Patterns
+
+For whole families, use a rule: `matchPackages` accepts globs, and
+`enabled: false` drops every update it matches.
+
+```typescript
+export default {
+  packages: {
+    rules: [
+      { matchPackages: ['@internal/*'], enabled: false },
+      { matchPackages: ['@types/*'], enabled: false },
+      { matchPackages: ['eslint-*', 'babel-*'], enabled: false }
+    ]
+  }
+} satisfies BuddyConfig
+```
+
+The two lists behave differently on purpose, and the difference is easy to trip
+over: `ignore` is exact names, while the adjacent `ignorePaths` **does** take
+globs, because it matches file paths rather than package names.
 
 ### Include/Exclude by Scope
 
@@ -360,9 +377,8 @@ export default {
       },
       {
         name: 'Build Tools',
-        packages: ['webpack', 'webpack-cli', 'webpack-dev-server'],
-        strategy: 'major',
-        reviewers: ['build-team']
+        patterns: ['webpack', 'webpack-cli', 'webpack-dev-server'],
+        strategy: 'major'
       }
     ]
   }
@@ -377,18 +393,17 @@ const patternGroupsConfig = {
     groups: [
       {
         name: 'Type Definitions',
-        pattern: '@types/*',
-        strategy: 'minor',
-        autoMerge: true
+        patterns: ['@types/*'],
+        strategy: 'minor'
       },
       {
         name: 'ESLint Ecosystem',
-        pattern: 'eslint*',
+        patterns: ['eslint*'],
         strategy: 'patch'
       },
       {
         name: 'Babel Plugins',
-        pattern: 'babel-*',
+        patterns: ['babel-*'],
         strategy: 'minor'
       }
     ]
@@ -638,26 +653,49 @@ All package management features are available via CLI.
 buddy check react vue typescript
 
 # Get package information
-buddy info @types/node --detailed
+buddy info @types/node
+
+# Machine-readable package information
+buddy info @types/node --json
 
 # Search packages
 buddy search "ui component" --limit 10
 
 # Analyze dependencies
-buddy deps react --depth 2
+buddy deps react
+
+# Include dev and peer dependencies
+buddy deps react --all
 ```
 
 ### Batch Operations
 
+`buddy update` runs over everything the scan found; it has no package or group
+filter of its own. Narrow it with a strategy, an ignore list, or a preview run:
+
 ```bash
-# Update multiple packages
-buddy update --packages react,vue,typescript
+# Preview the pull requests without opening them
+buddy update --dry-run
 
-# Update by pattern
-buddy update --pattern "@types/_"
+# Restrict this run to patch updates
+buddy update --strategy patch
 
-# Update by group
-buddy update --group "React Ecosystem"
+# Skip named packages for this run
+buddy update --ignore react,vue
+```
+
+To scope a run to a group or a pattern, express it in config as a rule and let
+`buddy update` honour it:
+
+```typescript
+export default {
+  packages: {
+    rules: [
+      { matchPackages: ['@types/*'], groupName: 'Type Definitions' },
+      { matchEcosystems: ['docker'], enabled: false }
+    ]
+  }
+} satisfies BuddyConfig
 ```
 
 See [CLI Package Commands](/cli/package) for complete CLI reference.

@@ -87,15 +87,19 @@ buddy scan --strategy patch
 # Create update pull requests
 buddy update
 buddy update --dry-run
-buddy update --assignee username
+buddy update --strategy patch
 
 # Rebase/retry a specific PR
 buddy rebase 123
 buddy rebase 123 --force
 
-# Check if PR has rebase checkbox
-buddy update-check 123
+# Auto-rebase every open buddy PR with a checked rebase box
+buddy update-check
+buddy update-check --dry-run
 ```
+
+Reviewers, assignees, labels and auto-merge are configured under `pullRequest` in
+`buddy.config.ts` — `buddy update` has no flags for them.
 
 ### Package Analysis
 
@@ -118,16 +122,15 @@ buddy search "ui library"
 ### Configuration & Utilities
 
 ```bash
-# Generate configuration file
-buddy init
-buddy init --template comprehensive
+# Generate the configuration file and GitHub Actions workflows
+buddy setup
+buddy setup --non-interactive --preset security
 
-# Generate GitHub Actions workflows
-buddy workflow daily
-buddy workflow security
+# Diagnose credentials, git state and tooling
+buddy doctor
 
 # Utility commands
-buddy help
+buddy --help
 buddy --version
 ```
 
@@ -166,7 +169,7 @@ steps:
 
 - **npm packages**: Uses `bun outdated` for accurate detection
 - **Composer packages**: Uses `composer outdated` and Packagist API
-- **pkgx/Launchpad packages**: Uses `ts-pkgx` library integration
+- **pkgx/Launchpad packages**: Uses `ts-pantry` library integration
 - **GitHub Actions**: Fetches latest releases via GitHub API
 
 ## Library Usage
@@ -189,12 +192,11 @@ const buddy = new Buddy({
 })
 
 // Scan for updates
-const updates = await buddy.scanForUpdates()
-console.log(`Found ${updates.length} package updates`)
+const scanResult = await buddy.scanForUpdates()
+console.log(`Found ${scanResult.updates.length} package updates`)
 
 // Create pull requests
-const prs = await buddy.createPullRequests()
-console.log(`Created ${prs.length} pull requests`)
+await buddy.createPullRequests(scanResult)
 ```
 
 ### Advanced Configuration
@@ -261,15 +263,15 @@ await buddy.run()
 ```typescript
 try {
   const buddy = new Buddy(config)
-  const updates = await buddy.scanForUpdates()
+  const scanResult = await buddy.scanForUpdates()
 
-  if (updates.length === 0) {
+  if (scanResult.updates.length === 0) {
     console.log('All packages are up to date!')
     return
   }
 
-  const prs = await buddy.createPullRequests()
-  console.log(`Successfully created ${prs.length} PRs`)
+  await buddy.createPullRequests(scanResult)
+  console.log(`Opened pull requests for ${scanResult.updates.length} updates`)
 }
 catch (error) {
   if (error.code === 'GITHUB_TOKEN_MISSING') {
@@ -401,14 +403,13 @@ jobs:
       - run: bun install
       - name: Security updates only
 
-        run: |
-          bunx @buddysh/buddy update \
-            --strategy patch \
-            --labels security,dependencies \
-            --auto-merge
+        run: bunx @buddysh/buddy update --strategy patch --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+Labels and auto-merge for these PRs come from the `pullRequest` block in
+`buddy.config.ts`.
 
 ### Matrix Strategy
 
@@ -433,10 +434,7 @@ jobs:
       - run: bun install
       - name: Update ${{ matrix.strategy }}
 
-        run: |
-          bunx @buddysh/buddy update \
-            --strategy ${{ matrix.strategy }} \
-            --labels ${{ matrix.strategy }}-updates
+        run: bunx @buddysh/buddy update --strategy ${{ matrix.strategy }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -498,53 +496,83 @@ GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 
 # Optional: Custom registry
-export NPM_REGISTRY_URL=https://registry.npmjs.org
+export NPM_CONFIG_REGISTRY=https://registry.npmjs.org
 
-# Optional: Bun configuration
-export BUN_CONFIG_NO_CACHE=false
-
-# Optional: Debug mode
-export DEBUG=buddy:_
+# Optional: Log verbosity (silent | error | warn | info | debug)
+export BUDDY_LOG_LEVEL=debug
 ```
 
 ## Workflow Examples
 
+`buddy update` accepts `--strategy`, `--ignore`, `--dry-run`, `--respect-latest`,
+`--no-respect-latest` and `--verbose`. Everything about the pull request itself —
+reviewers, assignees, labels, auto-merge — is read from `buddy.config.ts`, so each
+example below pairs the config with the script that runs it.
+
 ### Daily Patch Updates
+
+```typescript
+// buddy.config.ts
+export default {
+  pullRequest: {
+    labels: ['security', 'patch-updates'],
+    autoMerge: {
+      enabled: true,
+      strategy: 'squash',
+      conditions: ['patch-only'],
+    },
+  },
+} satisfies BuddyConfig
+```
 
 ```bash
 # !/bin/bash
 # daily-updates.sh
 
-buddy update \
-  --strategy patch \
-  --auto-merge \
-  --labels security,patch-updates
+buddy update --strategy patch
 ```
 
 ### Weekly Comprehensive Updates
+
+```typescript
+// buddy.config.ts
+export default {
+  pullRequest: {
+    reviewers: ['team-lead', 'senior-dev'],
+    assignees: ['maintainer'],
+    labels: ['dependencies', 'weekly-update'],
+  },
+} satisfies BuddyConfig
+```
 
 ```bash
 # !/bin/bash
 # weekly-updates.sh
 
-buddy update \
-  --strategy all \
-  --reviewers team-lead,senior-dev \
-  --assignees maintainer \
-  --labels dependencies,weekly-update
+buddy update --strategy all
 ```
 
 ### Emergency Security Update
+
+```typescript
+// buddy.config.ts
+export default {
+  pullRequest: {
+    labels: ['security', 'urgent'],
+    autoMerge: {
+      enabled: true,
+      strategy: 'squash',
+      conditions: ['security-only'],
+    },
+  },
+} satisfies BuddyConfig
+```
 
 ```bash
 # !/bin/bash
 # security-update.sh
 
-buddy update \
-  --strategy patch \
-  --packages-only security \
-  --auto-merge \
-  --labels security,urgent
+buddy update --strategy patch --verbose
 ```
 
 ## Dependency File Support
@@ -640,10 +668,10 @@ by path, use a rule with `matchFiles` as above. See
 ## Testing
 
 ```bash
-# Test configuration
-buddy scan --dry-run --verbose
+# Test configuration, credentials and git state
+buddy doctor --verbose
 
-# Test GitHub authentication
+# Test scanning and GitHub authentication
 buddy scan --verbose
 
 # Test package detection

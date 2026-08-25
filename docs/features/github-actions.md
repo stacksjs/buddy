@@ -119,8 +119,20 @@ buddy update
 # Dry run to preview action updates
 buddy update --dry-run
 
-# Assign action updates to specific team
-buddy update --assignee devops-team
+# Keep the run to minor and patch updates
+buddy update --strategy minor
+```
+
+Reviewers, assignees and labels are not flags — they are set once in `buddy.config.ts` and applied to every PR Buddy opens:
+
+```typescript
+// buddy.config.ts
+export default {
+  pullRequest: {
+    teamReviewers: ['devops'],
+    labels: ['dependencies', 'github-actions'],
+  },
+}
 ```
 
 ## Best Practices

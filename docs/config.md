@@ -49,7 +49,7 @@ const config: BuddyConfig = {
 
   // Scheduling configuration
   schedule: {
-    cron: '0 2 _ _ 1', // Weekly on Monday at 2 AM
+    cron: '0 2 * * 1', // Weekly on Monday at 2 AM
     timezone: 'UTC',
   },
 }
@@ -78,7 +78,7 @@ const supportedFiles = [
 ]
 ```
 
-All dependency files are parsed using the `ts-pkgx` library and updates are applied while preserving formatting, comments, and version prefixes (`^`, `~`, `>=`, etc.).
+All dependency files are parsed using the `ts-pantry` library and updates are applied while preserving formatting, comments, and version prefixes (`^`, `~`, `>=`, etc.).
 
 ### Package Groups
 
@@ -128,8 +128,8 @@ All matchers present on a rule must match (AND within a rule).
 
 | Matcher               | Matches on                                              |
 | --------------------- | ------------------------------------------------------- |
-| `matchPackages`       | Package names or globs (`@types/_`)                     |
-| `matchEcosystems`     | `npm`, `composer`, `github-actions`, `docker`, `pkgx`, `zig` |
+| `matchPackages`       | Package names or globs (`@types/*`)                     |
+| `matchEcosystems`     | `npm`, `composer`, `github-actions`, `docker`, `pkgx`, `zig`, `python`, `rust`, `go`, `ruby` |
 | `matchDepTypes`       | `dependencies`, `devDependencies`, `peerDependencies`, … |
 | `matchUpdateTypes`    | `major`, `minor`, `patch`                               |
 | `matchFiles`          | Globs on the manifest path, for monorepo directories    |
@@ -137,9 +137,14 @@ All matchers present on a rule must match (AND within a rule).
 | `schedule`            | Cron window during which the rule applies               |
 
 A rule with no matchers applies to every update. Configuration validation
-rejects that unless you write `matchPackages: ['_']`, because a matcherless
-rule is almost always a typo'd matcher — and a typo does not disable a rule, it
-widens it.
+rejects that unless you write an explicit catch-all matcher, because a
+matcherless rule is almost always a typo'd matcher — and a typo does not
+disable a rule, it widens it.
+
+Write that catch-all as `matchPackages: ['**']`, not `['*']`. Package names are
+matched as paths, so a single `*` stops at the `/` in a scoped name: `['*']`
+matches `react` but not `@types/node`. Use `['**']` for every package, or
+`['@scope/*']` to target one scope.
 
 #### Effects
 
@@ -204,7 +209,7 @@ Tuesday run holds these back and a Saturday run lets them through:
 rules: [
   {
     matchUpdateTypes: ['major'],
-    schedule: '0 0-23 _ _ 6,0',
+    schedule: '0 0-23 * * 6,0',
     scheduleTimezone: 'Europe/Berlin',
   },
 ]
@@ -222,7 +227,7 @@ rules: [
 
 ```typescript
 rules: [
-  { matchPackages: ['*'], prPriority: 0 },
+  { matchPackages: ['**'], prPriority: 0 },
   { matchDepTypes: ['dependencies'], prPriority: 10, labels: ['runtime'] },
 ]
 ```
@@ -299,7 +304,7 @@ const config: BuddyConfig = {
     custom: [
       {
         name: 'Security Updates',
-        schedule: '0 _/6 _ _ _', // Every 6 hours
+        schedule: '0 */6 * * *', // Every 6 hours
         strategy: 'patch',
         autoMerge: true,
         reviewers: ['security-team'],
@@ -329,9 +334,17 @@ const config: BuddyConfig = {
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
 | `strategy` | `'major' \| 'minor' \| 'patch' \| 'all'` | Update strategy | `'all'` |
-| `ignore` | `string[]` | Packages to ignore | `[]` |
+| `ignore` | `string[]` | Package names to ignore, matched exactly | `[]` |
 | `pin` | `Record<string, string>` | Pin packages to versions | `{}` |
 | `groups` | `PackageGroup[]` | Package groupings | `undefined` |
+
+The strategy selects which semver impacts are proposed: `all` admits every
+update, `major` majors only, `minor` minors and patches, `patch` patches only.
+
+`ignore` is compared by exact package name — `@types/*` matches nothing and
+silently ignores nothing. Use a [package rule](#package-rules) with
+`matchPackages` when you want a pattern. (`ignorePaths`, which takes file
+paths, does use globs.)
 
 ### Logging
 
@@ -392,7 +405,7 @@ Set `security.enabled: false` for fully offline runs.
 |--------|------|-------------|---------|
 | `reviewers` | `string[]` | GitHub usernames for review | `[]` |
 | `assignees` | `string[]` | GitHub usernames to assign | `[]` |
-| `labels` | `string[]` | Labels to apply | `['dependencies']` |
+| `labels` | `string[]` | Labels to add, on top of the automatic set | `[]` |
 | `autoMerge` | `AutoMergeConfig` | Auto-merge configuration, see [Auto-Merge](/features/auto-merge) | `undefined` |
 
 ### Pull Request Templates
@@ -449,11 +462,12 @@ Buddy uses these environment variables:
 # Required for GitHub operations
 GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 
-# Optional: Alternative token name
-GH_TOKEN=ghp_xxxxxxxxxxxx
-
-# Optional: alternative token, preferred when set (needs `workflow` scope)
+# Optional: the workflow token, a PAT with `repo` and `workflow` scopes. Also the
+# last fallback for API operations, used only when GITHUB_TOKEN is unset
 BUDDY_TOKEN=ghp_xxxxxxxxxxxx
+
+# Optional: fallback for read-only calls (registry lookups, release notes)
+GH_TOKEN=ghp_xxxxxxxxxxxx
 
 # Optional: GitHub Enterprise Server. GitHub Actions sets both automatically
 GITHUB_API_URL=https://github.acme.com/api/v3
@@ -477,6 +491,20 @@ BUDDY_HTTP_TIMEOUT_MS=30000
 # Optional: Bun configuration
 BUN_CONFIG_NO_CACHE=false
 ```
+
+### Token precedence
+
+For git and pull request operations the token is resolved in this order:
+`repository.token` from your config, then `GITHUB_TOKEN`, then `BUDDY_TOKEN`.
+The ambient CI token deliberately comes first: it attributes pull requests to
+the CI bot rather than to whoever's personal token happens to be in the
+environment.
+
+Because GitHub Actions always injects `GITHUB_TOKEN`, `BUDDY_TOKEN` never wins
+that lookup on a runner. It has a different job there — it is picked up
+separately as the _workflow_ token, which is what lets Buddy commit changes to
+files under `.github/workflows/`. Set both: `GITHUB_TOKEN` for the API and PR
+work, `BUDDY_TOKEN` for the elevated `workflow` scope.
 
 ## GitHub Enterprise Server
 
@@ -647,7 +675,7 @@ Buddy provides comprehensive dependency management across four categories:
 - **dependencies.yaml**/**dependencies.yml** - Alternative format
 - **pkgx.yaml**/**pkgx.yml** - pkgx-specific files
 - **.deps.yaml**/**.deps.yml** - Hidden configuration files
-- Managed via `ts-pkgx` library integration
+- Managed via `ts-pantry` library integration
 
 ### GitHub Actions
 
@@ -702,6 +730,19 @@ const config: BuddyConfig = {
 }
 ```
 
+Every entry is an exact package name. To exclude a whole family, match it with
+a rule instead:
+
+```typescript
+const config: BuddyConfig = {
+  packages: {
+    rules: [
+      { matchPackages: ['@types/*'], enabled: false },
+    ],
+  },
+}
+```
+
 #### Strategy Application
 
 Update strategies apply to all dependency types:
@@ -709,7 +750,7 @@ Update strategies apply to all dependency types:
 ```typescript
 const config: BuddyConfig = {
   packages: {
-    strategy: 'patch', // Applies to npm, pkgx, AND GitHub Actions
+    strategy: 'patch', // Patch updates only, across npm, pkgx, AND GitHub Actions
   },
 }
 ```

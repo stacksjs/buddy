@@ -1,7 +1,7 @@
 ---
 layout: home
 title: Dependency Updates
-description: Buddy replaces Renovate and Dependabot — scanning, grouping, real changelogs, OSV advisories, a pinned dashboard, interactive rebase and auto-merge across eleven ecosystems.
+description: Buddy replaces Renovate and Dependabot — scanning, grouping, real changelogs, OSV advisories, a pinned dashboard, interactive rebase and auto-merge across ten ecosystems.
 
 hero:
   name: "dependency updates"
@@ -91,7 +91,7 @@ hero:
         } satisfies BuddyConfig
 
 features:
-  - title: "Eleven ecosystems"
+  - title: "Ten ecosystems"
     icon: "🌍"
     span: 2
     details: "npm, Bun, yarn and pnpm; Composer; GitHub Actions; Docker; pkgx and Launchpad; Zig; and — through the adapter interface — Python, Rust, Go and Ruby. Every lock file that has one is regenerated with the right tool, not hand-edited."
@@ -133,8 +133,8 @@ Then the maintenance commands: `buddy dashboard` refreshes the pinned issue, `bu
 
 | Strategy | Updates it proposes |
 | --- | --- |
-| `patch` | Everything, patch first — the safest default to automate |
-| `minor` | Major and minor, no patch-only churn |
+| `patch` | Patch only — the safest default to automate |
+| `minor` | Minor and patch, no majors |
 | `major` | Major versions only |
 | `all` | Everything, regardless of semver impact |
 

@@ -64,7 +64,7 @@ hero:
     - file: "the check run"
       lang: "ascii"
       content: |
-        buddy/gate — 2 failing
+        buddy/gates — 2 failing
 
           ✔ title-format          conventional commit
           ✔ description           complete

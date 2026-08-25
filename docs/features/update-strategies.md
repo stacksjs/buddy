@@ -58,9 +58,10 @@ export default {
 - `typescript@5.1.0` → `typescript@5.2.0` ✅ (minor)
 - `typescript@5.1.0` → `typescript@6.0.0` ❌ (major)
 
-### `major` - Latest Stable
+### `major` - Breaking Changes Only
 
-Updates to the latest stable version, including major versions with breaking changes.
+Updates major versions and nothing else. Minor and patch bumps are left for a
+run configured to take them.
 
 ```typescript
 // Example: 1.2.3 → 2.0.0
@@ -73,18 +74,20 @@ export default {
 
 **When to use:**
 
-- Development environments
-- Regular maintenance windows
+- A dedicated maintenance window for breaking changes
+- Keeping major upgrades in their own pull requests
 - Teams comfortable with handling breaking changes
 
 **Example updates:**
 
-- `vue@2.7.0` → `vue@2.7.16` ✅ (patch)
 - `vue@2.7.0` → `vue@3.4.0` ✅ (major)
+- `vue@2.7.0` → `vue@2.8.0` ❌ (minor)
+- `vue@2.7.0` → `vue@2.7.16` ❌ (patch)
 
-### `all` - Most Aggressive
+### `all` - Everything
 
-Updates to the absolute latest version available, including pre-releases when no stable version exists.
+Updates everything available, regardless of semver impact — major, minor and
+patch together. This is the default.
 
 ```typescript
 export default {
@@ -98,12 +101,26 @@ export default {
 
 - Experimental projects
 - Early adoption teams
-- Testing latest features
+- Staying current across the whole dependency tree
 
 **Example updates:**
 
-- `next@14.0.0` → `next@15.0.0-rc.1` ✅ (pre-release)
-- `react@18.2.0` → `react@19.0.0-beta.1` ✅ (beta)
+- `react@18.2.0` → `react@18.2.1` ✅ (patch)
+- `react@18.2.0` → `react@18.3.0` ✅ (minor)
+- `react@18.2.0` → `react@19.0.0` ✅ (major)
+
+Pre-release versions are a separate switch, not part of the strategy: set
+`packages.includePrerelease` if you want alphas, betas and release candidates
+considered.
+
+### At a Glance
+
+| Strategy | Updates it proposes |
+| --- | --- |
+| `all` | Everything, regardless of semver impact |
+| `major` | Major versions only |
+| `minor` | Minor and patch |
+| `patch` | Patch only |
 
 ## Strategy Configuration
 
@@ -137,11 +154,11 @@ export default {
       {
         name: 'Development Tools',
         patterns: ['eslint', 'prettier', 'typescript'],
-        strategy: 'major' // More aggressive for dev tools
+        strategy: 'major' // Dev-tool majors, batched on their own
       },
       {
         name: 'Testing Libraries',
-        packages: ['jest', 'vitest', '@testing-library/*'],
+        patterns: ['jest', 'vitest', '@testing-library/*'],
         strategy: 'minor'
       }
     ]
@@ -159,7 +176,7 @@ export default {
     strategy: 'minor',
     rules: [
       { matchPackages: ['react'], strategy: 'patch' }, // Keep React very stable
-      { matchPackages: ['typescript'], strategy: 'major' }, // Always latest TypeScript
+      { matchPackages: ['typescript'], strategy: 'major' }, // TypeScript majors only
       { matchPackages: ['@types/*'], strategy: 'all' } // Types can be aggressive
     ]
   }
@@ -228,7 +245,7 @@ const week1Config = { strategy: 'patch' }
 // Week 2: Add minor updates
 const week2Config = { strategy: 'minor' }
 
-// Week 3: Add major updates for dev dependencies
+// Week 3: minor everywhere, plus a group that takes dev-tool majors
 const week3Config = {
   strategy: 'minor',
   groups: [
@@ -253,7 +270,7 @@ export default {
   packages: {
     strategy: isProduction
       ? (isCorporate ? 'patch' : 'minor')
-      : 'major'
+      : 'all'
   }
 } satisfies BuddyConfig
 ```
@@ -279,8 +296,8 @@ const config = {
       },
       {
         name: 'Build Tools',
-        packages: ['vite', 'rollup', 'esbuild'],
-        strategy: 'major' // Build tools are less breaking
+        patterns: ['vite', 'rollup', 'esbuild'],
+        strategy: 'major' // Build tools get their majors in a PR of their own
       }
     ]
   }
@@ -295,12 +312,15 @@ Override configuration strategies via CLI:
 # Force patch strategy regardless of config
 buddy update --strategy patch
 
-# Use major strategy for specific packages
-buddy update --strategy major --packages react,vue
+# Take the major bumps on their own, in a preview run first
+buddy update --strategy major --dry-run
 
-# Mixed strategies
-buddy update --patch typescript --minor react --major eslint
+# Take the majors, but leave two packages behind
+buddy update --strategy major --ignore react,vue
 ```
+
+`--strategy` is a whole-run switch. Per-package strategies are config only —
+use `rules` with `matchPackages`, as above.
 
 ## Monitoring Strategy Effectiveness
 
@@ -359,7 +379,7 @@ export default {
       {
         name: 'Development Tools',
         patterns: ['typescript', 'webpack', 'vite'],
-        strategy: 'major'
+        strategy: 'all'
       }
     ]
   }
@@ -371,7 +391,7 @@ export default {
 ```typescript
 export default {
   packages: {
-    strategy: 'major',
+    strategy: 'all',
     groups: [
       {
         name: 'Database & Infrastructure',

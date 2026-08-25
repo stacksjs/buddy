@@ -955,17 +955,17 @@ Choose from several carefully crafted presets with smart recommendations:
 
 #### 📝 Step 7: Enhanced Configuration Generation
 
-- Creates `buddy.config.json` with repository-specific settings
+- Creates `buddy.config.ts` with repository-specific settings
 - **Project-aware defaults** - Configuration optimized for detected project type
 - **Ecosystem integration** - Includes detected package managers and dependency files
 - Includes sensible defaults and customization options
 
 **🔄 Step 8: Workflow Generation & Validation**
 
-- Generates three core GitHub Actions workflows:
-  - `buddy-dashboard.yml` - Dependency Dashboard Management
-  - `buddy-check.yml` - Auto-rebase PR checker
-  - `buddy-update.yml` - Scheduled dependency updates
+- Generates two GitHub Actions workflows:
+  - `buddy.yml` - Unified workflow: rebase checks, scheduled updates and the dashboard
+  - `buddy-security.yml` - Security audit, kept separate so it triggers on its own path filters
+- Removes the stale `buddy-check.yml`, `buddy-update.yml`, `buddy-dashboard.yml` and `gh-audit.yml` if an earlier version left them behind
 - **YAML validation** - Ensures generated workflows are syntactically correct
 - **Security best practices** - Validates token usage and permissions
 - **Workflow testing** - Verifies generated workflows meet requirements
@@ -1018,7 +1018,7 @@ buddy update-check --dry-run
 buddy update-check --verbose
 
 # Get help
-buddy help
+buddy --help
 ```
 
 ### Configuration
@@ -1281,7 +1281,7 @@ All Buddy pull requests include a rebase checkbox at the bottom:
 ### Using the Rebase Feature
 
 1. **Check the box**: In any Buddy PR, check the rebase checkbox
-2. **Automatic detection**: The rebase workflow runs every minute to detect checked boxes
+2. **Automatic detection**: Editing the PR body fires the workflow, which detects the checked box
 3. **Updates applied**: The PR is automatically updated with the latest dependency versions
 4. **Checkbox unchecked**: After successful rebase, the checkbox is automatically unchecked
 
@@ -1302,9 +1302,9 @@ buddy update-check --verbose
 
 ### Automated Rebase Workflow
 
-Buddy includes a pre-built GitHub Actions workflow (`.github/workflows/buddy-check.yml`) that:
+Buddy includes a pre-built GitHub Actions workflow (`.github/workflows/buddy.yml`) that:
 
-- **🕐 Runs every minute**: Automatically checks for rebase requests
+- **🕐 Event-driven**: Triggers on `pull_request: [edited]` and `issues: [edited]`, so ticking a checkbox runs it immediately — no polling
 - **🔍 Scans all PRs**: Finds Buddy PRs with checked rebase boxes
 - **📦 Updates dependencies**: Re-scans for latest versions and updates files
 - **📝 Updates PR content**: Refreshes PR title, body, and file changes
@@ -1346,9 +1346,9 @@ buddy dashboard --title "My Dependencies"
 
 ### Automated Dashboard Updates
 
-Buddy includes a pre-built GitHub workflow (`.github/workflows/buddy-dashboard.yml`) that automatically updates your dependency dashboard:
+Buddy includes a pre-built GitHub workflow (`.github/workflows/buddy.yml`) that automatically updates your dependency dashboard:
 
-- **📅 Scheduled**: Runs Monday, Wednesday, Friday at 9 AM UTC
+- **📅 Scheduled**: Every 2 hours, 15 minutes after the dependency update run (cron `15 */2 * * *`)
 - **🖱️ Manual**: Trigger from Actions tab with custom options
 - **📌 Auto-Pin**: Keeps dashboard pinned by default
 - **🔍 Dry-Run**: Preview mode available
@@ -1423,7 +1423,7 @@ Buddy automatically detects and updates the following dependency file formats:
 - **.github/workflows/*.yml** - GitHub Actions workflow files
 - **.github/workflows/*.yaml** - Alternative YAML extension
 
-All dependency files are parsed using the `ts-pkgx` library to ensure compatibility with the pkgx registry ecosystem while maintaining support for tools like Launchpad that reuse the same registry format. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
+All dependency files are parsed using the `ts-pantry` library to ensure compatibility with the pkgx registry ecosystem while maintaining support for tools like Launchpad that reuse the same registry format. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
 
 ### Pull Request Format
 

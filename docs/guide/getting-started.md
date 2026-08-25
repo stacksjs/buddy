@@ -105,8 +105,8 @@ buddy update-check --verbose
 |----------|-------------|
 | `all` | All updates regardless of semver impact |
 | `major` | Only major version updates |
-| `minor` | Major and minor updates (no patch-only) |
-| `patch` | All updates (most conservative) |
+| `minor` | Minor and patch updates (no majors) |
+| `patch` | Only patch updates (most conservative) |
 
 ## Supported Ecosystems
 
@@ -134,31 +134,24 @@ Buddy automatically detects and updates:
 
 ## Generated Workflows
 
-After setup, Buddy creates three workflows:
+After setup, Buddy creates two workflows:
 
-### `buddy-dashboard.yml`
+### `buddy.yml`
 
-Maintains the dependency dashboard issue:
+One unified workflow covering checks, updates and the dashboard:
 
-- Runs Monday, Wednesday, Friday at 9 AM UTC
-- Shows all open PRs and detected dependencies
-- Interactive checkbox controls
+- Scans for updates every 2 hours, refreshing the dashboard 15 minutes later
+- Rebase and dashboard checkboxes are event-driven, so ticking a box triggers a run immediately
+- Runs a daily cleanup pass at 4 AM UTC and a weekly dependency report Monday at 9 AM UTC
+- Answers `@buddy` comments and supports manual triggers
 
-### `buddy-check.yml`
+### `buddy-security.yml`
 
-Handles PR rebase requests:
+Audits your GitHub Actions workflows:
 
-- Runs every minute
-- Detects checked rebase boxes
-- Updates PR content automatically
-
-### `buddy-update.yml`
-
-Creates dependency update PRs:
-
-- Schedule varies by preset
+- Runs on pushes and PRs that touch `.github/workflows/**`
+- Weekly drift check Monday at 6 AM UTC
 - Supports manual triggers
-- Configurable update strategy
 
 ## CLI Reference
 
@@ -181,7 +174,7 @@ buddy update-check             # Process rebase requests
 buddy dashboard                # Update dashboard issue
 
 # Help
-buddy help
+buddy --help
 buddy --version
 ```
 
