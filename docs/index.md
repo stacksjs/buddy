@@ -220,22 +220,44 @@ other tool is the better choice.
 
 ## Coming from Renovate or Dependabot
 
+You do not have to rewrite the configuration you already tuned. Setup finds it
+and reads it:
+
 ```bash
 buddy setup   # detects renovate.json / .github/dependabot.yml and migrates it
 ```
 
-The migration report says exactly what carried over and what has no Buddy equivalent, so nothing changes silently. See [migrating from Renovate](/advanced/migration/renovate) and [from Dependabot](/advanced/migration/dependabot).
+From a `renovate.json`, your schedule, package rules, ignored dependencies,
+auto-merge preference, assignees and reviewers all carry across. Two things
+cannot: `extends` presets, because Buddy has no preset registry to resolve them
+against, and `regexManagers`, which has no equivalent at all. From a
+`dependabot.yml` there is simply less to read — an update interval and an
+ignore list is most of what the format holds.
+
+Whatever happens, the migration report names it: what carried over, what did
+not, and how confident the conversion is. Nothing is changed quietly, and
+nothing is dropped without being listed.
+
+Read the details for [Renovate](/advanced/migration/renovate) or
+[Dependabot](/advanced/migration/dependabot) before you run it.
 
 ---
 
-<div align="center">
+<figure class="BuddySignoff">
 
 ```
-  |\_/|
-  |q p|   /}     Buddy is free, MIT licensed, and happy to see you.
-  ( 0 )"""\
-  |"^"`    |     github.com/stacksjs/buddy
-  ||_/=\\__|
+ |\_/|
+ |q p|   /}
+ ( 0 )"""\
+ |"^"`    |
+ ||_/=\__|
 ```
 
-</div>
+<figcaption>
+
+Buddy is free, MIT licensed, and happy to see you —
+[github.com/stacksjs/buddy](https://github.com/stacksjs/buddy)
+
+</figcaption>
+
+</figure>

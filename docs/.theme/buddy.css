@@ -568,6 +568,51 @@ html.dark .BPHomeHero .BPButton-brand:hover {
   letter-spacing: -0.035em;
 }
 
+/* ── Sign-off ───────────────────────────────────────────────────────────── */
+
+/*
+ * The dog at the bottom of the home page.
+ *
+ * The art is centred as a block while its own lines stay left-aligned — the
+ * previous markup centred the <pre> contents, which centres every line
+ * independently and takes the drawing apart. The panel shrinks to the art
+ * rather than running the full column width, because five short lines in a
+ * full-width slab read as an empty box.
+ */
+.BuddySignoff {
+  margin: 40px 0 8px;
+  text-align: center;
+}
+
+.BPContent .bp-doc .BuddySignoff pre,
+.BPHome .BPHome-content .BuddySignoff pre {
+  display: inline-block;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.BPContent .bp-doc .BuddySignoff pre code,
+.BPHome .BPHome-content .BuddySignoff pre code {
+  width: auto;
+  min-width: 0;
+  padding: 18px 26px;
+  color: var(--buddy-amber);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.BuddySignoff figcaption {
+  margin-top: 14px;
+  color: var(--bp-c-text-3);
+  font-size: 14px;
+}
+
+.BuddySignoff figcaption p {
+  margin: 0;
+}
+
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 
 .BPFooter .BPFooter-cols {
