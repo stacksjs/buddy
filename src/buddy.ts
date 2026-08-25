@@ -27,7 +27,7 @@ import { appendUpgradeReport } from './upgrades/wire'
 import { EventBus } from './events/bus'
 import { createSinks } from './events/sinks'
 import type { PackageRule } from './rules/engine'
-import { applyRules, groupsToRules, mergeGroupEffects, resolveRuleEffects } from './rules/engine'
+import { applyRules, groupsToRules, mergeGroupEffects, resolveRuleEffects, strategyAllows } from './rules/engine'
 import { applyTemplate, templateTokensForGroup } from './pr/templates'
 import { RegistryClient } from './registry/registry-client'
 import { PackageScanner } from './scanner/package-scanner'
@@ -361,6 +361,30 @@ export class Buddy {
     // Undefined rather than empty: the provider treats an empty array as an
     // explicit request for no reviewers.
     return merged.length > 0 ? merged : undefined
+  }
+
+  /**
+   * Every label a pull request for this group should carry.
+   *
+   * Three sources union here: the automatic set derived from the update types
+   * and manifests in the group, whatever `pullRequest.labels` declares, and the
+   * labels any matching rule asked for.
+   *
+   * Centralised because the five call sites had drifted — only the creation
+   * path folded in rule labels, so refreshing an existing pull request quietly
+   * dropped them, and `pullRequest.labels` was read by nothing at all despite
+   * being declared and validated.
+   *
+   * @param group - Updates the pull request will contain
+   * @param prGenerator - Generator supplying the automatic labels
+   * @returns Labels to set on the pull request
+   */
+  private labelsFor(group: UpdateGroup, prGenerator: PullRequestGenerator): string[] {
+    return [...new Set([
+      ...prGenerator.generateLabels(group),
+      ...(this.config.pullRequest?.labels ?? []),
+      ...this.groupEffectsFor(group.updates).labels,
+    ])]
   }
 
   /** Every rule governing this run, legacy groups compiled in first. */
@@ -795,7 +819,7 @@ export class Buddy {
               }
 
               // Generate dynamic labels for the update
-              const dynamicLabels = prGenerator.generateLabels(group)
+              const dynamicLabels = this.labelsFor(group, prGenerator)
 
               // Update existing PR with new content
               await gitProvider.updatePullRequest(existingPR.number, {
@@ -841,7 +865,7 @@ export class Buddy {
                 await gitProvider.commitChanges(branchName, this.commitMessageFor(group, '(updated)'), packageJsonUpdates, this.config.repository.baseBranch || 'main')
               }
 
-              const dynamicLabels = prGenerator.generateLabels(group)
+              const dynamicLabels = this.labelsFor(group, prGenerator)
               await gitProvider.updatePullRequest(existingPRForBranch.number, {
                 title: prTitle,
                 body: prBody,
@@ -887,7 +911,7 @@ export class Buddy {
                 }
 
                 await gitProvider.reopenPullRequest!(recentlyClosed.number)
-                const dynamicLabels = prGenerator.generateLabels(group)
+                const dynamicLabels = this.labelsFor(group, prGenerator)
                 await gitProvider.updatePullRequest(recentlyClosed.number, {
                   title: prTitle,
                   body: prBody,
@@ -958,7 +982,7 @@ export class Buddy {
               // Reopen and update the existing PR
               await gitProvider.reopenPullRequest!(recentlyClosed.number)
               // Point the reopened PR at the new branch (in case branch name changed)
-              const dynamicLabels = prGenerator.generateLabels(group)
+              const dynamicLabels = this.labelsFor(group, prGenerator)
               await gitProvider.updatePullRequest(recentlyClosed.number, {
                 title: prTitle,
                 body: prBody,
@@ -1054,10 +1078,10 @@ export class Buddy {
           // Commit changes (Renovate-style: branch is created from base, changes applied fresh)
           await gitProvider.commitChanges(branchName, this.commitMessageFor(group), packageJsonUpdates, this.config.repository.baseBranch || 'main')
 
-          // Generate dynamic labels based on update types and package types,
-          // then union whatever the matching rules asked for.
+          // Reviewers and assignees still union here; labels are resolved by
+          // `labelsFor`, which every pull-request path shares.
           const groupEffects = this.groupEffectsFor(group.updates)
-          const dynamicLabels = [...new Set([...prGenerator.generateLabels(group), ...groupEffects.labels])]
+          const dynamicLabels = this.labelsFor(group, prGenerator)
 
           // Create pull request
           const pr = await gitProvider.createPullRequest({
@@ -1863,7 +1887,16 @@ export class Buddy {
   }
 
   /**
-   * Filter updates by strategy
+   * Filter updates by strategy.
+   *
+   * Defers to `strategyAllows`, the same predicate the rules engine uses for a
+   * rule-level `strategy`, so `packages.strategy` and a per-rule strategy can
+   * never again mean different things on the same set of updates.
+   *
+   * @param updates - Updates to filter
+   * @param strategy - Ceiling on semver impact: `all` admits everything,
+   * `major` only majors, `minor` minors and patches, `patch` only patches
+   * @returns The updates the strategy permits
    */
   private filterUpdatesByStrategy(
     updates: PackageUpdate[],
@@ -1872,18 +1905,7 @@ export class Buddy {
     if (strategy === 'all')
       return updates
 
-    return updates.filter((update) => {
-      switch (strategy) {
-        case 'major':
-          return update.updateType === 'major'
-        case 'minor':
-          return update.updateType === 'major' || update.updateType === 'minor'
-        case 'patch':
-          return true // Include all types for patch strategy
-        default:
-          return true
-      }
-    })
+    return updates.filter(update => strategyAllows(strategy, update.updateType))
   }
 
   /**

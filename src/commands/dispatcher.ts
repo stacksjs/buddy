@@ -46,12 +46,10 @@ export const HELP_TEXT = `**Buddy commands**
 | \`@buddy review\` | Review new changes since the last review |
 | \`@buddy full-review\` | Review the whole diff again, ignoring previous findings |
 | \`@buddy summary\` | Post a fresh summary without inline findings |
-| \`@buddy resolve\` | Resolve the review threads this bot opened |
 | \`@buddy pause\` / \`resume\` | Stop or restart reviewing this pull request |
 | \`@buddy rebase\` | Rebase a dependency update pull request |
 | \`@buddy merge\` | Re-check auto-merge conditions now |
 | \`@buddy fix-ci\` | Diagnose and try to fix failing checks |
-| \`@buddy plan\` | Produce an implementation plan for an issue |
 | \`@buddy remember <text>\` | Record a durable note for future runs |
 | \`@buddy help\` | Show this table |
 
