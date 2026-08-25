@@ -84,8 +84,34 @@ jobs:
       - name: Unit Test
         run: bun test --timeout 300000
 
+  check-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+
+      - name: Use cached node_modules
+        uses: actions/cache@v5.0.4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install Dependencies
+        run: bun install
+
+      # Deliberately part of CI rather than the Docs workflow: that one is
+      # path-filtered on `docs/`, so a change under `src/` that invalidates a
+      # documented flag would never re-check the pages describing it.
+      - name: Check docs against source
+        run: bun run check:docs
+
   publish-commit:
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, check-docs]
     runs-on: ubuntu-latest
 
     steps:
