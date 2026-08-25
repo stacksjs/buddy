@@ -570,6 +570,61 @@ html.dark .BPHomeHero .BPButton-brand:hover {
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 
+.BPFooter .BPFooter-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--bp-c-divider);
+  text-align: left;
+}
+
+.BPFooter .BPFooter-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.BPFooter .BPFooter-col-label {
+  margin-bottom: 3px;
+  font-family: var(--bp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bp-c-text-3);
+}
+
+.BPFooter .BPFooter-col a {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--bp-c-text-2);
+  text-decoration: none;
+  transition: color 0.16s;
+}
+
+.BPFooter .BPFooter-col a:hover {
+  color: var(--bp-c-text-1);
+}
+
+.BPFooter .BPFooter-col a.BPFooter-col-all {
+  margin-top: 3px;
+  color: var(--bp-c-brand-1);
+  font-weight: 600;
+}
+
+/* One column per row rather than three cramped ones: the link text wraps
+   badly below roughly 640px, and a footer is not worth a horizontal scroll. */
+@media (max-width: 640px) {
+  .BPFooter .BPFooter-cols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+}
+
 .BPFooter .BPFooter-compare {
   display: block;
   margin-bottom: 20px;

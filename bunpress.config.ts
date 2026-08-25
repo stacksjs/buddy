@@ -15,14 +15,48 @@ const REPO = 'https://github.com/stacksjs/buddy'
  * appears in exactly one group below — a page that is not listed here is
  * reachable only by direct link, which is how documentation quietly rots.
  */
-const guideSidebar = [
+/**
+ * One sidebar for the whole of the documentation.
+ *
+ * The nav used to carry Guide, CLI, AI, Config and API as five separate
+ * entries, and each of those sections had a sidebar listing only itself — so
+ * the nav was the only way to cross between them. Collapsing the nav to a
+ * single Docs link therefore had to come with a single sidebar: otherwise a
+ * reader who landed on a CLI page could reach the AI pages only through
+ * search.
+ *
+ * Ordered the way someone works through the product rather than
+ * alphabetically: what it is, how to drive it, what to configure, then the
+ * reference material you look up rather than read.
+ */
+const docsSidebar = [
   {
     text: 'Introduction',
     items: [
+      { text: 'Documentation', link: '/docs' },
       { text: 'What is Buddy?', link: '/intro' },
       { text: 'Installation', link: '/install' },
       { text: 'Getting Started', link: '/guide/getting-started' },
       { text: 'Usage', link: '/usage' },
+    ],
+  },
+  {
+    text: 'CLI',
+    items: [
+      { text: 'Overview', link: '/cli/overview' },
+      { text: 'setup', link: '/cli/setup' },
+      { text: 'Local Review', link: '/cli/review' },
+      { text: 'Update Commands', link: '/cli/update' },
+      { text: 'Package Commands', link: '/cli/package' },
+      { text: 'Utility Commands', link: '/cli/utility' },
+    ],
+  },
+  {
+    text: 'AI',
+    items: [
+      { text: 'Providers', link: '/ai/providers' },
+      { text: 'Agent Runtime', link: '/ai/agent' },
+      { text: 'Headless Runs', link: '/ai/headless' },
     ],
   },
   {
@@ -33,63 +67,22 @@ const guideSidebar = [
       { text: 'PR Generation', link: '/guide/pr-generation' },
     ],
   },
-]
-
-const featuresSidebar = [
   {
-    text: 'Core',
+    text: 'Reference',
     items: [
       { text: 'Dependency Scanning', link: '/features/scanning' },
       { text: 'Update Strategies', link: '/features/update-strategies' },
       { text: 'Package Management', link: '/features/package-management' },
       { text: 'Dependency Files', link: '/features/dependency-files' },
-    ],
-  },
-  {
-    text: 'Pull Requests',
-    items: [
       { text: 'Pull Request Generation', link: '/features/pull-requests' },
       { text: 'Release Notes', link: '/features/release-notes' },
       { text: 'Labeling & Assignment', link: '/features/labeling-assignment' },
       { text: 'Auto-Merge', link: '/features/auto-merge' },
       { text: 'Rebase', link: '/features/rebase' },
-    ],
-  },
-  {
-    text: 'Integrations',
-    items: [
       { text: 'Dependency Dashboard', link: '/features/dependency-dashboard' },
       { text: 'GitHub Actions', link: '/features/github-actions' },
     ],
   },
-]
-
-const cliSidebar = [
-  {
-    text: 'CLI',
-    items: [
-      { text: 'Overview', link: '/cli/overview' },
-      { text: 'setup', link: '/cli/setup' },
-      { text: 'Update Commands', link: '/cli/update' },
-      { text: 'Package Commands', link: '/cli/package' },
-      { text: 'Local Review', link: '/cli/review' },
-      { text: 'Utility Commands', link: '/cli/utility' },
-    ],
-  },
-]
-
-const aiSidebar = [
-  {
-    text: 'AI',
-    items: [
-      { text: 'Providers', link: '/ai/providers' },
-      { text: 'Agent Runtime', link: '/ai/agent' },
-      { text: 'Headless Runs', link: '/ai/headless' },
-    ],
-  },
-]
-
-const advancedSidebar = [
   {
     text: 'Advanced',
     items: [
@@ -107,9 +100,6 @@ const advancedSidebar = [
       { text: 'From Dependabot', link: '/advanced/migration/dependabot' },
     ],
   },
-]
-
-const apiSidebar = [
   {
     text: 'API',
     items: [
@@ -321,6 +311,73 @@ const competitors = [
 ]
 
 /**
+ * Flatten a mega menu into its leaf links, in the order the menu lists them.
+ *
+ * The footer's Features and Use Cases columns are built from the very objects
+ * the nav menus are built from, so a page added to a menu appears in the
+ * footer without anybody remembering to add it twice — and, more usefully, a
+ * page *removed* from a menu cannot linger in the footer as a dead link.
+ */
+function menuLinks(menu: NavItem): Array<{ text: string, link: string }> {
+  const links: Array<{ text: string, link: string }> = []
+  for (const group of menu.items ?? []) {
+    for (const item of group.items ?? []) {
+      if (item.link)
+        links.push({ text: item.text, link: item.link })
+    }
+  }
+  return links
+}
+
+/**
+ * The documentation pages worth a footer slot.
+ *
+ * Deliberately not the whole sidebar: a footer that lists everything ranks
+ * nothing. These are the pages a reader actually starts from — install it,
+ * run it, configure it, or bring an existing Renovate setup across.
+ */
+const popularDocs = [
+  { text: 'Getting Started', link: '/guide/getting-started' },
+  { text: 'Installation', link: '/install' },
+  { text: 'Local Review', link: '/cli/review' },
+  { text: 'CLI Overview', link: '/cli/overview' },
+  { text: 'AI Providers', link: '/ai/providers' },
+  { text: 'Configuration', link: '/config' },
+  { text: 'Monorepos', link: '/advanced/monorepo' },
+  { text: 'From Renovate', link: '/advanced/migration/renovate' },
+]
+
+/**
+ * A footer column.
+ *
+ * The theme drops `footer.message` into a paragraph, so every element here is
+ * inline and given its layout by CSS. A `<div>` would be closed out of that
+ * paragraph by the HTML parser and the column would collapse.
+ */
+function footerColumn(
+  label: string,
+  links: Array<{ text: string, link: string }>,
+  all?: { text: string, link: string },
+): string {
+  return [
+    '<span class="BPFooter-col">',
+    `<span class="BPFooter-col-label">${label}</span>`,
+    ...links.map(({ text, link }) => `<a href="${link}">${text}</a>`),
+    all ? `<a class="BPFooter-col-all" href="${all.link}">${all.text} \u2192</a>` : '',
+    '</span>',
+  ].join('')
+}
+
+/** The footer's three link columns: what it does, who it is for, how to run it. */
+const footerColumns = [
+  '<span class="BPFooter-cols">',
+  footerColumn('Features', menuLinks(featuresMenu), { text: 'All features', link: '/features/' }),
+  footerColumn('Use Cases', menuLinks(useCasesMenu), { text: 'All use cases', link: '/use-cases/' }),
+  footerColumn('Documentation', popularDocs, { text: 'All docs', link: '/docs' }),
+  '</span>',
+].join('')
+
+/**
  * The footer's Compare strip.
  *
  * The theme renders `footer.message` as raw HTML inside a paragraph, so this
@@ -416,32 +473,32 @@ const config: BunPressConfig = {
     lastUpdated: true,
 
     footer: {
-      message: `${compareFooter}<span class="BPFooter-note">Released under the MIT License.</span>`,
+      message: `${footerColumns}${compareFooter}<span class="BPFooter-note">Released under the MIT License.</span>`,
       copyright: 'Copyright © 2024-present Chris Breuer',
     },
 
+    // Features and Use Cases stay as menus because they are how someone
+    // decides; everything else is how someone builds, and that is one
+    // destination. GitHub is not listed: the icon beside the nav already
+    // links there, and naming it twice spends a nav slot on a duplicate.
     nav: [
       featuresMenu,
       useCasesMenu,
-      { text: 'Guide', link: '/intro' },
-      { text: 'CLI', link: '/cli/overview' },
-      { text: 'AI', link: '/ai/providers' },
-      { text: 'Config', link: '/config' },
-      { text: 'API', link: '/api/buddy' },
-      { text: 'GitHub', link: REPO },
+      { text: 'Docs', link: '/docs', activeMatch: '^/(docs|intro|install|usage|config|guide|cli|ai|advanced|api|features)' },
     ],
 
     sidebar: {
-      '/guide/': guideSidebar,
-      '/intro': guideSidebar,
-      '/install': guideSidebar,
-      '/usage': guideSidebar,
-      '/config': guideSidebar,
-      '/features/': featuresSidebar,
-      '/cli/': cliSidebar,
-      '/ai/': aiSidebar,
-      '/advanced/': advancedSidebar,
-      '/api/': apiSidebar,
+      '/docs': docsSidebar,
+      '/guide/': docsSidebar,
+      '/intro': docsSidebar,
+      '/install': docsSidebar,
+      '/usage': docsSidebar,
+      '/config': docsSidebar,
+      '/features/': docsSidebar,
+      '/cli/': docsSidebar,
+      '/ai/': docsSidebar,
+      '/advanced/': docsSidebar,
+      '/api/': docsSidebar,
       '/showcase': projectSidebar,
       '/team': projectSidebar,
       '/sponsors': projectSidebar,
