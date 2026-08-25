@@ -8,6 +8,7 @@ import {
   mergeGroupEffects,
   resolveRuleEffects,
   ruleMatches,
+  strategyAllows,
 } from '../src/rules/engine'
 
 function makeUpdate(overrides: Partial<PackageUpdate> = {}): PackageUpdate {
@@ -212,5 +213,41 @@ describe('legacy group compilation', () => {
 
   it('edge case - no groups compiles to no rules', () => {
     expect(groupsToRules()).toEqual([])
+  })
+})
+
+describe('strategy semantics', () => {
+  const types = ['major', 'minor', 'patch'] as const
+
+  it('success case - each strategy admits its own type and everything gentler', () => {
+    expect(types.filter(t => strategyAllows('all', t))).toEqual(['major', 'minor', 'patch'])
+    expect(types.filter(t => strategyAllows('major', t))).toEqual(['major'])
+    expect(types.filter(t => strategyAllows('minor', t))).toEqual(['minor', 'patch'])
+    expect(types.filter(t => strategyAllows('patch', t))).toEqual(['patch'])
+  })
+
+  it('edge case - patch never admits a major', () => {
+    // `patch` once returned true for every update type, so the safest-sounding
+    // setting silently proposed breaking changes.
+    expect(strategyAllows('patch', 'major')).toBe(false)
+  })
+
+  it('edge case - minor never admits a major', () => {
+    // `minor` once admitted majors while excluding patches, inverting it.
+    expect(strategyAllows('minor', 'major')).toBe(false)
+    expect(strategyAllows('minor', 'patch')).toBe(true)
+  })
+
+  it('success case - a rule-level strategy filters the same way as the predicate', () => {
+    // The global filter in `src/buddy.ts` and the rules engine each carried
+    // their own switch and disagreed. Both now resolve through this predicate.
+    for (const strategy of ['all', 'major', 'minor', 'patch'] as const) {
+      const kept = applyRules(
+        types.map(t => makeUpdate({ updateType: t })),
+        [{ matchPackages: ['*'], strategy }],
+      ).map(r => r.update.updateType)
+
+      expect(kept).toEqual(types.filter(t => strategyAllows(strategy, t)))
+    }
   })
 })

@@ -283,8 +283,25 @@ export function mergeGroupEffects(effects: ResolvedEffects[]): {
   }
 }
 
-/** Whether a strategy permits an update of this type. */
-function strategyAllows(strategy: NonNullable<PackageRule['strategy']>, updateType: 'major' | 'minor' | 'patch'): boolean {
+/**
+ * Whether a strategy permits an update of this type.
+ *
+ * A strategy names the greatest semver impact a run may propose, so each one
+ * admits its own update type and everything gentler beneath it. Exported so the
+ * global filter in `src/buddy.ts` resolves the same question through the same
+ * function — the two carried separate switches once, and disagreed, which made
+ * `packages.strategy` and a rule-level `strategy` mean different things.
+ *
+ * @param strategy - Ceiling on semver impact
+ * @param updateType - The impact of the update being considered
+ * @returns Whether the update is within the ceiling
+ * @example
+ * ```ts
+ * strategyAllows('minor', 'patch') // true
+ * strategyAllows('patch', 'major') // false
+ * ```
+ */
+export function strategyAllows(strategy: NonNullable<PackageRule['strategy']>, updateType: 'major' | 'minor' | 'patch'): boolean {
   switch (strategy) {
     case 'all':
       return true

@@ -1703,7 +1703,7 @@ ${generateComposerSetupSteps()}
           echo "" >> \$GITHUB_STEP_SUMMARY
 
           if [ "\${{ github.event_name }}" = "schedule" ]; then
-            echo "⏰ **Scheduled Check**: Automatically checks every minute" >> \$GITHUB_STEP_SUMMARY
+            echo "⏰ **Scheduled Check**: Daily cleanup tick — rebase requests are handled on PR edit, in real time" >> \$GITHUB_STEP_SUMMARY
           else
             echo "🖱️ **Manual Check**: Manually triggered from Actions tab" >> \$GITHUB_STEP_SUMMARY
           fi
