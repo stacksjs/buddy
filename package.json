@@ -67,6 +67,7 @@
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
     "release": "bunx --bun bumpx -r",
     "typecheck": "bunx tsc --noEmit",
+    "check:docs": "bun scripts/check-docs-claims.ts",
     "dev:docs": "bun --bun bunpress dev",
     "build:docs": "bun --bun bunpress build",
     "preview:docs": "bun --bun bunpress preview --outdir docs/dist",
