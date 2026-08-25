@@ -289,10 +289,15 @@ interface CLIOptions {
   ignore?: string
   dryRun?: boolean
   respectLatest?: boolean
+  /** Which settings pages `open-settings` should open: repo, org or both. */
+  type?: string
 }
 
 cli
   .command('setup', '🚀 Interactive setup for automated dependency updates (recommended)')
+  // `init` is what people type first, by convention from npm, git and cargo.
+  // Setup is the command that writes the config, so the alias is honest.
+  .alias('init')
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--non-interactive', 'Run setup without prompts (use defaults)')
   .option('--preset <type>', 'Workflow preset: standard|high-frequency|security|minimal|testing', { default: 'standard' })
@@ -2633,10 +2638,19 @@ cli
 
 cli
   .command('open-settings', 'Open GitHub repository and organization settings pages')
+  .option('--type <scope>', 'Which settings to open: repo, org or both', { default: 'both' })
   .option('--verbose, -v', 'Enable verbose logging')
   .example('buddy open-settings')
   .action(async (options: CLIOptions) => {
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
+
+    // Validated before any work or output, so a typo fails immediately
+    // rather than after the repository lookup has already printed.
+    const scope = String(options?.type ?? 'both').toLowerCase()
+    if (!['repo', 'org', 'both'].includes(scope)) {
+      logger.error(`Unknown --type ${scope}. Expected repo, org or both.`)
+      process.exit(1)
+    }
     const config = await resolveConfig(options.config)
 
     try {
@@ -2708,13 +2722,16 @@ cli
         }
       }
 
-      // Open repository settings
-      await openUrl(repoUrl, 'repository settings')
+      if (scope !== 'org')
+        await openUrl(repoUrl, 'repository settings')
 
-      // Also try to open organization settings (may fail if not an org)
+      // Organisation settings 404 on a personal account, so they are opened
+      // only when asked for, or as the tail of the default `both`.
       setTimeout(async () => {
-        logger.info('\n🏢 Attempting to open organization settings...')
-        await openUrl(orgUrl, 'organization settings')
+        if (scope !== 'repo') {
+          logger.info('\n🏢 Attempting to open organization settings...')
+          await openUrl(orgUrl, 'organization settings')
+        }
 
         logger.info('\n📋 Required Settings:')
         logger.info('  1. Under "Workflow permissions":')
@@ -3391,6 +3408,15 @@ cli
 
 cli.command('version', 'Show the version of Buddy').action(() => {
   console.log(version)
+})
+
+// `--help` is a flag, but `buddy help` is what a newcomer types. Registering
+// it means the guess works rather than printing 'Command "help" not found'.
+cli.command('help', 'Show this help text').action(() => {
+  // Without this, outputHelp() renders the matched command — `buddy help`
+  // itself — rather than the list of commands the reader is asking for.
+  cli.unsetMatchedCommand()
+  cli.outputHelp()
 })
 
 // Available on every command: each action reads `options.config` and passes it

@@ -10,11 +10,17 @@ The `setup` command provides a comprehensive, Renovate-like setup experience tha
 buddy setup [options]
 ```
 
+`buddy init` is an alias for the same command, for the muscle memory built by
+`npm init` and `git init`.
+
 ## Quick Start
 
 ```bash
 # Interactive setup (recommended)
 buddy setup
+
+# The same thing, by its alias
+buddy init
 
 # Setup with verbose logging
 buddy setup --verbose

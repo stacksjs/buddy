@@ -12,12 +12,15 @@ buddy open-settings [options]
 
 ### Description
 
-Quickly open the GitHub settings pages needed to configure permissions for buddy. It opens the repository's Actions settings, follows with the organization's, and prints the exact options to change on each.
+Quickly open the GitHub settings pages needed to configure permissions for buddy. By default it opens the repository's Actions settings, follows with the organization's, and prints the exact options to change on each.
+
+Organization settings do not exist for a repository owned by a personal account, so `--type repo` is the quieter choice there.
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
+| `--type <scope>` | Which settings to open: `repo`, `org` or `both` | `both` |
 | `--verbose, -v` | Enable verbose logging | `false` |
 
 ### Examples
@@ -25,6 +28,12 @@ Quickly open the GitHub settings pages needed to configure permissions for buddy
 ```bash
 # Open the Actions settings pages for this repository
 buddy open-settings
+
+# Only this repository's settings, skipping the organization
+buddy open-settings --type repo
+
+# Only the organization's, when repository permissions are already correct
+buddy open-settings --type org
 
 # Show how the repository was resolved
 buddy open-settings --verbose
