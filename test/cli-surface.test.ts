@@ -1,0 +1,76 @@
+import { describe, expect, it } from 'bun:test'
+
+/**
+ * The CLI is registered in `bin/cli.ts`, which calls `cli.parse()` at import,
+ * so it cannot be imported and inspected. These run it as a subprocess
+ * instead — the only way to assert on the surface a user actually meets.
+ *
+ * Kept to commands that neither reach the network nor touch the working tree.
+ */
+const CLI = new URL('../bin/cli.ts', import.meta.url).pathname
+
+/**
+ * Run the CLI and capture what a user would see.
+ *
+ * @param args - Arguments to pass
+ * @returns Exit code and combined output
+ */
+async function run(args: string[]): Promise<{ code: number, output: string }> {
+  const proc = Bun.spawn(['bun', CLI, ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: { ...process.env, APP_ENV: 'test' },
+  })
+
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ])
+
+  return { code: await proc.exited, output: stdout + stderr }
+}
+
+describe('CLI surface', () => {
+  it('success case - `buddy help` lists the commands', async () => {
+    // A subcommand as well as a flag: `buddy help` is what a newcomer types,
+    // and it used to print 'Command "help" not found'.
+    const { code, output } = await run(['help'])
+
+    expect(code).toBe(0)
+    expect(output).toContain('buddy [command] [options]')
+    expect(output).toContain('review')
+    expect(output).toContain('scan')
+    // The command's own usage line would mean the global help was not shown.
+    expect(output).not.toContain('$ buddy help')
+  }, 30000)
+
+  it('success case - `buddy init` resolves to setup', async () => {
+    const { output } = await run(['init', '--help'])
+
+    expect(output).toContain('buddy setup')
+  }, 30000)
+
+  it('failure case - an unknown command is rejected', async () => {
+    const { output } = await run(['frobnicate'])
+
+    expect(output).toMatch(/not found/i)
+  }, 30000)
+
+  it('failure case - open-settings rejects an unknown --type', async () => {
+    // Rejected before the repository lookup, so the error is the first thing
+    // printed rather than the last.
+    const { code, output } = await run(['open-settings', '--type', 'bogus'])
+
+    expect(code).toBe(1)
+    expect(output).toContain('Expected repo, org or both')
+    expect(output).not.toContain('Opening GitHub Actions settings')
+  }, 30000)
+
+  it('failure case - an unknown flag is rejected rather than ignored', async () => {
+    // clapp hard-errors on unknown options, which is why a documented-but-
+    // unimplemented flag crashed rather than degrading.
+    const { output } = await run(['scan', '--totally-fake-flag'])
+
+    expect(output).toMatch(/unknown option/i)
+  }, 30000)
+})

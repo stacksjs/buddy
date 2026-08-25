@@ -65,10 +65,13 @@ const PROSE_AFTER_BUDDY = new Set([
 async function readCliSurface(): Promise<Map<string, Set<string>>> {
   const lines = (await Bun.file(`${ROOT}bin/cli.ts`).text()).split('\n')
   const commands = new Map<string, Set<string>>()
+  const aliases = new Map<string, string>()
   const marks: Array<{ line: number, name: string }> = []
 
   lines.forEach((line, i) => {
-    const match = line.match(/^\s*\.command\((["'])(.+?)\1\s*,/)
+    // Both spellings are in use: chained onto `cli`, and the single-line
+    // `cli.command('version', …).action(…)` form.
+    const match = line.match(/^\s*(?:cli)?\.command\((["'])(.+?)\1\s*,/)
     if (!match)
       return
 
@@ -76,6 +79,21 @@ async function readCliSurface(): Promise<Map<string, Set<string>>> {
     marks.push({ line: i, name })
     if (!commands.has(name))
       commands.set(name, new Set(GLOBAL_FLAGS))
+  })
+
+  // An alias is a real name a user can type, so it must resolve like one.
+  lines.forEach((line, i) => {
+    const match = line.match(/^\s*\.alias\((["'])(.+?)\1\)/)
+    if (!match)
+      return
+
+    let owner: string | null = null
+    for (const mark of marks) {
+      if (mark.line < i)
+        owner = mark.name
+    }
+    if (owner)
+      aliases.set(match[2], owner)
   })
 
   lines.forEach((line, i) => {
@@ -95,6 +113,12 @@ async function readCliSurface(): Promise<Map<string, Set<string>>> {
     for (const token of match[2].split(',').map(part => part.trim().split(/[ <[]/)[0]).filter(Boolean))
       commands.get(owner)!.add(token)
   })
+
+  for (const [alias, target] of aliases) {
+    const flags = commands.get(target)
+    if (flags)
+      commands.set(alias, flags)
+  }
 
   return commands
 }

@@ -271,8 +271,9 @@ done
 ### Built-in Help
 
 ```bash
-# General help
+# General help — the flag and the subcommand do the same thing
 buddy --help
+buddy help
 
 # Command-specific help
 buddy scan --help
