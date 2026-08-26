@@ -51,3 +51,43 @@ export async function hasBranchDifferences(fileUpdates: SimpleFileUpdate[], bran
   }
   return false
 }
+
+/**
+ * Commit the given paths and push them to the current branch.
+ *
+ * Used by the mechanical CI repair, which runs in a job that has already
+ * checked the failing branch out with credentials. Deliberately not
+ * `GitProvider.commitChanges`: that recreates a branch from its base, which is
+ * right for a dependency update Buddy owns end to end and catastrophic here,
+ * where the branch carries someone else's commits.
+ *
+ * @param paths - Repository-relative paths to stage
+ * @param message - Commit message
+ * @param cwd - Repository root (default: the current directory)
+ * @returns Whether a commit was made and pushed
+ * @example
+ * ```ts
+ * const pushed = await commitAndPush(['bun.lock'], 'fix(deps): regenerate the lock file')
+ * ```
+ */
+export async function commitAndPush(paths: string[], message: string, cwd?: string): Promise<boolean> {
+  if (paths.length === 0)
+    return false
+
+  await runGit(['add', '--', ...paths], cwd)
+
+  // Nothing staged means the regeneration produced an identical file, which is
+  // a success with nothing to record rather than a failure.
+  const staged = await runGit(['diff', '--cached', '--name-only'], cwd)
+  if (!staged.trim())
+    return false
+
+  await runGit(['commit', '-m', message], cwd)
+
+  // The branch is whatever the job checked out. Pushing HEAD to it by name
+  // avoids assuming an upstream is configured.
+  const branch = (await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd)).trim()
+  await runGit(['push', 'origin', `HEAD:${branch}`], cwd)
+
+  return true
+}

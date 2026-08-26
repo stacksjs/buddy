@@ -104,7 +104,7 @@ describe('fix attempts', () => {
       log: LOCKFILE_LOG,
       regenerateLockfile: async () => {
         regenerated = true
-        return true
+        return { regenerated: true, pushed: true }
       },
     })
 
@@ -130,7 +130,7 @@ describe('fix attempts', () => {
       failsOnBase: true,
       regenerateLockfile: async () => {
         regenerated = true
-        return true
+        return { regenerated: true, pushed: true }
       },
     })
 
@@ -159,5 +159,65 @@ describe('fix attempts', () => {
     const outcome = await attemptFix({ ...base, log: TYPE_ERROR_LOG })
 
     expect(outcome.report).toContain('error TS2322')
+  })
+})
+
+describe('the lock-file repair reports what it actually did', () => {
+  const base = { workspace: '/tmp', baseBranch: 'main' }
+
+  it('failure case - a regenerated file that was not pushed is not a fix', async () => {
+    // The report claimed "and pushed the result" long before anything pushed
+    // anything. A file rewritten in a workspace about to be discarded has
+    // repaired nothing, so the run is still red.
+    const outcome = await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      regenerateLockfile: async () => ({ regenerated: true, pushed: false }),
+    })
+
+    expect(outcome.fixed).toBe(false)
+    expect(outcome.report).toContain('could not push')
+    expect(outcome.report).not.toContain('pushed the result')
+  })
+
+  it('success case - a pushed file is a fix, and says so', async () => {
+    const outcome = await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      regenerateLockfile: async () => ({ regenerated: true, pushed: true }),
+    })
+
+    expect(outcome.fixed).toBe(true)
+    expect(outcome.report).toContain('pushed the result')
+  })
+
+  it('failure case - a failed install is reported as such', async () => {
+    const outcome = await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      regenerateLockfile: async () => ({ regenerated: false, pushed: false }),
+    })
+
+    expect(outcome.fixed).toBe(false)
+    expect(outcome.report).toContain('did not succeed')
+  })
+
+  it('success case - a dry run diagnoses without touching the workspace', async () => {
+    // `--dry-run` used to regenerate lock files on disk regardless, because
+    // the callback was passed unconditionally and never consulted the flag.
+    let called = false
+    const outcome = await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      dryRun: true,
+      regenerateLockfile: async () => {
+        called = true
+        return { regenerated: true, pushed: true }
+      },
+    })
+
+    expect(called).toBe(false)
+    expect(outcome.fixed).toBe(false)
+    expect(outcome.report).toContain('dry run')
   })
 })

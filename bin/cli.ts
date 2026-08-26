@@ -1376,8 +1376,10 @@ cli
         baseBranch: config.repository?.baseBranch ?? 'main',
         ai: createAiClient(config, logger),
         logger,
+        dryRun: Boolean(options.dryRun),
         regenerateLockfile: async () => {
-          const { regenerateLockFile, detectRequiredPackageManagers } = await import('../src/utils/lock-file')
+          const { regenerateLockFile, detectRequiredPackageManagers, getAllLockFilePaths } = await import('../src/utils/lock-file')
+          const { commitAndPush } = await import('../src/utils/git')
 
           // Detection keys off the manifests a lockfile is derived from, so a
           // repository with several ecosystems regenerates each of them.
@@ -1392,7 +1394,24 @@ cli
               logger.warn(`⚠️ ${result.message}`)
           }
 
-          return regenerated
+          if (!regenerated)
+            return { regenerated: false, pushed: false }
+
+          // Rewriting the file in a workspace that is about to be thrown away
+          // repairs nothing. The job checked this branch out with credentials,
+          // so the commit is a local one rather than a branch recreation.
+          try {
+            const pushed = await commitAndPush(
+              getAllLockFilePaths(),
+              'fix(deps): regenerate the lock file\n\nThe lock file had drifted from the manifest, which failed CI.',
+              process.cwd(),
+            )
+            return { regenerated: true, pushed }
+          }
+          catch (error) {
+            logger.warn(`⚠️ Could not push the regenerated lock file: ${error instanceof Error ? error.message : String(error)}`)
+            return { regenerated: true, pushed: false }
+          }
         },
       })
 
