@@ -366,9 +366,14 @@ export class Buddy {
   /**
    * Every label a pull request for this group should carry.
    *
-   * Three sources union here: the automatic set derived from the update types
-   * and manifests in the group, whatever `pullRequest.labels` declares, and the
-   * labels any matching rule asked for.
+   * Four sources union here: the automatic set derived from the update types
+   * and manifests in the group, `security.label` when the group resolves a
+   * published advisory, whatever `pullRequest.labels` declares, and the labels
+   * any matching rule asked for.
+   *
+   * The security label matters beyond decoration: the `security-only`
+   * auto-merge condition tests for it, so a group that resolves an advisory
+   * could never satisfy that condition while nothing applied the label.
    *
    * Centralised because the five call sites had drifted — only the creation
    * path folded in rule labels, so refreshing an existing pull request quietly
@@ -380,8 +385,15 @@ export class Buddy {
    * @returns Labels to set on the pull request
    */
   private labelsFor(group: UpdateGroup, prGenerator: PullRequestGenerator): string[] {
+    // Label groups that actually resolve a published advisory. This once
+    // matched a hardcoded list of security-adjacent package names, which both
+    // missed every real vulnerability outside that list and mislabelled
+    // routine updates to packages that merely sound security-related.
+    const resolvesAdvisory = group.updates.some(update => (update.securityAdvisories?.length ?? 0) > 0)
+
     return [...new Set([
       ...prGenerator.generateLabels(group),
+      ...(resolvesAdvisory ? [this.config.security?.label ?? 'security'] : []),
       ...(this.config.pullRequest?.labels ?? []),
       ...this.groupEffectsFor(group.updates).labels,
     ])]
@@ -2217,62 +2229,6 @@ export class Buddy {
 
     // Check if existing PR has the same number of updates (avoid subset matches)
     return existingUpdates.size === newUpdates.length
-  }
-
-  /**
-   * Generate dynamic labels for PR based on update types and configuration
-   */
-  private generatePRLabels(group: UpdateGroup): string[] {
-    const labels = new Set<string>()
-
-    // Always add dependencies label
-    labels.add('dependencies')
-
-    // Add update type specific labels
-    const updateTypes = group.updates.map(u => u.updateType)
-    const hasUpdates = {
-      major: updateTypes.includes('major'),
-      minor: updateTypes.includes('minor'),
-      patch: updateTypes.includes('patch'),
-    }
-
-    // Add specific update type labels
-    if (hasUpdates.major) {
-      labels.add('major')
-    }
-    if (hasUpdates.minor) {
-      labels.add('minor')
-    }
-    if (hasUpdates.patch) {
-      labels.add('patch')
-    }
-
-    // Add additional contextual labels
-    if (group.updates.length > 5) {
-      labels.add('dependencies') // Use standard dependencies label instead of bulk-update
-    }
-
-    // Label groups that actually resolve a published advisory. This used to
-    // match a hardcoded list of security-adjacent package names, which both
-    // missed every real vulnerability outside that list and mislabelled
-    // routine updates to packages that merely sound security-related.
-    const resolvesAdvisory = group.updates.some(update => (update.securityAdvisories?.length ?? 0) > 0)
-    if (resolvesAdvisory) {
-      labels.add(this.config.security?.label ?? 'security')
-    }
-
-    // Add configured labels from config if they exist (but avoid duplicates)
-    if (this.config.pullRequest?.labels) {
-      this.config.pullRequest.labels.forEach((label) => {
-        // Only add if it's not 'dependencies' since we always add that
-        if (label !== 'dependencies') {
-          labels.add(label)
-        }
-      })
-    }
-
-    // Convert to array and return
-    return Array.from(labels)
   }
 
   /**

@@ -233,3 +233,34 @@ describe('auto-merge evaluation', () => {
     })
   })
 })
+
+describe('security-only, end to end', () => {
+  /**
+   * `security-only` tests for `security.label`, and until the label was
+   * actually applied to a pull request the condition could never once fire.
+   * These pin the contract from both sides.
+   */
+  it('failure case - no security label means no match', () => {
+    const decision = evaluateAutoMerge(makePR([makeUpdate({ updateType: 'major' })]), makeConfig(['security-only']), true)
+
+    expect(decision.eligible).toBe(false)
+  })
+
+  it('success case - the label Buddy now applies satisfies the condition', () => {
+    const pr = makePR([makeUpdate({ updateType: 'major' })], { labels: ['dependencies', 'security'] })
+
+    const decision = evaluateAutoMerge(pr, makeConfig(['security-only']), true)
+
+    // A major update, admitted purely because it resolves an advisory.
+    expect(decision.eligible).toBe(true)
+    expect(decision.reason).toContain('security advisory')
+  })
+
+  it('success case - a renamed label is matched, not the default', () => {
+    const config = makeConfig(['security-only'])
+    config.security = { label: 'vulnerability' }
+
+    expect(evaluateAutoMerge(makePR([makeUpdate()], { labels: ['vulnerability'] }), config, true).eligible).toBe(true)
+    expect(evaluateAutoMerge(makePR([makeUpdate()], { labels: ['security'] }), config, true).eligible).toBe(false)
+  })
+})

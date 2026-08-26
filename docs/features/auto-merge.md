@@ -34,7 +34,7 @@ A PR qualifies when **any** listed condition accepts it.
 | `security-only` | The PR carries the configured `security.label` (default `security`) |
 | `all` | Any Buddy PR, including major upgrades |
 
-`security-only` reads a label, and Buddy does not apply that label on its own — a PR gets it because you put it there, either through `pullRequest.labels` or a package rule. Configure `security-only` without arranging for the label and nothing will ever match it.
+`security-only` reads a label, and Buddy applies it to any pull request whose updates resolve a published advisory — matched against OSV.dev, not against package names that merely sound security-related. Rename it with `security.label`. You can also add that label by hand or through a package rule, and the condition treats it the same way.
 
 Unknown condition names are rejected by config validation rather than ignored, so a typo like `patch_only` fails loudly instead of widening what merges unreviewed.
 
