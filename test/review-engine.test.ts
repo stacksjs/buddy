@@ -4,7 +4,7 @@ import { describe, expect, it } from 'bun:test'
 import { parseUnifiedDiff, renderDiffForReview } from '../src/review/diff'
 import { defaultIncludePath, reviewDiff } from '../src/review/engine'
 import { dedupeFindings, fingerprint, validateFindings } from '../src/review/findings'
-import { needsReview, parseReviewState, serializeReviewState } from '../src/review/marker'
+import { needsReview, parseReviewState, serializeReviewState, upsertReviewState } from '../src/review/marker'
 import { prepareReview, renderFinding } from '../src/review/poster'
 
 const SAMPLE_DIFF = `diff --git a/src/app.ts b/src/app.ts
@@ -444,5 +444,75 @@ describe('reviewDiff', () => {
     await reviewDiff(ai, { diff: SAMPLE_DIFF, profile: 'assertive' })
 
     expect(ai.requests[0].system).toContain('less certain')
+  })
+})
+
+describe('review state round-trip', () => {
+  it('success case - prepareReview exposes the state for the caller to persist', () => {
+    // The marker was only ever written into the review summary, which nothing
+    // reads back — so `skipIfReviewed` never skipped and dedupe never engaged.
+    const prepared = prepareReview(
+      { summary: 'Adds logging.', walkthrough: [], findings: [makeFinding()], effort: 2, omittedFiles: [] },
+      { headSha: 'sha123' },
+    )
+
+    expect(prepared.state.reviewedSha).toBe('sha123')
+    expect(prepared.state.fingerprints.length).toBeGreaterThan(0)
+  })
+
+  it('success case - state written to a PR body is readable again', () => {
+    const prepared = prepareReview(
+      { summary: 'x', walkthrough: [], findings: [makeFinding()], effort: 1, omittedFiles: [] },
+      { headSha: 'abc' },
+    )
+
+    const body = upsertReviewState('Original description.', prepared.state)
+    const read = parseReviewState(body)
+
+    expect(read?.reviewedSha).toBe('abc')
+    expect(read?.fingerprints).toEqual(prepared.state.fingerprints)
+    expect(body).toContain('Original description.')
+  })
+
+  it('success case - the round-trip satisfies needsReview', () => {
+    // The whole point: a second run at the same commit must skip.
+    const prepared = prepareReview(
+      { summary: 'x', walkthrough: [], findings: [], effort: 1, omittedFiles: [] },
+      { headSha: 'head-1' },
+    )
+
+    const state = parseReviewState(upsertReviewState('desc', prepared.state))
+
+    expect(needsReview(state, 'head-1')).toBe(false)
+    expect(needsReview(state, 'head-2')).toBe(true)
+  })
+
+  it('edge case - replaces the existing marker rather than stacking them', () => {
+    const first = upsertReviewState('desc', { reviewedSha: 'one', fingerprints: [], reviewedAt: 'x' })
+    const second = upsertReviewState(first, { reviewedSha: 'two', fingerprints: [], reviewedAt: 'y' })
+
+    expect(second.match(/<!--\s*buddy:review/g)).toHaveLength(1)
+    expect(parseReviewState(second)?.reviewedSha).toBe('two')
+    expect(second).toContain('desc')
+  })
+
+  it('edge case - persisting a review does not resume a paused pull request', () => {
+    const paused = upsertReviewState('desc', { reviewedSha: 'one', fingerprints: [], reviewedAt: 'x', paused: true })
+    const previous = parseReviewState(paused)
+
+    const next = upsertReviewState(paused, {
+      reviewedSha: 'two',
+      fingerprints: [],
+      reviewedAt: 'y',
+      ...(previous?.paused ? { paused: true } : {}),
+    })
+
+    expect(parseReviewState(next)?.paused).toBe(true)
+  })
+
+  it('edge case - tolerates an empty pull request body', () => {
+    const body = upsertReviewState(null, { reviewedSha: 'x', fingerprints: [], reviewedAt: 'y' })
+
+    expect(parseReviewState(body)?.reviewedSha).toBe('x')
   })
 })

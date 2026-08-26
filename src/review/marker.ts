@@ -64,6 +64,28 @@ export function parseReviewState(body: string | null | undefined): ReviewState |
 }
 
 /**
+ * Replace the review-state marker in a pull request body.
+ *
+ * The marker has to live on the pull request itself: `parseReviewState` reads
+ * `pr.body` and nothing else, so state written anywhere else — a review
+ * summary, a comment — is written and never read back.
+ *
+ * @param body - Current pull request body
+ * @param state - State to store
+ * @returns The body with exactly one, current, marker
+ * @example
+ * ```ts
+ * await provider.updatePullRequest(number, {
+ *   body: upsertReviewState(pr.body, { reviewedSha, fingerprints, reviewedAt }),
+ * })
+ * ```
+ */
+export function upsertReviewState(body: string | null | undefined, state: Omit<ReviewState, 'schemaVersion'>): string {
+  const withoutMarker = (body ?? '').replace(MARKER_REGEX, '').trimEnd()
+  return `${withoutMarker}\n\n${serializeReviewState(state)}`
+}
+
+/**
  * Whether a pull request needs reviewing.
  *
  * @param state - Previous review state, if any

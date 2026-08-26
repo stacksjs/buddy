@@ -1614,6 +1614,8 @@ cli
       let headSha = ''
       let seenFingerprints: string[] = []
       let gitProvider: GitProvider | null = null
+      let prBody: string | null = null
+      let wasPaused = false
 
       if (prNumber) {
         gitProvider = await providerFor(config, 'reviewing a pull request', log)
@@ -1627,7 +1629,13 @@ cli
         const pr = prs.find(candidate => candidate.number === number)
         const state = parseReviewState(pr?.body)
         seenFingerprints = state?.fingerprints ?? []
-        headSha = state?.reviewedSha ?? ''
+        prBody = pr?.body ?? null
+        wasPaused = Boolean(state?.paused)
+
+        // The commit being reviewed now, not the one reviewed last time.
+        // Reading it from the stored state recorded a stale sha, so the next
+        // run could not tell whether this commit had been seen.
+        headSha = await gitProvider.getPullRequestHeadSha(number)
       }
       else {
         const base = options.base || config.repository?.baseBranch || 'main'
@@ -1734,7 +1742,21 @@ cli
       }
 
       assertSupports(gitProvider!, 'inlineReviewComments', 'createReview', 'posting a review')
-      await gitProvider.createReview(Number.parseInt(prNumber, 10), prepared)
+      const reviewedNumber = Number.parseInt(prNumber, 10)
+      await gitProvider.createReview(reviewedNumber, prepared)
+
+      // The review has landed; recording where it got to is bookkeeping, so a
+      // failure here must not present as a failed review.
+      try {
+        const { upsertReviewState } = await import('../src/review/marker')
+        await gitProvider.updatePullRequest(reviewedNumber, {
+          body: upsertReviewState(prBody, { ...prepared.state, ...(wasPaused ? { paused: true } : {}) }),
+        })
+      }
+      catch (error) {
+        logger.warn(`Could not record review state on PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+      }
+
       logger.success(`✅ Reviewed PR #${prNumber}: ${result.findings.length} finding(s)`)
     }
     catch (error) {

@@ -4,7 +4,6 @@ import type { CommandContext, CommandHandler, CommandOutcome } from './dispatche
 import process from 'node:process'
 import { createAiClient } from '../ai'
 import { attemptFix } from '../ci/fix'
-import { serializeReviewState } from '../review/marker'
 
 /** Everything the built-in handlers need to act. */
 export interface HandlerDeps {
@@ -144,16 +143,15 @@ async function setPaused(deps: HandlerDeps, prNumber: number, paused: boolean): 
   if (!pr)
     return
 
-  const { parseReviewState } = await import('../review/marker')
+  const { parseReviewState, upsertReviewState } = await import('../review/marker')
   const state = parseReviewState(pr.body)
 
-  const marker = serializeReviewState({
-    reviewedSha: state?.reviewedSha ?? '',
-    fingerprints: state?.fingerprints ?? [],
-    reviewedAt: state?.reviewedAt ?? new Date().toISOString(),
-    ...(paused ? { paused: true } : {}),
+  await deps.provider.updatePullRequest(prNumber, {
+    body: upsertReviewState(pr.body, {
+      reviewedSha: state?.reviewedSha ?? '',
+      fingerprints: state?.fingerprints ?? [],
+      reviewedAt: state?.reviewedAt ?? new Date().toISOString(),
+      ...(paused ? { paused: true } : {}),
+    }),
   })
-
-  const body = pr.body.replace(/<!--\s*buddy:review[\s\S]*?-->/, '').trimEnd()
-  await deps.provider.updatePullRequest(prNumber, { body: `${body}\n\n${marker}` })
 }
