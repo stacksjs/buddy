@@ -133,13 +133,25 @@ The log is matched against failure signatures before any model is involved. That
 
 | Kind | What it means | Repair |
 | --- | --- | --- |
-| `lockfile-drift` | The lock file is out of step with its manifest | Regenerated mechanically |
+| `lockfile-drift` | The lock file is out of step with its manifest | Regenerated, committed and pushed |
 | `flake` | Network, rate limit or runner problem | Worth one retry |
 | `install` | Dependencies could not be resolved | Agent, or reported |
 | `type-error` | The change does not type-check | Agent |
 | `test-failure` | An assertion failed | Agent, or reported |
 | `lint` | Lint or formatting violations | Agent |
 | `unknown` | Nothing recognisable | Reported, with the interesting log lines |
+
+### Re-running after a mechanical fix
+
+The lock-file repair commits to the branch and pushes it, but the pull request
+does not go green by itself. The job pushes with `GITHUB_TOKEN`, which keeps the
+commit attributed to the bot rather than to whoever owns a personal access
+token — and GitHub deliberately does not start a new workflow run for a push
+made with it.
+
+So the fix lands, and the checks need re-running: from the Actions tab, or by
+the next push to the branch. Buddy tells you which of the two happened in the
+comment it leaves.
 
 With no AI provider configured, classification and the mechanical repairs still work. You lose the agent-driven fixes, not the diagnosis.
 

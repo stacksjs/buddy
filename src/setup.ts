@@ -1606,6 +1606,10 @@ ${generateComposerSetupSteps()}
     if: \${{ needs.determine-jobs.outputs.run_fixci == 'true' }}
 
     steps:
+      # GITHUB_TOKEN deliberately, not BUDDY_TOKEN: it keeps the repair commit
+      # attributed to the bot rather than to whoever owns the PAT. The trade is
+      # that a push made with it does not start another workflow run, so the
+      # fix lands and the checks need re-running to go green.
       - name: Checkout the failing branch
         uses: actions/checkout@v4
         with:

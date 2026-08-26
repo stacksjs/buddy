@@ -35,8 +35,15 @@ export interface FixOptions {
   maxAttempts?: number
   /** Client for agent-driven repair; absent means analysis only */
   ai?: AiClient | null
-  /** Run the mechanical repair for a stale lock file */
-  regenerateLockfile?: () => Promise<boolean>
+  /**
+   * Run the mechanical repair for a stale lock file.
+   *
+   * Returns what actually happened, because regenerating a file and landing it
+   * on the branch are different outcomes and the report distinguishes them.
+   */
+  regenerateLockfile?: () => Promise<LockfileRepair>
+  /** Diagnose and report without changing anything */
+  dryRun?: boolean
   logger?: Logger
 }
 
@@ -56,6 +63,35 @@ export interface FixOptions {
  * await provider.createComment(pr, outcome.report)
  * ```
  */
+/** What the mechanical lock-file repair managed to do. */
+export interface LockfileRepair {
+  /** The lock file was rewritten in the workspace */
+  regenerated: boolean
+  /** The rewritten file was committed and pushed to the branch */
+  pushed: boolean
+}
+
+/**
+ * Describe a lock-file repair without overstating it.
+ *
+ * This message claimed "and pushed the result" long before anything pushed
+ * anything, which is the worst kind of report: confident, specific and wrong.
+ *
+ * @param regenerated - Whether the file was rewritten
+ * @param pushed - Whether the rewrite reached the branch
+ */
+function lockfileReport(regenerated: boolean, pushed: boolean): string {
+  if (!regenerated)
+    return 'Tried to regenerate the lock file, but the install did not succeed.'
+
+  if (!pushed) {
+    return 'Regenerated the lock file, but could not push it to the branch. '
+      + 'The change is in the workspace only, so the run will still be red until someone commits it.'
+  }
+
+  return 'Regenerated the lock file and pushed the result. No model was needed.'
+}
+
 export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
   const logger = options.logger ?? getDefaultLogger()
   const failure = classifyFailure(options.log)
@@ -85,19 +121,26 @@ export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
   }
 
   if (failure.kind === 'lockfile-drift' && options.regenerateLockfile) {
+    if (options.dryRun) {
+      return {
+        failure,
+        action: 'mechanical-fix',
+        fixed: false,
+        report: report(failure, 'Regenerating the lock file would fix this. No model would be needed. '
+          + 'Nothing was changed, because this was a dry run.'),
+      }
+    }
+
     logger.info('🔧 Regenerating the lock file')
-    const regenerated = await options.regenerateLockfile()
+    const { regenerated, pushed } = await options.regenerateLockfile()
 
     return {
       failure,
       action: 'mechanical-fix',
-      fixed: regenerated,
-      report: report(
-        failure,
-        regenerated
-          ? 'Regenerated the lock file and pushed the result. No model was needed.'
-          : 'Tried to regenerate the lock file, but the install did not succeed.',
-      ),
+      // Only a pushed fix has actually repaired the run. A regenerated file
+      // sitting in a workspace that is about to be discarded has not.
+      fixed: pushed,
+      report: report(failure, lockfileReport(regenerated, pushed)),
     }
   }
 
