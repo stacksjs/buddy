@@ -76,6 +76,46 @@ describe('pull request labels', () => {
     expect(labels.filter(label => label === 'deps')).toHaveLength(1)
   })
 
+  describe('security advisories', () => {
+    /** An update that resolves a published advisory. */
+    const vulnerable: PackageUpdate = {
+      ...update,
+      securityAdvisories: [{
+        id: 'GHSA-xxxx-yyyy-zzzz',
+        aliases: ['CVE-2026-0001'],
+        severity: 'high',
+        summary: 'Prototype pollution',
+        url: 'https://github.com/advisories/GHSA-xxxx-yyyy-zzzz',
+      }],
+    }
+
+    /** Resolve labels for a group carrying the advisory. */
+    function labelsForVulnerable(config: BuddyConfig): string[] {
+      const buddy = new Buddy(config)
+      // @ts-expect-error - accessing private method for testing
+      return buddy.labelsFor({ ...group, updates: [vulnerable] }, new PullRequestGenerator(config))
+    }
+
+    it('success case - labels a group that resolves an advisory', () => {
+      // `security-only` auto-merge tests for this label, so while nothing
+      // applied it that condition could never once fire.
+      expect(labelsForVulnerable(baseConfig)).toContain('security')
+    })
+
+    it('success case - honours a configured label name', () => {
+      const labels = labelsForVulnerable({ ...baseConfig, security: { label: 'vulnerability' } })
+
+      expect(labels).toContain('vulnerability')
+      expect(labels).not.toContain('security')
+    })
+
+    it('failure case - a routine update is not labelled security', () => {
+      // The old implementation matched package names that merely sounded
+      // security-related, which mislabelled routine updates.
+      expect(labelsFor(baseConfig)).not.toContain('security')
+    })
+  })
+
   it('edge case - a rule that does not match contributes nothing', () => {
     const labels = labelsFor({
       ...baseConfig,
