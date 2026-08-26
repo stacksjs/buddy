@@ -8,6 +8,8 @@ import { getDefaultLogger } from '../utils/logger'
 import { parseUnifiedDiff } from './diff'
 import { reviewDiff } from './engine'
 import { composeInstructions, loadGuidelines } from './guidelines'
+import type { ReviewTrigger } from './filters'
+import { reviewSkipReason } from './filters'
 import { needsReview, parseReviewState, upsertReviewState } from './marker'
 import type { PreparedReview } from './poster'
 import { prepareReview } from './poster'
@@ -23,6 +25,14 @@ export interface RunReviewOptions {
   summaryOnly?: boolean
   /** Skip when the head commit was already reviewed */
   skipIfReviewed?: boolean
+  /**
+   * Whether Buddy chose to review or was asked to (default: `requested`).
+   *
+   * Defaults to the permissive value so a caller that has not been taught the
+   * distinction keeps working: an unasked-for filter should never silently
+   * swallow a review someone requested.
+   */
+  trigger?: ReviewTrigger
   logger?: Logger
 }
 
@@ -44,6 +54,14 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
   const pr = prs.find(candidate => candidate.number === prNumber)
   if (!pr)
     return `Could not find open pull request #${prNumber}.`
+
+  // Checked before the diff is fetched or a model is contacted, so an ignored
+  // pull request costs one API call rather than a review's worth of tokens.
+  const skip = reviewSkipReason(config, pr, options.trigger ?? 'requested')
+  if (skip) {
+    logger.info(`🔍 Skipping PR #${prNumber}: ${skip}`)
+    return skip
+  }
 
   const state = parseReviewState(pr.body)
   if (state?.paused && !options.full)

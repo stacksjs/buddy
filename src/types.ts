@@ -298,7 +298,14 @@ export interface BuddyConfig {
 
     /** AI pull request review settings */
     review?: {
-      /** Enable AI review (default: false until you opt in) */
+      /**
+       * Set to `false` to switch AI review off for this repository, including
+       * when someone asks with `@buddy review`.
+       *
+       * Leaving it unset does not mean off: review already requires both a
+       * workflow trigger and a provider key, so this is the override, not the
+       * opt-in.
+       */
       enabled?: boolean
       /**
        * How thorough to be. `chill` reports only confident defects;
@@ -306,11 +313,14 @@ export interface BuddyConfig {
        * be filtered downstream.
        */
       profile?: 'chill' | 'assertive'
-      /** Review draft pull requests too (default: false) */
+      /** Review draft pull requests on an automatic trigger (default: false) */
       drafts?: boolean
-      /** Review automatically on open and push (default: true when enabled) */
+      /** Review automatically on open and push (default: true) */
       autoReview?: boolean
-      /** Skip pull requests whose title contains any of these, e.g. `wip` */
+      /**
+       * Skip pull requests whose title contains any of these, e.g. `wip`.
+       * Matched case-insensitively as a substring.
+       */
       ignoreTitleKeywords?: string[]
       /** Skip pull requests opened by these users */
       ignoreUsernames?: string[]
