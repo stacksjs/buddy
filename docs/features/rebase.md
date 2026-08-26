@@ -91,11 +91,11 @@ The rebase handling lives in the unified workflow `buddy setup` writes to `.gith
 name: Buddy
 
 on:
-  # Ticking the checkbox edits the PR body, which fires this event
+# Ticking the checkbox edits the PR body, which fires this event
   pull_request:
     types: [edited, opened, ready_for_review, synchronize, closed]
 
-  # The dashboard's checkboxes are the same request, made on an issue
+# The dashboard's checkboxes are the same request, made on an issue
   issues:
     types: [edited, opened]
 

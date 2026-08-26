@@ -76,8 +76,8 @@ link:
 | --- | --- |
 | `#123` | the same text, wrapped in code formatting |
 | `fixes #456` | `fixes` followed by the number in code formatting |
-| `https://github.com/org/repo/pull/123` | `org/repo#123`, as code rather than a link |
-| `https://github.com/org/repo/issues/456` | `org/repo#456`, as code rather than a link |
+| `<https://github.com/org/repo/pull/123>` | `org/repo#123`, as code rather than a link |
+| `<https://github.com/org/repo/issues/456>` | `org/repo#456`, as code rather than a link |
 
 The information survives — you can still see which issue was fixed — but it no
 longer cross-links into your tracker.

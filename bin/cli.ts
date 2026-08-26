@@ -3,7 +3,7 @@
 import type { GitProvider } from '../src/git/provider'
 import type { ReviewFinding } from '../src/review/findings'
 import type { ReviewFormat } from '../src/review/local'
-import type { BuddyConfig } from '../src/types'
+import type { BuddyConfig, PullRequest } from '../src/types'
 import fs from 'node:fs'
 import process from 'node:process'
 import { CLI } from '@stacksjs/clapp'
@@ -1354,10 +1354,22 @@ cli
       }
 
       const { attemptFix } = await import('../src/ci')
+      const { parseFixAttempts, upsertFixAttempts } = await import('../src/ci/attempts')
       const { createAiClient } = await import('../src/ai')
+
+      // The guard in attemptFix can only stop a loop if it is told how many
+      // attempts came before, and a CI job remembers nothing between runs.
+      const prNumber = options.pr ? Number.parseInt(options.pr, 10) : undefined
+      let pullRequest: PullRequest | undefined
+      if (prNumber) {
+        const open = await provider.getPullRequests('open')
+        pullRequest = open.find(candidate => candidate.number === prNumber)
+      }
+      const priorAttempts = parseFixAttempts(pullRequest?.body)?.attempts ?? 0
 
       const outcome = await attemptFix({
         log,
+        priorAttempts,
         workspace: process.cwd(),
         baseBranch: config.repository?.baseBranch ?? 'main',
         ai: createAiClient(config, logger),
@@ -1384,9 +1396,22 @@ cli
 
       logger.info(`\n${outcome.report}\n`)
 
-      const prNumber = options.pr ? Number.parseInt(options.pr, 10) : undefined
-      if (prNumber && !options.dryRun)
+      if (prNumber && !options.dryRun) {
         await provider.createComment(prNumber, outcome.report)
+
+        // Only a real attempt counts. Recording the ones the guard already
+        // refused would march the counter up without anything being tried.
+        if (outcome.action !== 'skipped' && pullRequest) {
+          try {
+            await provider.updatePullRequest(prNumber, {
+              body: upsertFixAttempts(pullRequest.body, priorAttempts + 1),
+            })
+          }
+          catch (error) {
+            logger.warn(`Could not record the fix attempt on PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        }
+      }
 
       logger.success(`✅ ${outcome.action}${outcome.fixed ? ' (fixed)' : ''}`)
     }
