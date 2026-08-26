@@ -20,6 +20,30 @@ The default includes staged changes deliberately: a pre-commit review that
 ignored what you just staged would miss the very changes you are about to
 commit.
 
+## Reviewing a pull request
+
+Pass a number to review a pull request instead of local changes:
+
+```bash
+buddy review 123
+```
+
+Add `--auto` when Buddy is choosing to review rather than being asked — which
+is what the generated workflow does. It honours the filters under
+`ai.review`, so a draft or a `wip` pull request is skipped before the diff is
+fetched, costing one API call rather than a full review:
+
+| Setting | Skips when |
+|---|---|
+| `enabled: false` | Always — including an explicit `@buddy review` |
+| `autoReview: false` | The trigger is automatic; asking still works |
+| `drafts` | The pull request is a draft and this is not `true` |
+| `ignoreTitleKeywords` | The title contains one of them, case-insensitively |
+| `ignoreUsernames` | The author is listed |
+
+Without `--auto` none of these apply except `enabled`, because a person at a
+terminal has already decided they want the review.
+
 ## Without an API key
 
 `--light` runs the analyzers and skips the model entirely — secret scanning,

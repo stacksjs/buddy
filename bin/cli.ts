@@ -291,6 +291,8 @@ interface CLIOptions {
   respectLatest?: boolean
   /** Which settings pages `open-settings` should open: repo, org or both. */
   type?: string
+  /** Set by the generated workflow: honour the `ai.review` filters. */
+  auto?: boolean
 }
 
 cli
@@ -1558,6 +1560,7 @@ cli
   .option('--fail-on <severity>', 'Exit non-zero when a finding at or above this severity is found')
   .option('--profile <name>', 'Review profile: chill|assertive')
   .option('--summary-only', 'Post only the summary, without inline findings')
+  .option('--auto', 'Treat this as an automatic trigger, honouring the ai.review filters')
   .option('--dry-run', 'Print the review instead of posting it')
   .example('buddy review 42')
   .example('buddy review --staged --light')
@@ -1621,12 +1624,24 @@ cli
         gitProvider = await providerFor(config, 'reviewing a pull request', log)
 
         const number = Number.parseInt(prNumber, 10)
-        diff = await gitProvider.getPullRequestDiff(number)
 
         // Carry forward what earlier reviews already said, so a re-review
         // reports only what is new rather than repeating itself.
         const prs = await gitProvider.getPullRequests('open')
         const pr = prs.find(candidate => candidate.number === number)
+
+        // `--auto` is what the generated workflow passes. Without it this is
+        // someone at a terminal, who has already decided they want a review.
+        if (pr) {
+          const { reviewSkipReason } = await import('../src/review/filters')
+          const skip = reviewSkipReason(config, pr, options.auto ? 'automatic' : 'requested')
+          if (skip) {
+            log.info(`🔍 Skipping PR #${number}: ${skip}`)
+            return
+          }
+        }
+
+        diff = await gitProvider.getPullRequestDiff(number)
         const state = parseReviewState(pr?.body)
         seenFingerprints = state?.fingerprints ?? []
         prBody = pr?.body ?? null

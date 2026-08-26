@@ -1587,10 +1587,12 @@ ${generateComposerSetupSteps()}
       - name: Install dependencies
         run: bun install
 
-      # Skips itself when ai.review.enabled is false, so adding the trigger
-      # does not turn reviews on by itself.
+      # --auto honours the ai.review filters: enabled, autoReview, drafts,
+      # ignoreTitleKeywords and ignoreUsernames. Adding the trigger therefore
+      # does not turn reviews on by itself, and a draft or WIP pull request
+      # costs one API call rather than a full review.
       - name: Review pull request
-        run: bunx @buddysh/buddy review \${{ github.event.pull_request.number }} --verbose
+        run: bunx @buddysh/buddy review \${{ github.event.pull_request.number }} --auto --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
