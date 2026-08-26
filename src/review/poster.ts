@@ -1,4 +1,5 @@
 import type { ReviewFinding, ReviewResult } from './findings'
+import type { ReviewState } from './marker'
 import { fingerprint } from './findings'
 import { serializeReviewState } from './marker'
 
@@ -25,6 +26,12 @@ export interface PreparedReview {
   comments: InlineComment[]
   /** `REQUEST_CHANGES` only when configured and warranted */
   event: 'COMMENT' | 'REQUEST_CHANGES'
+  /**
+   * State this review established, for the caller to persist onto the pull
+   * request. The copy inside `body` is an audit trail of what this particular
+   * review saw; only the copy on `pr.body` is ever read back.
+   */
+  state: Omit<ReviewState, 'schemaVersion'>
 }
 
 /**
@@ -83,6 +90,11 @@ export function prepareReview(
     body: renderSummary(result, counts, options.headSha, fingerprints),
     comments,
     event: options.requestChangesOn === 'critical' && hasCritical ? 'REQUEST_CHANGES' : 'COMMENT',
+    state: {
+      reviewedSha: options.headSha,
+      fingerprints,
+      reviewedAt: new Date().toISOString(),
+    },
   }
 }
 

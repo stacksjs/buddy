@@ -8,7 +8,8 @@ import { getDefaultLogger } from '../utils/logger'
 import { parseUnifiedDiff } from './diff'
 import { reviewDiff } from './engine'
 import { composeInstructions, loadGuidelines } from './guidelines'
-import { needsReview, parseReviewState } from './marker'
+import { needsReview, parseReviewState, upsertReviewState } from './marker'
+import type { PreparedReview } from './poster'
 import { prepareReview } from './poster'
 
 /** Inputs to a full review of a pull request. */
@@ -93,6 +94,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
     assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
     await provider.createReview(prNumber, prepared)
+    await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
     return `Posted ${analysis.findings.length} static-analysis finding(s).`
   }
 
@@ -133,8 +135,44 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
   await provider.createReview(prNumber, prepared)
+  await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
 
   return result.findings.length === 0
     ? 'Reviewed — nothing to report.'
     : `Reviewed — ${result.findings.length} finding(s) posted.`
+}
+
+/**
+ * Write the state a review established back onto the pull request.
+ *
+ * Separated from posting because the review itself has already landed by this
+ * point: if updating the body fails — a token without write access to the
+ * description, say — the findings are still on the pull request, and the worst
+ * case is that the next run reviews the same commit again. That is a better
+ * failure than losing the review to a bookkeeping error.
+ *
+ * @param provider - Git provider to write through
+ * @param prNumber - Pull request to update
+ * @param body - Current pull request body
+ * @param state - State this review established
+ * @param paused - Carried forward so persisting does not silently resume a
+ * paused pull request
+ * @param logger - Logger for the failure path
+ */
+async function persistReviewState(
+  provider: GitProvider,
+  prNumber: number,
+  body: string | null | undefined,
+  state: PreparedReview['state'],
+  paused: boolean | undefined,
+  logger: Logger,
+): Promise<void> {
+  try {
+    await provider.updatePullRequest(prNumber, {
+      body: upsertReviewState(body, { ...state, ...(paused ? { paused: true } : {}) }),
+    })
+  }
+  catch (error) {
+    logger.warn(`Could not record review state on PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
+  }
 }
