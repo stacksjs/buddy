@@ -1,9 +1,7 @@
 import type { GitProvider } from '../git/provider'
 import type { BuddyConfig } from '../types'
 import type { CommandContext, CommandHandler, CommandOutcome } from './dispatcher'
-import process from 'node:process'
 import { createAiClient } from '../ai'
-import { attemptFix } from '../ci/fix'
 
 /** Everything the built-in handlers need to act. */
 export interface HandlerDeps {
@@ -90,16 +88,17 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
     },
 
     async 'fix-ci'(context): Promise<CommandOutcome> {
-      const ai = createAiClient(deps.config, context.logger)
-      const outcome = await attemptFix({
-        log: '',
-        workspace: process.cwd(),
-        baseBranch: deps.config.repository?.baseBranch ?? 'main',
-        ai,
-        logger: context.logger,
-      })
-
-      return { handled: true, reply: outcome.report }
+      // This handler has no run to read. Diagnosis is entirely a function of
+      // the failing job's log, so calling attemptFix with an empty one only
+      // ever produced a confident-looking `unknown` classification with no
+      // evidence behind it. Saying so is more useful than that.
+      return {
+        handled: false,
+        reply: 'I diagnose a failure from its job log, and a comment does not tell me which run failed. '
+          + 'Buddy repairs failing checks automatically when the `fix-ci` job is enabled in your workflow — '
+          + 'it runs on the failed run itself and reports back here. '
+          + 'See https://buddy.sh/features/ci-repair',
+      }
     },
 
     async remember(context): Promise<CommandOutcome> {

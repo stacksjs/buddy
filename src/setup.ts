@@ -1620,8 +1620,13 @@ ${generateComposerSetupSteps()}
       - name: Install dependencies
         run: bun install
 
+      # --pr is what carries the diagnosis back to the pull request, and it is
+      # also where the attempt counter lives: without it the anti-loop guard
+      # has nothing to read and every failure looks like the first one.
+      # A run triggered from a fork has no entry here, and the step is skipped.
       - name: Attempt a fix
-        run: bunx @buddysh/buddy fix-ci --run-id \${{ github.event.workflow_run.id }} --verbose
+        if: \${{ github.event.workflow_run.pull_requests[0] }}
+        run: bunx @buddysh/buddy fix-ci --run-id \${{ github.event.workflow_run.id }} --pr \${{ github.event.workflow_run.pull_requests[0].number }} --verbose
         env:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}

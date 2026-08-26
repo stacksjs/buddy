@@ -93,9 +93,9 @@ typo cannot reach a workflow run.
 
 `apiUrl` defaults to `GITHUB_API_URL` when set — GitHub Actions exports it on
 both github.com and Enterprise Server runners — otherwise
-`https://api.github.com`. Set it explicitly for GitHub Enterprise Server, for
-example `https://github.acme.com/api/v3`. `serverUrl` defaults to
-`GITHUB_SERVER_URL`, otherwise `https://github.com`.
+`<https://api.github.com>`. Set it explicitly for GitHub Enterprise Server, for
+example `<https://github.acme.com/api/v3>`. `serverUrl` defaults to
+`GITHUB_SERVER_URL`, otherwise `<https://github.com>`.
 
 ## Registries
 

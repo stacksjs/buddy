@@ -45,14 +45,14 @@ The repository comes from `repository.owner` and `repository.name` in `buddy.con
 
 #### Repository Actions settings
 
-`https://github.com/<owner>/<repo>/settings/actions`
+`<https://github.com/><owner>/<repo>/settings/actions`
 
 - Workflow permissions — select "Read and write permissions"
 - "Allow GitHub Actions to create and approve pull requests"
 
 #### Organization Actions settings
 
-`https://github.com/organizations/<owner>/settings/actions`
+`<https://github.com/organizations/><owner>/settings/actions`
 
 - The same two settings one level up, which may override the repository's
 
@@ -62,8 +62,8 @@ If neither the config nor the git remote identifies a repository, buddy prints b
 
 buddy does not open these, but setup points you at them:
 
-- Personal access tokens — `https://github.com/settings/tokens`
-- Repository secrets — `https://github.com/<owner>/<repo>/settings/secrets/actions`
+- Personal access tokens — `<https://github.com/settings/tokens>`
+- Repository secrets — `<https://github.com/><owner>/<repo>/settings/secrets/actions`
 
 ## schedule
 
