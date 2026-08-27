@@ -1619,6 +1619,7 @@ jobs:
       run_review: \${{ steps.determine.outputs.run_review }}
       run_fixci: \${{ steps.determine.outputs.run_fixci }}
       run_report: \${{ steps.determine.outputs.run_report }}
+      run_any: \${{ steps.determine.outputs.run_any }}
     steps:
       - name: Determine which jobs to run
         id: determine
@@ -1641,6 +1642,7 @@ jobs:
           echo "run_command=false" >> \$GITHUB_OUTPUT
           echo "run_review=false" >> \$GITHUB_OUTPUT
           echo "run_fixci=false" >> \$GITHUB_OUTPUT
+          echo "run_report=false" >> \$GITHUB_OUTPUT
 
           if [ "\${{ github.event_name }}" = "pull_request" ] && [ "\${{ github.event.action }}" != "edited" ]; then
             # Opened, marked ready, or pushed to — review it. Draft handling and
@@ -1723,12 +1725,27 @@ jobs:
 ${renderScheduleDispatch(plan)}
           fi
 
+          # Every job below needs \`setup\`, and a job whose \`needs\` was skipped
+          # is skipped with it — so \`setup\` has to run whenever anything does.
+          # Derived from what was just written rather than restated, because
+          # restating it is how review, command and fix-ci came to be
+          # unreachable: each was added with its own output and nobody added it
+          # to setup's condition.
+          if grep -q '=true\$' "\$GITHUB_OUTPUT"; then
+            echo "run_any=true" >> \$GITHUB_OUTPUT
+          else
+            echo "run_any=false" >> \$GITHUB_OUTPUT
+          fi
+
   # Shared setup job for common dependencies
   setup:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: determine-jobs
-    if: \${{ needs.determine-jobs.outputs.run_check == 'true' || needs.determine-jobs.outputs.run_update == 'true' || needs.determine-jobs.outputs.run_dashboard == 'true' || needs.determine-jobs.outputs.run_report == 'true' }}
+    # \`gate\`, \`touch\`, \`post-merge\` and \`issue-links\` gate on \`github.event_name\`
+    # rather than on an output, so those two events are named here instead of
+    # having their conditions restated a second time and left to drift.
+    if: \${{ needs.determine-jobs.outputs.run_any == 'true' || github.event_name == 'pull_request' || github.event_name == 'issues' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

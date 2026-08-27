@@ -116,8 +116,12 @@ describe('workflow presets', () => {
 
     it('success case - its setup dependency runs on a report-only tick', () => {
       // `report` needs `setup`, and a skipped dependency skips the job that
-      // needs it. Gating setup on the update jobs alone was the whole bug.
-      expect(parse('standard').jobs.setup.if).toContain('run_report')
+      // needs it. Asserted through the derived flag rather than by looking for
+      // `run_report` in setup's condition — naming one output there is what
+      // left the other seven jobs unreachable. See
+      // test/workflow-reachability.test.ts for the per-event proof.
+      expect(parse('standard').jobs.setup.if).toContain('run_any')
+      expect(parse('standard').jobs['determine-jobs'].outputs).toHaveProperty('run_any')
     })
   })
 
