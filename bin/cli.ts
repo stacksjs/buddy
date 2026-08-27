@@ -1472,6 +1472,10 @@ cli
             const { runFixCi } = await import('../src/ci')
             return await runFixCi({ config, provider, prNumber, analysisOnly: true, logger })
           },
+          plan: async (number, isPullRequest, request) => {
+            const { runPlan } = await import('../src/agent')
+            return await runPlan({ config, provider, number, isPullRequest, request, logger })
+          },
           remember: async (text, context) => {
             const { addLearning, createLearning, loadLearnings, serializeLearnings, DEFAULT_LEARNINGS_FILE }
               = await import('../src/ai')
@@ -2967,17 +2971,36 @@ cli
         await provider.updateIssue(issueNumber, { body: clearQuickSelection(issue.body) })
 
         for (const action of selection.actions) {
-          const { getFinishingTouch, runAgent } = await import('../src/agent')
-          const touch = getFinishingTouch(action === 'build' ? 'autofix' : 'plan')
+          // The issue title and body belong to whoever opened it, which on a
+          // public repository is anyone. They used to be concatenated into the
+          // task string — the half of the context the model is told to trust —
+          // and for a ticked "build" that task drives an agent holding write,
+          // shell and git tools. Both paths now read the issue through a tool,
+          // so the runner frames it as third-party data.
+          if (action === 'plan') {
+            const { runPlan } = await import('../src/agent')
+            const plan = await runPlan({ config, provider, number: issueNumber, isPullRequest: false, logger })
+
+            await provider.createComment(issueNumber, plan)
+            logger.success('✅ Ran plan')
+            continue
+          }
+
+          const { BUILTIN_TOOLS, createReadIssueTool, getFinishingTouch, runAgent } = await import('../src/agent')
+          const touch = getFinishingTouch('autofix')
 
           const result = await runAgent(ai, {
             mode: touch.mode,
-            task: `${touch.buildTask({ summary: issue.title, files: [] })}\n\nIssue:\n${issue.body}`,
+            task: `${touch.buildTask({ files: [] })}\n\nCall \`read_issue\` to see what was asked for.`,
+            tools: [...BUILTIN_TOOLS, createReadIssueTool(provider, issueNumber, false)],
             context: { workspace: process.cwd(), baseBranch: config.repository?.baseBranch ?? 'main' },
             logger,
           })
 
-          await provider.createComment(issueNumber, result.output)
+          await provider.createComment(
+            issueNumber,
+            result.output || `I could not finish that (${result.stopReason}).`,
+          )
           logger.success(`✅ Ran ${action}`)
         }
 

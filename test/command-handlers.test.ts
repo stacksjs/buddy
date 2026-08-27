@@ -29,6 +29,10 @@ function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { calls: stri
       calls.push(`fixCi:${pr}`)
       return 'reported'
     },
+    plan: async (number, isPullRequest, request) => {
+      calls.push(`plan:${number}:${isPullRequest}:${request}`)
+      return '## Plan\n\n1. Do the thing'
+    },
     remember: async () => 'noted',
     ...overrides,
   }
@@ -98,6 +102,37 @@ describe('command handlers', () => {
 
       expect(outcome.handled).toBe(false)
       expect(dependencies.calls).toEqual([])
+    })
+  })
+
+  describe('plan', () => {
+    it('success case - plans the issue it was asked on', async () => {
+      // `plan` was a command the parser knew and the docs advertised, with no
+      // handler behind it — so it replied "I don't know how to plan yet".
+      const dependencies = deps()
+      const outcome = await createHandlers(dependencies).plan(
+        context({ command: { name: 'plan', args: '', raw: '@buddy plan' }, isPullRequest: false }),
+      )
+
+      expect(outcome.handled).toBe(true)
+      expect(dependencies.calls).toEqual(['plan:42:false:'])
+    })
+
+    it('success case - passes the direction the commenter added', async () => {
+      const dependencies = deps()
+      await createHandlers(dependencies).plan(
+        context({ command: { name: 'plan', args: '  focus on the parser  ', raw: '' } }),
+      )
+
+      expect(dependencies.calls).toEqual(['plan:42:true:focus on the parser'])
+    })
+
+    it('success case - the plan is the reply', async () => {
+      // `handle-comment` posts `outcome.reply`, so returning the plan here is
+      // what puts it on the thread — posting separately would double it.
+      const outcome = await createHandlers(deps()).plan(context({ command: { name: 'plan', args: '', raw: '' } }))
+
+      expect(outcome.reply).toContain('## Plan')
     })
   })
 })

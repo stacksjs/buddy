@@ -50,6 +50,7 @@ export const HELP_TEXT = `**Buddy commands**
 | \`@buddy rebase\` | Rebase a dependency update pull request |
 | \`@buddy merge\` | Re-check auto-merge conditions now |
 | \`@buddy fix-ci\` | Diagnose the failing checks, and retry a flake |
+| \`@buddy plan\` | Research the repository and write an implementation plan |
 | \`@buddy remember <text>\` | Record a durable note for future runs |
 | \`@buddy help\` | Show this table |
 
