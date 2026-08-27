@@ -13,6 +13,8 @@ export interface HandlerDeps {
   rebase: (prNumber: number) => Promise<string>
   /** Re-evaluate auto-merge conditions now */
   merge: () => Promise<number[]>
+  /** Diagnose the failing checks on a pull request */
+  fixCi: (prNumber: number) => Promise<string>
   /** Record a durable note */
   remember: (text: string, context: CommandContext) => Promise<string>
 }
@@ -88,17 +90,20 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
     },
 
     async 'fix-ci'(context): Promise<CommandOutcome> {
-      // This handler has no run to read. Diagnosis is entirely a function of
-      // the failing job's log, so calling attemptFix with an empty one only
-      // ever produced a confident-looking `unknown` classification with no
-      // evidence behind it. Saying so is more useful than that.
-      return {
-        handled: false,
-        reply: 'I diagnose a failure from its job log, and a comment does not tell me which run failed. '
-          + 'Buddy repairs failing checks automatically when the `fix-ci` job is enabled in your workflow — '
-          + 'it runs on the failed run itself and reports back here. '
-          + 'See https://buddy.sh/features/ci-repair',
+      // A comment cannot name a run, so this used to refuse outright. It can
+      // now find one: the newest failing run at the pull request's head.
+      if (!context.isPullRequest) {
+        return {
+          handled: false,
+          reply: 'There are no checks to look at — this is an issue, not a pull request.',
+        }
       }
+
+      // The diagnosis is posted as its own comment by the run itself, which is
+      // where the evidence and the log excerpt belong. Repeating it here would
+      // put the same wall of text on the thread twice.
+      const status = await deps.fixCi(context.number)
+      return { handled: true, reply: status }
     },
 
     async remember(context): Promise<CommandOutcome> {

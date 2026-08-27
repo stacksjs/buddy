@@ -60,6 +60,16 @@ export interface FixOptions {
   rerun?: () => Promise<boolean>
   /** Diagnose and report without changing anything */
   dryRun?: boolean
+  /**
+   * Diagnose without repairing, because the caller has nowhere to repair.
+   *
+   * Distinct from `dryRun`, which is a choice someone made. This is a
+   * constraint: answering an `@buddy fix-ci` comment runs on the default
+   * branch, so rewriting a lock file or letting the agent edit files would
+   * change the wrong tree entirely. Re-running a flake is still fine — that is
+   * an API call, not a change to a checkout.
+   */
+  analysisOnly?: boolean
   logger?: Logger
 }
 
@@ -108,6 +118,29 @@ function lockfileReport(regenerated: boolean, pushed: boolean): string {
   return 'Regenerated the lock file and pushed the result. No model was needed.'
 }
 
+/**
+ * Explain a diagnosis that could not be acted on from where it was made.
+ *
+ * Says which repair was available rather than only that none happened — a
+ * report that stops at "I cannot fix this here" reads as a limitation, where
+ * the useful version names the fix and who will apply it.
+ *
+ * @param failure - The classified failure
+ */
+function analysisOnlyNote(failure: ClassifiedFailure): string {
+  const shared = 'Repairs run on the pull request\'s branch, and answering a comment runs on the default branch, '
+    + 'so anything I changed here would land on the wrong tree. '
+
+  if (failure.kind === 'lockfile-drift') {
+    return `Regenerating the lock file would fix this, and no model would be needed. ${shared}`
+      + 'The `fix-ci` job will do it on the next failing run, or you can run '
+      + '`buddy fix-ci --run-id <id> --pr <number>` yourself.'
+  }
+
+  return `${shared}The \`fix-ci\` job runs on the failing run itself and can repair this; `
+    + 'this reply is the diagnosis it would start from.'
+}
+
 export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
   const logger = options.logger ?? getDefaultLogger()
   const failure = classifyFailure(options.log)
@@ -137,6 +170,17 @@ export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
       action: 'skipped',
       fixed: false,
       report: report(failure, `Already attempted ${options.priorAttempts} time(s); stopping rather than looping.`),
+    }
+  }
+
+  // Everything below either writes to the workspace or hands it to the agent.
+  // A flake is the exception, and it is handled on its own further down.
+  if (options.analysisOnly && failure.kind !== 'flake') {
+    return {
+      failure,
+      action: 'reported',
+      fixed: false,
+      report: report(failure, analysisOnlyNote(failure)),
     }
   }
 
