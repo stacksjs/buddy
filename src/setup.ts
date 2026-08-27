@@ -112,7 +112,33 @@ export interface SetupHook {
   name: string
   priority: number
   async: boolean
-  handler: (context: SetupContext) => Promise<void> | void
+  /**
+   * What to run, for a plugin defined in TypeScript.
+   *
+   * Optional because a plugin loaded from `.buddy/plugins/*.json` cannot have
+   * one: JSON has no way to carry a function, so a file declaring `handler`
+   * produced a string, and calling it threw a `TypeError` that the hook runner
+   * caught and logged as an ordinary hook failure. Those plugins declare an
+   * `action` instead.
+   */
+  handler?: (context: SetupContext) => Promise<void> | void
+  /** What to do, for a plugin declared as JSON */
+  action?: SetupHookAction
+}
+
+/**
+ * What a JSON-declared hook does when it fires.
+ *
+ * Declarative rather than executable on purpose. Reading a string out of a
+ * config file and running it as code would make any `.buddy/plugins/*.json` in
+ * a repository into arbitrary code execution on whoever runs `buddy setup`.
+ */
+export interface SetupHookAction {
+  type: 'webhook'
+  /** Where to POST the notification */
+  url: string
+  /** Extra fields merged into the payload */
+  body?: Record<string, unknown>
 }
 
 export interface PluginConfig {
@@ -423,6 +449,104 @@ export class ConfigurationMigrator {
 }
 
 // Plugin Architecture Implementation
+/**
+ * Perform a hook's declared action.
+ *
+ * The payload names the event and the repository and nothing else. Setup holds
+ * a token by the time hooks run, and a plugin file committed to a repository
+ * decides the URL — so what goes to it is a fixed shape rather than whatever
+ * happens to be on the context.
+ *
+ * @param action - The action the hook declared
+ * @param context - Setup state the payload is drawn from
+ * @throws {Error} When the action type is unknown or the endpoint refuses it
+ */
+async function runHookAction(action: SetupHookAction, context: SetupContext): Promise<void> {
+  if (action.type !== 'webhook')
+    throw new Error(`Unknown hook action type: ${String(action.type)}`)
+
+  const response = await fetchWithTimeout(action.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      event: context.step,
+      repository: `${context.repository.owner}/${context.repository.name}`,
+      ...action.body,
+    }),
+  })
+
+  if (!response.ok)
+    throw new Error(`Webhook returned ${response.status} ${response.statusText}`)
+}
+
+/**
+ * Read a plugin definition out of parsed JSON, or explain why it cannot be.
+ *
+ * The loader used to push whatever `JSON.parse` returned straight onto the
+ * plugin list, so a malformed file surfaced later as a `TypeError` inside the
+ * hook runner — at which point the message named neither the file nor what was
+ * wrong with it.
+ *
+ * @param raw - Parsed JSON from a plugin file
+ * @param file - File name, for the message
+ * @returns The plugin, or `null` with the reason logged
+ */
+function parseCustomPlugin(raw: unknown, file: string): SetupPlugin | null {
+  const reject = (reason: string): null => {
+    getDefaultLogger().warn(`⚠️  Ignoring plugin ${file}: ${reason}`)
+    return null
+  }
+
+  if (!raw || typeof raw !== 'object')
+    return reject('it is not a JSON object')
+
+  const candidate = raw as Record<string, unknown>
+  if (typeof candidate.name !== 'string' || !candidate.name)
+    return reject('it has no name')
+
+  if (!Array.isArray(candidate.triggers) || candidate.triggers.length === 0)
+    return reject('it declares no triggers')
+
+  if (!Array.isArray(candidate.hooks) || candidate.hooks.length === 0)
+    return reject('it declares no hooks')
+
+  const hooks: SetupHook[] = []
+  for (const entry of candidate.hooks as Array<Record<string, unknown>>) {
+    if (!entry || typeof entry.name !== 'string')
+      return reject('a hook has no name')
+
+    // The documented example carried `"handler": "// Custom JavaScript
+    // function"`, which could never run. Saying what to write instead beats
+    // failing later with `hook.handler is not a function`.
+    if (typeof entry.handler === 'string') {
+      return reject(
+        `hook "${entry.name}" declares a handler as text. JSON cannot carry a function — `
+        + 'use "action": { "type": "webhook", "url": "..." } instead.',
+      )
+    }
+
+    const action = entry.action as SetupHookAction | undefined
+    if (!action || action.type !== 'webhook' || typeof action.url !== 'string' || !action.url)
+      return reject(`hook "${entry.name}" needs an action with a type of "webhook" and a url`)
+
+    hooks.push({
+      name: entry.name,
+      priority: typeof entry.priority === 'number' ? entry.priority : 0,
+      async: entry.async !== false,
+      action,
+    })
+  }
+
+  return {
+    name: candidate.name,
+    version: typeof candidate.version === 'string' ? candidate.version : '0.0.0',
+    triggers: candidate.triggers as SetupTrigger[],
+    hooks,
+    configuration: (candidate.configuration ?? {}) as PluginConfig,
+    enabled: candidate.enabled !== false,
+  }
+}
+
 export class PluginManager {
   private plugins: SetupPlugin[] = []
   private context: SetupContext | null = null
@@ -472,12 +596,20 @@ export class PluginManager {
 
     for (const hook of sortedHooks) {
       try {
-        if (hook.async) {
-          await hook.handler(this.context)
+        if (typeof hook.handler === 'function') {
+          if (hook.async)
+            await hook.handler(this.context)
+          else
+            hook.handler(this.context)
+        }
+        else if (hook.action) {
+          await runHookAction(hook.action, this.context)
         }
         else {
-          hook.handler(this.context)
+          getDefaultLogger().warn(`⚠️  Hook ${hook.name} declares neither a handler nor an action; skipping`)
+          continue
         }
+
         getDefaultLogger().info(`✅ Executed hook: ${hook.name}`)
       }
       catch (error) {
@@ -592,8 +724,13 @@ export class PluginManager {
 
       for (const file of pluginFiles) {
         try {
-          const pluginConfig = JSON.parse(fs.readFileSync(path.join('.buddy/plugins/', file), 'utf8'))
-          plugins.push(pluginConfig)
+          const parsed = parseCustomPlugin(
+            JSON.parse(fs.readFileSync(path.join('.buddy/plugins/', file), 'utf8')),
+            file,
+          )
+
+          if (parsed)
+            plugins.push(parsed)
         }
         catch (error) {
           getDefaultLogger().info(`⚠️  Failed to load plugin ${file}: ${error instanceof Error ? error.message : 'Unknown error'}`)

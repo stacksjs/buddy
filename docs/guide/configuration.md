@@ -315,11 +315,26 @@ Create custom integrations in `.buddy/plugins/`:
     { "event": "setup_complete" },
     { "event": "validation_error" }
   ],
-  "configuration": {
-    "webhook_url": "https://your-webhook.com/notify"
-  }
+  "hooks": [
+    {
+      "name": "notify",
+      "priority": 10,
+      "action": {
+        "type": "webhook",
+        "url": "https://your-webhook.com/notify",
+        "body": { "channel": "#builds" }
+      }
+    }
+  ]
 }
 ```
+
+A hook declares an `action` rather than a function. JSON has no way to carry
+one, and reading a string out of a config file to run as code would turn any
+`.buddy/plugins/*.json` in a repository into arbitrary code execution on
+whoever runs `buddy setup`. The payload names the event and the repository
+and nothing else, plus whatever `body` adds — setup holds a token by the time
+hooks run, and the plugin file chooses the URL.
 
 ## Environment Configuration
 

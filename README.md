@@ -438,9 +438,9 @@ export JIRA_PROJECT_KEY="BUDDY"  # Optional, defaults to BUDDY
 Create custom integrations by defining plugins in `.buddy/plugins/`:
 
 ```jsonc
-// .buddy/plugins/custom-integration.json
+// .buddy/plugins/custom-notify.json
 {
-  "name": "custom-integration",
+  "name": "custom-notify",
   "version": "1.0.0",
   "enabled": true,
   "triggers": [
@@ -449,18 +449,24 @@ Create custom integrations by defining plugins in `.buddy/plugins/`:
   ],
   "hooks": [
     {
-      "name": "custom-notification",
+      "name": "notify",
       "priority": 10,
-      "async": true,
-      "handler": "// Custom JavaScript function"
+      "action": {
+        "type": "webhook",
+        "url": "https://your-webhook.com/notify",
+        "body": { "channel": "#builds" }
+      }
     }
-  ],
-  "configuration": {
-    "webhook_url": "https://your-custom-webhook.com/notify",
-    "api_key": "your-api-key"
-  }
+  ]
 }
 ```
+
+A hook declares an `action` rather than a function. JSON has no way to carry
+one, and reading a string out of a config file to run as code would turn any
+`.buddy/plugins/*.json` in a repository into arbitrary code execution on
+whoever runs `buddy setup`. The payload names the event and the repository
+and nothing else, plus whatever `body` adds — setup holds a token by the time
+hooks run, and the plugin file chooses the URL.
 
 ### Plugin Events
 
