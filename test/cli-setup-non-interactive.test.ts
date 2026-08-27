@@ -43,13 +43,13 @@ describe('CLI Setup - Non-Interactive Mode', () => {
   })
 
   describe('Workflow Generation Functions', () => {
-    it('should generate the update schedule the preset asks for', async () => {
+    it('should generate update workflow with correct schedule for every 2 hours', async () => {
       const { generateUnifiedWorkflow } = await import('../src/setup')
 
       const workflow = generateUnifiedWorkflow(false)
 
       expect(workflow).toContain('name: Buddy')
-      expect(workflow).toContain('cron: \'0 9 * * 1,3,5\'')
+      expect(workflow).toContain('cron: \'0 */2 * * *\'')
       expect(workflow).toContain('default: true') // dry_run default
       expect(workflow).toContain('dependency-update:') // job name
       expect(workflow).toContain('fetch-depth: 0')

@@ -280,7 +280,7 @@ Generates two workflows:
 
 #### 1. Unified Workflow (`buddy.yml`)
 
-- **Schedule**: set by the preset you chose — see [Preset Details](#preset-details). Branch cleanup (daily, 4 AM UTC) and the dependency-health report (Monday, 9 AM UTC) are fixed, because housekeeping is the same job at any cadence
+- **Schedule**: dependency updates every 2 hours, dashboard 15 minutes later, cleanup daily at 4 AM UTC, health report Monday at 9 AM UTC
 - **Events**: `pull_request`, `issues`, `issue_comment`, `pull_request_review_comment` and `workflow_run`, so a ticked rebase box or an `@buddy` comment is acted on immediately rather than waited for
 - **Purpose**: One workflow covering checks, updates, the dashboard, reviews and comment commands
 - **Features**: `workflow_dispatch` with a `job` input to run a single job by hand
@@ -430,11 +430,7 @@ buddy setup --non-interactive --token-setup new-pat
 
 ### Preset Options
 
-The preset you choose decides the generated workflow's update and dashboard
-schedules, its default update strategy, and whether the generated config turns
-auto-merge on. Branch cleanup and the health report are the same in every
-preset. Nothing is locked in — the `schedule:` block is ordinary YAML you can
-edit afterwards.
+Every preset writes the same `buddy.yml`: dependency updates every 2 hours on the `patch` strategy, the dashboard 15 minutes behind them, and a manual trigger for running any single job. The preset records the cadence you intended — change the cadence itself in the workflow's `schedule:` block afterwards.
 
 #### Standard Preset
 
@@ -745,34 +741,7 @@ Configure GitHub Actions permissions:
 
 ## Preset Details
 
-A preset sets four things: when dependency updates run, when the dashboard
-refreshes, which update strategy scheduled runs use, and whether the generated
-`buddy.config.ts` enables auto-merge.
-
-Two schedules are the same in every preset, because housekeeping does not get
-cheaper or riskier with cadence: branch cleanup daily at 4 AM UTC, and a
-dependency-health report on Monday at 9 AM UTC.
-
-Where a preset gives updates and the dashboard the same expression — most of
-them do — one cron entry starts both jobs rather than one of them winning.
-A preset that says `manual` for a schedule gets no scheduled trigger for that
-job at all; run it from the Actions tab.
-
-| Preset | Updates | Dashboard | Strategy | Auto-merge |
-| --- | --- | --- | --- | --- |
-| Standard | `0 9 * * 1,3,5` | same tick | `all` | — |
-| High Frequency | `0 */6 * * *` | `0 9 * * *` | `all` | patch only |
-| Security Focused | `0 */4 * * *` | `0 9 * * *` | `all` | patch only |
-| Minimal | `0 9 * * 1` | same tick | `all` | — |
-| Docker | `0 9 * * 1` | same tick | `all` | — |
-| Monorepo | `0 9 * * *` | same tick | `all` | — |
-| Development/Testing | `*/15 * * * *` | manual | `patch` | — |
-| Custom | manual | manual | `all` | — |
-
-Auto-merge is scoped to patch updates wherever a preset enables it. The preset
-carries a bare on/off, and generating an unconditional auto-merge from that
-would hand a new repository something more dangerous than the preset
-describes — widen it deliberately in `buddy.config.ts` if you want more.
+A preset is a statement of intent. Setup prints the one you chose and then writes the same `buddy.yml` for every preset: dependency updates every 2 hours (`0 */2 * * *`) on the `patch` strategy, the dashboard 15 minutes later, branch cleanup daily at 4 AM UTC and a dependency-health report on Monday at 9 AM UTC. Edit that `schedule:` block to change the cadence.
 
 ### Standard Setup (Recommended)
 

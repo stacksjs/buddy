@@ -1085,92 +1085,7 @@ export async function guideRepositorySettings(repoInfo: RepositoryInfo): Promise
   getDefaultLogger().info(`4. This allows Buddy to create PRs and update issues.\n`)
 }
 
-/**
- * Render a preset value as source the generated config can contain.
- *
- * Hand-rolled rather than `JSON.stringify`, which emits double quotes and no
- * trailing commas — both of which the project's own lint rules reject in the
- * very file setup just wrote.
- *
- * @param value - Value to render
- * @param indent - Column the value starts at, so nested braces line up
- * @returns TypeScript source for the value
- */
-function renderPresetValue(value: unknown, indent: number): string {
-  const pad = ' '.repeat(indent)
-  const inner = ' '.repeat(indent + 2)
-
-  if (Array.isArray(value)) {
-    if (value.length === 0)
-      return '[]'
-
-    return `[\n${value.map(item => `${inner}${renderPresetValue(item, indent + 2)},`).join('\n')}\n${pad}]`
-  }
-
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value)
-    if (entries.length === 0)
-      return '{}'
-
-    return `{\n${entries.map(([key, nested]) => `${inner}${key}: ${renderPresetValue(nested, indent + 2)},`).join('\n')}\n${pad}}`
-  }
-
-  return typeof value === 'string' ? `'${value}'` : String(value)
-}
-
-/**
- * Narrow a preset's custom workflows to what `BuddyConfig` can hold.
- *
- * The presets carry `autoMergeStrategy` per workflow and the config has no
- * field for it — only the global `pullRequest.autoMerge.strategy`. Emitting it
- * would put an excess property in the generated `buddy.config.ts` and fail the
- * type check on a file the user has not written a line of.
- *
- * @param preset - The preset being generated
- * @returns Custom workflows in the shape the config declares
- */
-function presetCustomWorkflows(preset: WorkflowPreset): Array<Record<string, unknown>> {
-  return (preset.custom ?? []).map(({ name, schedule, strategy, autoMerge }) => ({
-    name,
-    schedule,
-    strategy,
-    autoMerge,
-  }))
-}
-
-/**
- * Render the auto-merge block for presets that ask for it.
- *
- * Restricted to patch updates deliberately. The preset carries a bare boolean,
- * and the two presets that set it — Security Focused and High Frequency — both
- * describe auto-merging *patches* rather than everything. Generating an
- * unconditional auto-merge from a `true` would hand a new repository something
- * far more dangerous than it asked for.
- *
- * @param preset - The preset being generated
- * @returns A config fragment, or an empty string when auto-merge is off
- */
-function renderAutoMerge(preset: WorkflowPreset): string {
-  if (!preset.autoMerge)
-    return ''
-
-  return `
-  pullRequest: {
-    autoMerge: {
-      enabled: true,
-      strategy: 'squash',
-      // The preset asks for auto-merge; this keeps it to the updates it
-      // describes. Widen it deliberately rather than by default.
-      conditions: ['patch-only'],
-    },
-  },`
-}
-
-export async function generateConfigFile(
-  repoInfo: RepositoryInfo,
-  hasCustomToken: boolean,
-  preset: WorkflowPreset = getWorkflowPreset('standard'),
-): Promise<void> {
+export async function generateConfigFile(repoInfo: RepositoryInfo, hasCustomToken: boolean): Promise<void> {
   const configContent = `import type { BuddyConfig } from '@buddysh/buddy'
 
 const config: BuddyConfig = {
@@ -1188,11 +1103,15 @@ const config: BuddyConfig = {
   workflows: {
     enabled: true,
     outputDir: '.github/workflows',
-    templates: ${renderPresetValue(preset.templates, 4)},
-    custom: ${renderPresetValue(presetCustomWorkflows(preset), 4)},
-  },${renderAutoMerge(preset)}
+    templates: {
+      daily: true,
+      weekly: true,
+      monthly: true,
+    },
+    custom: [],
+  },
   packages: {
-    strategy: '${preset.strategy}',
+    strategy: 'all',
     ignore: [
       // Add packages to ignore here
       // Example: '@types/node', 'eslint'
@@ -1234,123 +1153,7 @@ function generateComposerSetupSteps(): string {
 `
 }
 
-/**
- * Cron for the daily orphan-branch and obsolete-pull-request sweep.
- *
- * Not preset-driven: housekeeping is the same job whatever cadence a project
- * wants for its updates, and a preset that turned it off would silently let
- * stale branches pile up.
- */
-const CLEANUP_SCHEDULE = '0 4 * * *'
-
-/** Cron for the weekly dependency-health report. */
-const REPORT_SCHEDULE = '0 9 * * 1'
-
-/** A job a scheduled tick can start. */
-export type ScheduledJob = 'update' | 'dashboard' | 'check' | 'report'
-
-/** One cron expression and everything it starts. */
-export interface ScheduleEntry {
-  cron: string
-  jobs: ScheduledJob[]
-}
-
-/**
- * Work out which jobs each scheduled tick should start.
- *
- * The generated workflow names its cron expressions twice — once in the
- * `schedule:` trigger list and once in the `determine-jobs` step that matches
- * `github.event.schedule` to decide what to run. Those two have to agree
- * exactly, and a cron declared in one but not the other produces a workflow
- * that starts and does nothing. Deriving both from this plan makes that
- * particular drift impossible rather than merely unlikely.
- *
- * Two properties matter and neither is obvious from the preset data:
- *
- * - **A shared cron runs every job that asked for it.** Most presets give
- *   updates and the dashboard the same expression, and a naive if/elif chain
- *   would let the first branch win and drop the other job entirely.
- * - **`manual` means no schedule**, not a cron expression. The `testing` and
- *   `custom` presets use it, and emitting it verbatim yields YAML that GitHub
- *   refuses to parse.
- *
- * @param preset - The workflow preset being generated
- * @returns Distinct cron expressions, each with the jobs it starts
- * @example
- * ```ts
- * schedulePlan(getWorkflowPreset('standard'))
- * // [{ cron: '0 9 * * 1,3,5', jobs: ['update', 'dashboard'] }, ...]
- * ```
- */
-export function schedulePlan(preset: WorkflowPreset): ScheduleEntry[] {
-  const byCron = new Map<string, ScheduledJob[]>()
-
-  const add = (cron: string | undefined, job: ScheduledJob): void => {
-    if (!cron || cron === 'manual')
-      return
-
-    const jobs = byCron.get(cron) ?? []
-    if (!jobs.includes(job))
-      jobs.push(job)
-
-    byCron.set(cron, jobs)
-  }
-
-  add(preset.schedules.updates, 'update')
-  add(preset.schedules.dashboard, 'dashboard')
-  add(CLEANUP_SCHEDULE, 'check')
-  add(REPORT_SCHEDULE, 'report')
-
-  return [...byCron].map(([cron, jobs]) => ({ cron, jobs }))
-}
-
-/** What each job is for, so the generated YAML explains its own schedule. */
-const JOB_PURPOSE: Record<ScheduledJob, string> = {
-  update: 'check for dependency updates',
-  dashboard: 'refresh the dependency dashboard',
-  check: 'sweep orphaned branches and obsolete pull requests',
-  report: 'publish the dependency-health report',
-}
-
-/** Render the `schedule:` trigger list. */
-function renderScheduleTriggers(plan: ScheduleEntry[]): string {
-  return plan
-    .map(({ cron, jobs }) => [
-      `    # ${jobs.map(job => JOB_PURPOSE[job]).join(', then ')}`,
-      `    - cron: '${cron}'`,
-    ].join('\n'))
-    .join('\n')
-}
-
-/**
- * Render the `determine-jobs` branch that reads a scheduled tick.
- *
- * A `case` rather than an if/elif chain, because a cron shared by several jobs
- * has to start all of them.
- */
-function renderScheduleDispatch(plan: ScheduleEntry[]): string {
-  if (plan.length === 0)
-    return '            echo "ℹ️ No scheduled jobs are configured"'
-
-  const branches = plan.map(({ cron, jobs }) => [
-    `              "${cron}")`,
-    ...jobs.map(job => `                echo "run_${job}=true" >> $GITHUB_OUTPUT`),
-    '                ;;',
-  ].join('\n'))
-
-  return [
-    '            case "${{ github.event.schedule }}" in',
-    ...branches,
-    '            esac',
-  ].join('\n')
-}
-
-export function generateUnifiedWorkflow(
-  _hasCustomToken: boolean,
-  preset: WorkflowPreset = getWorkflowPreset('standard'),
-): string {
-  const plan = schedulePlan(preset)
-
+export function generateUnifiedWorkflow(_hasCustomToken: boolean): string {
   return `name: Buddy
 
 on:
@@ -1383,10 +1186,17 @@ on:
   workflow_run:
     types: [completed]
 
-  # Generated from the chosen preset. The matcher in \`determine-jobs\` is built
-  # from the same plan, so a cron declared here always has something to run.
   schedule:
-${renderScheduleTriggers(plan)}
+    # Update dependencies every 2 hours
+    - cron: '0 */2 * * *'
+    # Update dashboard 15 minutes after dependency updates (ensures updates are reflected)
+    - cron: '15 */2 * * *'
+    # Daily cleanup at 4am UTC — runs the check job for orphan-branch cleanup
+    # and obsolete-PR detection. The PR-edited trigger handles rebase requests
+    # in real time, but cleanup needs a scheduled tick or stale branches pile up.
+    - cron: '0 4 * * *'
+    # Weekly dependency-health report, Monday 09:00 UTC.
+    - cron: '0 9 * * 1'
 
   workflow_dispatch: # Manual trigger
     inputs:
@@ -1404,7 +1214,7 @@ ${renderScheduleTriggers(plan)}
       strategy:
         description: Update strategy
         required: false
-        default: ${preset.strategy}
+        default: patch
         type: choice
         options:
           - all
@@ -1481,7 +1291,6 @@ jobs:
       run_command: \${{ steps.determine.outputs.run_command }}
       run_review: \${{ steps.determine.outputs.run_review }}
       run_fixci: \${{ steps.determine.outputs.run_fixci }}
-      run_report: \${{ steps.determine.outputs.run_report }}
     steps:
       - name: Determine which jobs to run
         id: determine
@@ -1583,7 +1392,13 @@ jobs:
             fi
           elif [ "\${{ github.event_name }}" = "schedule" ]; then
             # Determine based on cron schedule
-${renderScheduleDispatch(plan)}
+            if [ "\${{ github.event.schedule }}" = "0 */2 * * *" ]; then
+              echo "run_update=true" >> \$GITHUB_OUTPUT
+            elif [ "\${{ github.event.schedule }}" = "15 */2 * * *" ]; then
+              echo "run_dashboard=true" >> \$GITHUB_OUTPUT
+            elif [ "\${{ github.event.schedule }}" = "0 4 * * *" ]; then
+              echo "run_check=true" >> \$GITHUB_OUTPUT
+            fi
           fi
 
   # Shared setup job for common dependencies
@@ -1591,7 +1406,7 @@ ${renderScheduleDispatch(plan)}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: determine-jobs
-    if: \${{ needs.determine-jobs.outputs.run_check == 'true' || needs.determine-jobs.outputs.run_update == 'true' || needs.determine-jobs.outputs.run_dashboard == 'true' || needs.determine-jobs.outputs.run_report == 'true' }}
+    if: \${{ needs.determine-jobs.outputs.run_check == 'true' || needs.determine-jobs.outputs.run_update == 'true' || needs.determine-jobs.outputs.run_dashboard == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -1735,7 +1550,7 @@ ${generateComposerSetupSteps()}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [determine-jobs, setup]
-    if: \${{ needs.determine-jobs.outputs.run_report == 'true' }}
+    if: \${{ github.event_name == 'schedule' && github.event.schedule == '0 9 * * 1' }}
 
     steps:
       - name: Checkout repository
@@ -1936,7 +1751,7 @@ ${generateComposerSetupSteps()}
       - name: Display update configuration
         run: |
           echo "🧪 **Buddy Update Mode**"
-          echo "Strategy: \${{ github.event.inputs.strategy || '${preset.strategy}' }}"
+          echo "Strategy: \${{ github.event.inputs.strategy || 'patch' }}"
           echo "Dry Run: \${{ github.event.inputs.dry_run || 'false' }}"
           echo "Packages: \${{ github.event.inputs.packages || 'all' }}"
           echo "Verbose: \${{ github.event.inputs.verbose || 'true' }}"
@@ -1947,7 +1762,7 @@ ${generateComposerSetupSteps()}
       - name: Run Buddy dependency updates
         if: \${{ github.event.inputs.dry_run != 'true' }}
         run: |
-          STRATEGY="\${{ github.event.inputs.strategy || '${preset.strategy}' }}"
+          STRATEGY="\${{ github.event.inputs.strategy || 'patch' }}"
           PACKAGES="\${{ github.event.inputs.packages }}"
           VERBOSE="\${{ github.event.inputs.verbose || 'true' }}"
 
@@ -1986,7 +1801,7 @@ ${generateComposerSetupSteps()}
         run: |
           echo "## 🚀 Dependency Update Summary" >> \$GITHUB_STEP_SUMMARY
           echo "" >> \$GITHUB_STEP_SUMMARY
-          echo "- **Strategy**: \${{ github.event.inputs.strategy || '${preset.strategy}' }}" >> \$GITHUB_STEP_SUMMARY
+          echo "- **Strategy**: \${{ github.event.inputs.strategy || 'patch' }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: \${{ github.event_name }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Dry run**: \${{ github.event.inputs.dry_run || 'false' }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Packages**: \${{ github.event.inputs.packages || 'all' }}" >> \$GITHUB_STEP_SUMMARY
@@ -1995,11 +1810,11 @@ ${generateComposerSetupSteps()}
           echo "" >> \$GITHUB_STEP_SUMMARY
 
           if [ "\${{ github.event_name }}" = "schedule" ]; then
-            echo "⏰ **Scheduled Run**: This was triggered automatically (${preset.name}: \`${preset.schedules.updates}\`)" >> \$GITHUB_STEP_SUMMARY
+            echo "⏰ **Scheduled Run**: This was triggered automatically every 2 hours" >> \$GITHUB_STEP_SUMMARY
             echo "💡 **Tip**: Use 'Actions' tab to manually trigger with custom settings" >> \$GITHUB_STEP_SUMMARY
           else
             echo "🖱️ **Manual Trigger**: This was triggered manually from the Actions tab" >> \$GITHUB_STEP_SUMMARY
-            echo "⏰ **Auto-Schedule**: This workflow also runs on \`${preset.schedules.updates}\`" >> \$GITHUB_STEP_SUMMARY
+            echo "⏰ **Auto-Schedule**: This workflow also runs every 2 hours" >> \$GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> \$GITHUB_STEP_SUMMARY
@@ -2167,7 +1982,7 @@ ${generateComposerSetupSteps()}
 
           if [ "\${{ github.event_name }}" = "schedule" ]; then
             echo "⏰ **Scheduled Update**: This was triggered automatically" >> \$GITHUB_STEP_SUMMARY
-            echo "🔄 **Schedule**: \`${preset.schedules.dashboard}\` (${preset.name})" >> \$GITHUB_STEP_SUMMARY
+            echo "🔄 **Schedule**: Every 2 hours, 15 minutes after dependency updates" >> \$GITHUB_STEP_SUMMARY
             echo "💡 **Tip**: Use 'Actions' tab to manually trigger with custom settings" >> \$GITHUB_STEP_SUMMARY
           else
             echo "🖱️ **Manual Trigger**: This was triggered manually from the Actions tab" >> \$GITHUB_STEP_SUMMARY
@@ -2187,7 +2002,7 @@ ${generateComposerSetupSteps()}
 `
 }
 
-export async function generateCoreWorkflows(preset: WorkflowPreset, _repoInfo: RepositoryInfo, hasCustomToken: boolean, logger: Logger): Promise<void> {
+export async function generateCoreWorkflows(_preset: WorkflowPreset, _repoInfo: RepositoryInfo, hasCustomToken: boolean, logger: Logger): Promise<void> {
   // GitLab and Bitbucket get their own pipeline format. Writing GitHub Actions
   // workflows into a GitLab repository would produce files that never run,
   // which reads as a successful setup until the first schedule does nothing.
@@ -2208,12 +2023,9 @@ export async function generateCoreWorkflows(preset: WorkflowPreset, _repoInfo: R
   }
 
   // Generate unified workflow that combines all three previous workflows
-  const unifiedWorkflow = generateUnifiedWorkflow(hasCustomToken, preset)
+  const unifiedWorkflow = generateUnifiedWorkflow(hasCustomToken)
   fs.writeFileSync(path.join(outputDir, 'buddy.yml'), unifiedWorkflow)
-  logger.info(`Generated unified buddy workflow for ${preset.name} (combines check, update, and dashboard)`)
-
-  for (const { cron, jobs } of schedulePlan(preset))
-    logger.info(`  ${cron} — ${jobs.join(', ')}`)
+  logger.info('Generated unified buddy workflow (combines check, update, and dashboard)')
 
   // Generate the security-audit workflow alongside. Lives as its own
   // file so it runs (and triggers on workflow path filters) independently

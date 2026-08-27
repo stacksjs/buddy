@@ -549,22 +549,19 @@ cli
         }
       }
 
-      // Resolved before the config file, not after: the preset decides the
-      // update strategy and auto-merge policy that file is written with.
-      const preset = getWorkflowPreset(workflowResponse.useCase)
-
       // Step 5: Generate Configuration File
       updateProgress(progress, 'Configuration File', true)
       displayProgress(progress)
 
       console.log('\n📝 Configuration File')
-      await generateConfigFile(repoInfo, tokenSetup.hasCustomToken, preset)
+      await generateConfigFile(repoInfo, tokenSetup.hasCustomToken)
 
       // Step 6: Generate Workflows
       updateProgress(progress, 'Workflow Generation', true)
       displayProgress(progress)
 
       console.log('\n🔄 Workflow Generation')
+      const preset = getWorkflowPreset(workflowResponse.useCase)
 
       if (workflowResponse.useCase === 'custom' && !options.nonInteractive) {
         await setupCustomWorkflow(preset, logger)

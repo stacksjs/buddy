@@ -600,7 +600,7 @@ buddy dashboard --title "My Dependencies"
 
 The unified workflow (`.github/workflows/buddy.yml`) automatically updates your dependency dashboard:
 
-- **📅 Scheduled**: On the schedule your preset sets — often the same tick as the dependency update run
+- **📅 Scheduled**: Runs every 2 hours, 15 minutes after the dependency update run
 - **🖱️ Manual**: Trigger from Actions tab with custom options
 - **📌 Auto-Pin**: Keeps dashboard pinned by default
 - **🔍 Dry-Run**: Preview mode available
@@ -972,12 +972,12 @@ buddy generate-workflows
 
 The updated workflow system automatically:
 
-- **On your preset's schedule**: All configured strategies with dry-run by default
+- **Every 2 hours**: All configured strategies with dry-run by default
 - **Manual trigger**: Any strategy with configurable dry-run option
 - **Enhanced testing**: Comprehensive validation and summaries
 - **Failure handling**: Auto-creates GitHub issues
 - **Smart summaries**: Rich GitHub Actions summaries
-- **Flexible scheduling**: Each preset sets its own update and dashboard cadence
+- **Flexible scheduling**: Consistent 2-hour intervals for all presets
 
 ### GitHub Actions Permissions Setup
 
