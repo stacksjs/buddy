@@ -1349,117 +1349,18 @@ cli
 
     try {
       const provider = await providerFor(config, 'this command', logger)
+      const { runFixCi } = await import('../src/ci')
 
-      assertSupports(provider, 'ciLogs', 'getWorkflowRunLogs', 'reading CI logs')
-      const runId = options.runId ? Number.parseInt(options.runId, 10) : undefined
-      const log = runId ? await provider.getWorkflowRunLogs(runId) : null
-
-      if (!log) {
-        logger.warn('⚠️ Could not read the run logs; nothing to diagnose')
-        return
-      }
-
-      const { attemptFix, failsOnBaseBranch } = await import('../src/ci')
-      const { parseFixAttempts, upsertFixAttempts } = await import('../src/ci/attempts')
-      const { createAiClient } = await import('../src/ai')
-
-      // The guard in attemptFix can only stop a loop if it is told how many
-      // attempts came before, and a CI job remembers nothing between runs.
-      const prNumber = options.pr ? Number.parseInt(options.pr, 10) : undefined
-      let pullRequest: PullRequest | undefined
-      if (prNumber) {
-        const open = await provider.getPullRequests('open')
-        pullRequest = open.find(candidate => candidate.number === prNumber)
-      }
-      const priorAttempts = parseFixAttempts(pullRequest?.body)?.attempts ?? 0
-      const baseBranch = config.repository?.baseBranch ?? 'main'
-
-      // Both of these are capability-gated rather than assumed: a provider
-      // that cannot read a run history still gets the full diagnosis, it just
-      // cannot tell an inherited failure from a new one.
-      const canReadRuns = supports(provider, 'ciRuns', 'listWorkflowRuns')
-      const canRerun = supports(provider, 'ciRuns', 'rerunWorkflowRun')
-
-      const outcome = await attemptFix({
-        log,
-        priorAttempts,
-        workspace: process.cwd(),
-        baseBranch,
-        ai: createAiClient(config, logger),
+      const status = await runFixCi({
+        config,
+        provider,
         logger,
         dryRun: Boolean(options.dryRun),
-        ...(canReadRuns
-          ? {
-              checkBase: (kind: FailureKind) => failsOnBaseBranch(
-                {
-                  listWorkflowRuns: (branch, listOptions) => provider.listWorkflowRuns!(branch, listOptions),
-                  getWorkflowRunLogs: id => provider.getWorkflowRunLogs!(id),
-                },
-                baseBranch,
-                kind,
-                logger,
-              ),
-            }
-          : {}),
-        ...(canRerun && runId ? { rerun: () => provider.rerunWorkflowRun!(runId) } : {}),
-        regenerateLockfile: async () => {
-          const { regenerateLockFile, detectRequiredPackageManagers, getAllLockFilePaths } = await import('../src/utils/lock-file')
-          const { commitAndPush } = await import('../src/utils/git')
-
-          // Detection keys off the manifests a lockfile is derived from, so a
-          // repository with several ecosystems regenerates each of them.
-          const managers = detectRequiredPackageManagers(['package.json', 'composer.json'])
-          let regenerated = false
-
-          for (const manager of managers) {
-            const result = await regenerateLockFile(manager, process.cwd())
-            if (result.success)
-              regenerated = true
-            else
-              logger.warn(`⚠️ ${result.message}`)
-          }
-
-          if (!regenerated)
-            return { regenerated: false, pushed: false }
-
-          // Rewriting the file in a workspace that is about to be thrown away
-          // repairs nothing. The job checked this branch out with credentials,
-          // so the commit is a local one rather than a branch recreation.
-          try {
-            const pushed = await commitAndPush(
-              getAllLockFilePaths(),
-              'fix(deps): regenerate the lock file\n\nThe lock file had drifted from the manifest, which failed CI.',
-              process.cwd(),
-            )
-            return { regenerated: true, pushed }
-          }
-          catch (error) {
-            logger.warn(`⚠️ Could not push the regenerated lock file: ${error instanceof Error ? error.message : String(error)}`)
-            return { regenerated: true, pushed: false }
-          }
-        },
+        ...(options.runId ? { runId: Number.parseInt(options.runId, 10) } : {}),
+        ...(options.pr ? { prNumber: Number.parseInt(options.pr, 10) } : {}),
       })
 
-      logger.info(`\n${outcome.report}\n`)
-
-      if (prNumber && !options.dryRun) {
-        await provider.createComment(prNumber, outcome.report)
-
-        // Only a real attempt counts. Recording the ones the guard already
-        // refused would march the counter up without anything being tried.
-        if (outcome.action !== 'skipped' && pullRequest) {
-          try {
-            await provider.updatePullRequest(prNumber, {
-              body: upsertFixAttempts(pullRequest.body, priorAttempts + 1),
-            })
-          }
-          catch (error) {
-            logger.warn(`Could not record the fix attempt on PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
-          }
-        }
-      }
-
-      logger.success(`✅ ${outcome.action}${outcome.fixed ? ' (fixed)' : ''}`)
+      logger.success(`✅ ${status}`)
     }
     catch (error) {
       logger.error('fix-ci failed:', error)
@@ -1563,6 +1464,14 @@ cli
             return 'Rebased.'
           },
           merge: async () => await new Buddy(config).mergeEligiblePullRequests(false),
+          // `analysisOnly` because this job checks out the default branch, not
+          // the pull request's. A lock-file rewrite or an agent edit here would
+          // change the wrong tree; re-running a flake is an API call and still
+          // works. The fix-ci job, which does check out the branch, repairs.
+          fixCi: async (prNumber) => {
+            const { runFixCi } = await import('../src/ci')
+            return await runFixCi({ config, provider, prNumber, analysisOnly: true, logger })
+          },
           remember: async (text, context) => {
             const { addLearning, createLearning, loadLearnings, serializeLearnings, DEFAULT_LEARNINGS_FILE }
               = await import('../src/ai')

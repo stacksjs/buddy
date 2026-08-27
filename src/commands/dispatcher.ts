@@ -49,7 +49,7 @@ export const HELP_TEXT = `**Buddy commands**
 | \`@buddy pause\` / \`resume\` | Stop or restart reviewing this pull request |
 | \`@buddy rebase\` | Rebase a dependency update pull request |
 | \`@buddy merge\` | Re-check auto-merge conditions now |
-| \`@buddy fix-ci\` | Diagnose and try to fix failing checks |
+| \`@buddy fix-ci\` | Diagnose the failing checks, and retry a flake |
 | \`@buddy remember <text>\` | Record a durable note for future runs |
 | \`@buddy help\` | Show this table |
 

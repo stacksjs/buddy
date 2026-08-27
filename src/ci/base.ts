@@ -99,10 +99,14 @@ export async function failsOnBaseBranch(
  * answers the question actually being asked — is this workflow red on base
  * right now — and drops a workflow whose latest run has since gone green.
  *
+ * Also used to pick *which* run a comment is asking about: the same
+ * interleaving that makes a base-branch check ambiguous makes "the run that
+ * failed on this pull request" ambiguous too.
+ *
  * @param runs - Runs, most recent first
  * @returns The newest run of each workflow, kept only where it failed
  */
-function latestFailurePerWorkflow(runs: WorkflowRun[]): WorkflowRun[] {
+export function latestFailurePerWorkflow(runs: WorkflowRun[]): WorkflowRun[] {
   const newest = new Map<string, WorkflowRun>()
 
   for (const run of runs) {
