@@ -63,6 +63,7 @@ if (supports(provider, 'pinIssues', 'pinIssue'))
 | `nativeAutoMerge`      | `enableAutoMerge`                            |
 | `commentReactions`     | `reactToComment`                             |
 | `ciLogs`               | `getWorkflowRunLogs`                         |
+| `ciRuns`               | `listWorkflowRuns`, `rerunWorkflowRun`       |
 | `teamReviewers`        | Requesting review from a team                |
 | `draftPullRequests`    | Opening a pull request as a draft            |
 | `permissionLookup`     | `hasWriteAccess`                             |
@@ -81,12 +82,19 @@ if (supports(provider, 'pinIssues', 'pinIssue'))
 | `nativeAutoMerge`      | ✅     | ✅ (merge when pipeline succeeds) | ❌ |
 | `commentReactions`     | ✅     | ✅ (award emoji) | ❌  |
 | `ciLogs`               | ✅     | ✅     | ❌        |
+| `ciRuns`               | ✅     | ✅ (jobs) | ❌     |
 | `teamReviewers`        | ✅     | ❌     | ❌        |
 | `draftPullRequests`    | ✅     | ✅ (title prefix) | ❌ |
 | `permissionLookup`     | ✅     | ✅     | ✅        |
 | `branchHousekeeping`   | ✅     | ✅     | ✅        |
 | `reopenPullRequests`   | ✅     | ✅     | ❌        |
 | `labels`               | ✅     | ✅     | ❌        |
+
+`ciLogs` and `ciRuns` are separate for GitLab's sake. Reading one run's log
+and reasoning about a branch's run history are the same API on GitHub and two
+different ones on GitLab, which has pipelines *and* jobs. `listWorkflowRuns`
+returns jobs there, deliberately: a job is what `getWorkflowRunLogs` reads, and
+an `id` that could not be handed straight back to that method would be a trap.
 
 Two of these rows exist *because* Bitbucket forced the distinction. A declined
 Bitbucket pull request is final — there is no reopen — and Bitbucket has no

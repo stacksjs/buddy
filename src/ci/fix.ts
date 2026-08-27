@@ -1,6 +1,6 @@
 import type { AiClient } from '../ai/types'
 import type { Logger } from '../utils/logger'
-import type { ClassifiedFailure } from './classify'
+import type { ClassifiedFailure, FailureKind } from './classify'
 import { runAgent } from '../agent/runner'
 import { fixCiMode } from '../agent/modes'
 import { getDefaultLogger } from '../utils/logger'
@@ -24,6 +24,14 @@ export interface FixOptions {
   log: string
   /** Whether the same failure occurs on the base branch */
   failsOnBase?: boolean
+  /**
+   * Resolve whether the base branch fails the same way.
+   *
+   * A hook rather than a value because the answer needs the classification,
+   * which is computed here — and because it costs API calls that are only
+   * worth spending once there is a failure to compare against.
+   */
+  checkBase?: (kind: FailureKind) => Promise<boolean>
   /** Repository workspace */
   workspace: string
   /** Branch under repair */
@@ -42,6 +50,14 @@ export interface FixOptions {
    * on the branch are different outcomes and the report distinguishes them.
    */
   regenerateLockfile?: () => Promise<LockfileRepair>
+  /**
+   * Re-run the failing jobs.
+   *
+   * Only reached for a transient failure. A re-run happens against the
+   * original commit, so it can clear a flake and can do nothing at all for a
+   * commit that has since been repaired.
+   */
+  rerun?: () => Promise<boolean>
   /** Diagnose and report without changing anything */
   dryRun?: boolean
   logger?: Logger
@@ -101,7 +117,11 @@ export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
 
   // A failure that reproduces on the base branch is pre-existing. Patching
   // around it here would attribute someone else's breakage to this change.
-  if (options.failsOnBase) {
+  // An explicit answer wins over the hook, so a caller that already knows
+  // does not pay for the lookup.
+  const failsOnBase = options.failsOnBase ?? (options.checkBase ? await options.checkBase(failure.kind) : false)
+
+  if (failsOnBase) {
     return {
       failure,
       action: 'skipped',
@@ -145,11 +165,41 @@ export async function attemptFix(options: FixOptions): Promise<FixOutcome> {
   }
 
   if (failure.kind === 'flake') {
+    if (options.dryRun) {
+      return {
+        failure,
+        action: 'retry',
+        fixed: false,
+        report: report(failure, 'This looks transient, and re-running the failed jobs would likely clear it. '
+          + 'Nothing was changed, because this was a dry run.'),
+      }
+    }
+
+    // Without a re-run hook the diagnosis is all there is to offer, which is
+    // what this branch did for every provider until one could be given.
+    if (!options.rerun) {
+      return {
+        failure,
+        action: 'retry',
+        fixed: false,
+        report: report(failure, 'This looks transient. Re-running the failed job is likely to clear it.'),
+      }
+    }
+
+    logger.info('🔁 Re-running the failed jobs')
+    const rerun = await options.rerun()
+
     return {
       failure,
       action: 'retry',
+      // A re-run is not a repair. The jobs have been asked to run again and
+      // may still fail; reporting that as fixed would be a guess dressed up
+      // as a result.
       fixed: false,
-      report: report(failure, 'This looks transient. Re-running the failed job is likely to clear it.'),
+      report: report(failure, rerun
+        ? 'This looks transient, so I re-ran the failed jobs. No model was needed.'
+        : 'This looks transient, but I could not re-run the failed jobs — `actions: write` is the usual reason. '
+        + 'Re-running them from the Actions tab is likely to clear it.'),
     }
   }
 

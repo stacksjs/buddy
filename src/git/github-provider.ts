@@ -1,6 +1,6 @@
 import type { FileChange, Issue, IssueOptions, PullRequest, PullRequestOptions } from '../types'
 import type { Logger } from '../utils/logger'
-import type { GitProvider, ProviderCapabilities } from './provider'
+import type { GitProvider, ListWorkflowRunsOptions, ProviderCapabilities, WorkflowRun } from './provider'
 import { Buffer } from 'node:buffer'
 import { spawn } from 'node:child_process'
 import process from 'node:process'
@@ -14,6 +14,36 @@ import { getDefaultLogger } from '../utils/logger'
 // Match GitHub token formats (ghp_*, gho_*, ghs_*, ghu_*, ghr_*, github_pat_*)
 // plus any 40+ char alphanumeric blob that looks like a credential.
 const TOKEN_PATTERN = /\b(?:gh[pousr]_[A-Z0-9_]{20,}|github_pat_[A-Z0-9_]{20,}|[A-Z0-9]{40,})\b/gi
+
+/**
+ * Map GitHub's run status onto the three this codebase uses.
+ *
+ * Anything unrecognised reads as `queued` rather than `completed`: an unknown
+ * state must not be mistaken for a finished one.
+ */
+function runStatus(raw: unknown): WorkflowRun['status'] {
+  return raw === 'completed' || raw === 'in_progress' ? raw : 'queued'
+}
+
+/**
+ * Map GitHub's conclusion vocabulary onto the four this codebase uses.
+ *
+ * `timed_out` and `action_required` collapse into `failure`, which is how
+ * `getPullRequestChecksState` already treats them — a run that timed out did
+ * not pass, and a caller reasoning about red builds should see it as red.
+ */
+function runConclusion(raw: unknown): WorkflowRun['conclusion'] {
+  if (typeof raw !== 'string')
+    return null
+
+  if (raw === 'success' || raw === 'cancelled')
+    return raw
+
+  if (raw === 'failure' || raw === 'timed_out' || raw === 'action_required')
+    return 'failure'
+
+  return 'skipped'
+}
 
 function sanitizeStderr(stderr: string, token?: string): string {
   let out = stderr.replace(TOKEN_PATTERN, '[REDACTED]')
@@ -118,6 +148,7 @@ export class GitHubProvider implements GitProvider {
       nativeAutoMerge: true,
       commentReactions: true,
       ciLogs: true,
+      ciRuns: true,
       teamReviewers: true,
       draftPullRequests: true,
       permissionLookup: true,
@@ -1126,6 +1157,96 @@ export class GitHubProvider implements GitProvider {
     catch (error) {
       this.logger.debug(`Could not fetch logs for run ${runId}: ${formatError(error)}`)
       return null
+    }
+  }
+
+  /**
+   * List recent workflow runs for a branch, most recent first.
+   *
+   * Resolves `[]` rather than throwing when the history cannot be read. The
+   * caller asking is deciding whether a failure is pre-existing, and an
+   * unreadable history is no evidence either way — treating it as evidence
+   * would either mask a real regression or refuse a repair that was wanted.
+   *
+   * @param branch - Branch to list runs for
+   * @param options - State filter and how many runs to return
+   * @returns Runs, most recent first; `[]` when unreadable
+   * @example
+   * ```ts
+   * const runs = await provider.listWorkflowRuns('main', { status: 'completed', limit: 10 })
+   * ```
+   */
+  async listWorkflowRuns(branch: string, options: ListWorkflowRunsOptions = {}): Promise<WorkflowRun[]> {
+    const query = new URLSearchParams({ branch, per_page: String(options.limit ?? 20) })
+    if (options.status)
+      query.set('status', options.status)
+
+    try {
+      const data = await this.apiRequest(
+        `GET /repos/${this.owner}/${this.repo}/actions/runs?${query.toString()}`,
+      )
+
+      const runs = (data?.workflow_runs ?? []) as Array<Record<string, unknown>>
+      return runs.map(run => ({
+        id: Number(run.id),
+        name: String(run.name ?? ''),
+        headSha: String(run.head_sha ?? ''),
+        headBranch: String(run.head_branch ?? branch),
+        status: runStatus(run.status),
+        conclusion: runConclusion(run.conclusion),
+        createdAt: new Date(String(run.created_at ?? new Date().toISOString())),
+      }))
+    }
+    catch (error) {
+      this.logger.debug(`Could not list workflow runs for ${branch}: ${formatError(error)}`)
+      return []
+    }
+  }
+
+  /**
+   * Re-run a workflow run.
+   *
+   * GitHub re-runs against the run's *original* commit, so this clears a
+   * failure that a retry can clear on its own — a flake. It is not a way to
+   * re-check a commit that has since been repaired: that commit needs a run of
+   * its own, and this endpoint will not produce one.
+   *
+   * Requires `actions: write`. A refusal is reported rather than thrown,
+   * because the caller is a repair run and losing it over a permission it only
+   * wanted opportunistically would be worse than not retrying.
+   *
+   * @param runId - Run to re-run
+   * @param failedJobsOnly - Re-run only the jobs that failed (default true)
+   * @returns Whether GitHub accepted the request
+   */
+  async rerunWorkflowRun(runId: number, failedJobsOnly = true): Promise<boolean> {
+    // Deliberately not `apiRequest`: this endpoint answers 201 with an empty
+    // body, which that helper would try to parse as JSON.
+    const endpoint = failedJobsOnly ? 'rerun-failed-jobs' : 'rerun'
+
+    try {
+      const response = await fetchWithTimeout(
+        `${this.apiUrl}/repos/${this.owner}/${this.repo}/actions/runs/${runId}/${endpoint}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'buddy',
+          },
+        },
+      )
+
+      if (!response.ok) {
+        this.logger.warn(`Could not re-run workflow run ${runId}: ${response.status} ${response.statusText}`)
+        return false
+      }
+
+      return true
+    }
+    catch (error) {
+      this.logger.warn(`Could not re-run workflow run ${runId}: ${formatError(error)}`)
+      return false
     }
   }
 

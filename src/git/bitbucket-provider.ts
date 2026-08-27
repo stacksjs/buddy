@@ -91,6 +91,9 @@ export class BitbucketProvider implements GitProvider {
       nativeAutoMerge: false,
       commentReactions: false,
       ciLogs: false,
+      // Bitbucket Pipelines is a separate product with its own API surface,
+      // and this provider reads none of it.
+      ciRuns: false,
       teamReviewers: false,
       // Bitbucket has no draft state at all.
       draftPullRequests: false,

@@ -2,14 +2,55 @@ import type { FileChange, Issue, IssueOptions, PullRequest, PullRequestOptions }
 import type { Logger } from '../utils/logger'
 import type {
   GitProvider,
+  ListWorkflowRunsOptions,
   ProviderBranch,
   ProviderCapabilities,
   ReviewSubmission,
   ReviewSubmissionResult,
+  WorkflowRun,
 } from './provider'
 import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
+
+/** GitLab's CI job, as much of it as buddy reads. */
+interface GitLabJob {
+  id: number
+  name?: string
+  status?: string
+  ref?: string
+  created_at?: string
+  commit?: { id?: string }
+}
+
+/**
+ * Map GitLab's job status onto the three run states this codebase uses.
+ *
+ * `manual` and `skipped` count as finished: nothing further will happen to
+ * them without a person, so treating them as pending would leave a caller
+ * waiting forever.
+ */
+function jobStatus(raw: string | undefined): WorkflowRun['status'] {
+  if (raw === 'running')
+    return 'in_progress'
+
+  if (raw === 'success' || raw === 'failed' || raw === 'canceled' || raw === 'skipped' || raw === 'manual')
+    return 'completed'
+
+  return 'queued'
+}
+
+/** Map GitLab's job status onto a conclusion, or `null` while unfinished. */
+function jobConclusion(raw: string | undefined): WorkflowRun['conclusion'] {
+  switch (raw) {
+    case 'success': return 'success'
+    case 'failed': return 'failure'
+    case 'canceled': return 'cancelled'
+    case 'skipped':
+    case 'manual': return 'skipped'
+    default: return null
+  }
+}
 
 /** GitLab's merge request, as much of it as buddy reads. */
 interface GitLabMergeRequest {
@@ -102,6 +143,8 @@ export class GitLabProvider implements GitProvider {
       nativeAutoMerge: true,
       commentReactions: true,
       ciLogs: true,
+      // Jobs, not pipelines — see `listWorkflowRuns`.
+      ciRuns: true,
       teamReviewers: false,
       draftPullRequests: true,
       permissionLookup: true,
@@ -596,6 +639,72 @@ export class GitLabProvider implements GitProvider {
   async getWorkflowRunLogs(runId: number): Promise<string | null> {
     return this.optional<string>('GET', `/projects/${this.projectId}/jobs/${runId}/trace`)
       .catch(() => null)
+  }
+
+  /**
+   * List recent CI jobs for a branch, most recent first.
+   *
+   * Jobs rather than pipelines, deliberately. `getWorkflowRunLogs` reads a
+   * job trace, so returning pipeline ids here would hand callers an `id` that
+   * looks interchangeable and is not — the log read would quietly 404, or
+   * worse, hit an unrelated job that happens to share the number.
+   *
+   * GitLab cannot filter `/jobs` by ref, so the branch filter is applied here.
+   *
+   * @param branch - Branch to list jobs for
+   * @param options - State filter and how many jobs to return
+   * @returns Jobs, most recent first; `[]` when unreadable
+   */
+  async listWorkflowRuns(branch: string, options: ListWorkflowRunsOptions = {}): Promise<WorkflowRun[]> {
+    const limit = options.limit ?? 20
+
+    try {
+      // Over-fetch, because the ref filter is applied client-side and a busy
+      // project's most recent jobs may all belong to other branches.
+      const jobs = await this.request<GitLabJob[]>(
+        'GET',
+        `/projects/${this.projectId}/jobs?per_page=${Math.min(limit * 5, 100)}`,
+      )
+
+      return (jobs ?? [])
+        .filter(job => job.ref === branch)
+        .map(job => ({
+          id: job.id,
+          name: job.name ?? '',
+          headSha: job.commit?.id ?? '',
+          headBranch: job.ref ?? branch,
+          status: jobStatus(job.status),
+          conclusion: jobConclusion(job.status),
+          createdAt: new Date(job.created_at ?? new Date().toISOString()),
+        }))
+        .filter(run => !options.status || run.status === options.status)
+        .slice(0, limit)
+    }
+    catch (error) {
+      this.logger.debug(`Could not list CI jobs for ${branch}: ${formatError(error)}`)
+      return []
+    }
+  }
+
+  /**
+   * Retry a CI job.
+   *
+   * GitLab retries against the job's original commit, same as GitHub, so this
+   * clears a failure a retry can clear on its own rather than re-checking a
+   * commit that has since been repaired.
+   *
+   * @param runId - Job to retry
+   * @returns Whether GitLab accepted the request
+   */
+  async rerunWorkflowRun(runId: number): Promise<boolean> {
+    try {
+      await this.request('POST', `/projects/${this.projectId}/jobs/${runId}/retry`)
+      return true
+    }
+    catch (error) {
+      this.logger.warn(`Could not retry job ${runId}: ${formatError(error)}`)
+      return false
+    }
   }
 
   // -- Housekeeping --------------------------------------------------------
