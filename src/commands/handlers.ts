@@ -15,6 +15,8 @@ export interface HandlerDeps {
   merge: () => Promise<number[]>
   /** Diagnose the failing checks on a pull request */
   fixCi: (prNumber: number) => Promise<string>
+  /** Turn an issue or pull request into an implementation plan */
+  plan: (number: number, isPullRequest: boolean, request: string) => Promise<string>
   /** Record a durable note */
   remember: (text: string, context: CommandContext) => Promise<string>
 }
@@ -113,6 +115,13 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
 
       const reply = await deps.remember(text, context)
       return { handled: true, reply }
+    },
+
+    async plan(context): Promise<CommandOutcome> {
+      // Answered as the reply rather than posted separately: the plan *is* the
+      // response to the comment, and `handle-comment` already posts one.
+      const plan = await deps.plan(context.number, context.isPullRequest, context.command.args.trim())
+      return { handled: true, reply: plan }
     },
 
     async chat(context): Promise<CommandOutcome> {

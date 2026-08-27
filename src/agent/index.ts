@@ -7,6 +7,8 @@ export {
   restrictedMode,
   reviewMode,
 } from './modes'
+export { runPlan } from './plan'
+export type { RunPlanOptions } from './plan'
 export { runAgent, wrapUntrusted } from './runner'
 export {
   autofixTouch,
@@ -42,3 +44,4 @@ export {
   verifyChanges,
 } from './stacked'
 export type { DeliveryMode, StackedOptions, StackedResult, Verification } from './stacked'
+export { createReadIssueTool } from './tools/issue'

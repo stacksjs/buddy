@@ -112,7 +112,9 @@ jobs:
 
 ## Issues answer too
 
-`buddy handle-issue` posts Buddy's quick-links on a new issue — a set of checkboxes that turn an issue into an action without anyone having to remember the command names. Tick "plan this" and Buddy replies with an implementation plan; the plan mode draws only from read tools, so it can propose work it cannot perform.
+`buddy handle-issue` posts Buddy's quick-links on a new issue — a set of checkboxes that turn an issue into an action without anyone having to remember the command names. Tick "Make a plan" and Buddy replies with an implementation plan; plan mode draws only from read tools, so it can propose work it cannot perform.
+
+Either way — the checkbox or `@buddy plan` — Buddy reads the issue through a tool rather than being handed its text. An issue on a public repository is written by anyone at all, so its title and body arrive marked as third-party data rather than as part of the instructions.
 
 ## Permissions {#permissions}
 
