@@ -9,16 +9,16 @@ describe('CLI Setup - Extended Tests', () => {
       const workflowWithCustomToken = generateUnifiedWorkflow(true)
       expect(workflowWithCustomToken).toContain('name: Buddy')
       expect(workflowWithCustomToken).toContain('pull_request:') // Rebase checkbox via PR edit event
-      expect(workflowWithCustomToken).toContain('cron: \'0 */2 * * *\'') // Update job
-      expect(workflowWithCustomToken).toContain('cron: \'15 */2 * * *\'') // Dashboard job
+      // Standard puts updates and the dashboard on one expression, so one
+      // cron entry starts both jobs.
+      expect(workflowWithCustomToken).toContain('cron: \'0 9 * * 1,3,5\'')
       expect(workflowWithCustomToken).toContain('BUDDY_TOKEN')
 
       // Test with default token
       const workflowWithDefaultToken = generateUnifiedWorkflow(false)
       expect(workflowWithDefaultToken).toContain('name: Buddy')
       expect(workflowWithDefaultToken).toContain('pull_request:') // Rebase checkbox via PR edit event
-      expect(workflowWithDefaultToken).toContain('cron: \'0 */2 * * *\'') // Update job
-      expect(workflowWithDefaultToken).toContain('cron: \'15 */2 * * *\'') // Dashboard job
+      expect(workflowWithDefaultToken).toContain('cron: \'0 9 * * 1,3,5\'')
       // eslint-disable-next-line no-template-curly-in-string
       expect(workflowWithDefaultToken).toContain('${{ secrets.GITHUB_TOKEN }}')
       // Should not use BUDDY_TOKEN in the actual token environment variable

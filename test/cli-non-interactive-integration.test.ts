@@ -123,7 +123,8 @@ describe('CLI Non-Interactive Integration Tests', () => {
       // Verify the unified workflow has the correct content
       const unifiedContent = await fs.readFile('.github/workflows/buddy.yml', 'utf-8')
       expect(unifiedContent).toContain('name: Buddy')
-      expect(unifiedContent).toContain('cron: \'0 */2 * * *\'')
+      // The standard preset's own schedule, not a constant the generator invents.
+      expect(unifiedContent).toContain('cron: \'0 9 * * 1,3,5\'')
       expect(unifiedContent).toContain('default: true') // dry_run default
     })
 
@@ -186,7 +187,7 @@ describe('CLI Non-Interactive Integration Tests', () => {
       // Test all the required sections from the specification
       const requiredSections = [
         'name: Buddy',
-        'cron: \'0 */2 * * *\'',
+        'cron: \'0 9 * * 1,3,5\'',
         'workflow_dispatch:',
         'strategy:',
         'dry_run:',
@@ -251,7 +252,7 @@ describe('CLI Non-Interactive Integration Tests', () => {
 
       const requiredSections = [
         'name: Buddy',
-        'cron: \'15 */2 * * *\'',
+        'cron: \'0 9 * * 1,3,5\'',
         'workflow_dispatch:',
         'bunx @buddysh/buddy dashboard',
         'dashboard-update:', // job name
