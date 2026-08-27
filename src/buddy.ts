@@ -1924,29 +1924,47 @@ export class Buddy {
    * Filter updates by minimum release age requirement
    */
   private async filterUpdatesByMinimumReleaseAge(updates: PackageUpdate[]): Promise<PackageUpdate[]> {
-    const minimumReleaseAge = this.config.packages?.minimumReleaseAge ?? 0
+    const globalAge = this.config.packages?.minimumReleaseAge ?? 0
+    const rules = this.activeRules()
 
-    // If no minimum age is set, return all updates
-    if (minimumReleaseAge === 0) {
+    // A rule can set a hold where the global is zero, so the early return has
+    // to account for both. Checking only the global here is what made
+    // `rules[].minimumReleaseAge` inert: it was resolved into the effects and
+    // nothing ever read it.
+    const ruleSetsAnAge = rules.some(rule => rule.minimumReleaseAge !== undefined)
+    if (globalAge === 0 && !ruleSetsAnAge) {
       return updates
     }
 
-    this.logger.info(`Applying minimum release age filter (${minimumReleaseAge} minutes) in parallel...`)
+    this.logger.info(`Applying minimum release age filter (global ${globalAge} minutes${
+      ruleSetsAnAge ? ', with per-rule overrides' : ''
+    }) in parallel...`)
 
     // PARALLEL: Check all updates concurrently
     const ageCheckPromises = updates.map(async (update) => {
       try {
+        // Resolved per update, because a rule matching this package may hold
+        // it longer — or shorter — than the repository default.
+        const required = (rules.length > 0
+          ? resolveRuleEffects(update, rules).minimumReleaseAge
+          : undefined) ?? globalAge
+
+        if (required === 0) {
+          return update
+        }
+
         const meetsRequirement = await this.registryClient.meetsMinimumReleaseAge(
           update.name,
           update.newVersion,
           update.dependencyType,
+          required,
         )
 
         if (meetsRequirement) {
           return update
         }
         else {
-          this.logger.debug(`Filtered out ${update.name}@${update.newVersion} (${update.dependencyType}) due to minimum release age requirement`)
+          this.logger.debug(`Filtered out ${update.name}@${update.newVersion} (${update.dependencyType}) — held for ${required} minutes after publication`)
           return null
         }
       }
