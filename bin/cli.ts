@@ -1585,56 +1585,39 @@ cli
         process.exit(1)
       }
 
-      const {
-        composeInstructions,
-        loadGuidelines,
-        parseReviewState,
-        prepareReview,
-        reviewDiff,
-      } = await import('../src/review')
+      const { composeInstructions, reviewDiff } = await import('../src/review')
       const { collectLocalDiff, formatReview, shouldFail } = await import('../src/review/local')
       const { runAnalyzers } = await import('../src/analysis')
 
-      let diff: string
-      let headSha = ''
-      let seenFingerprints: string[] = []
-      let gitProvider: GitProvider | null = null
-      let prBody: string | null = null
-      let wasPaused = false
-
+      // A pull request review goes through the shared path, which is also what
+      // `@buddy review` uses. It used to be reimplemented here and had drifted:
+      // this command skipped analyzers outright for a pull request and never
+      // read learnings at all, so the automatic review the generated workflow
+      // runs was the one path missing both.
       if (prNumber) {
-        gitProvider = await providerFor(config, 'reviewing a pull request', log)
+        const gitProvider = await providerFor(config, 'reviewing a pull request', log)
+        const { runReviewForPR } = await import('../src/review/run')
 
-        const number = Number.parseInt(prNumber, 10)
+        const status = await runReviewForPR({
+          config,
+          provider: gitProvider,
+          prNumber: Number.parseInt(prNumber, 10),
+          // `--auto` is what the generated workflow passes. Without it this is
+          // someone at a terminal, who has already decided they want a review.
+          trigger: options.auto ? 'automatic' : 'requested',
+          logger: log,
+          dryRun: Boolean(options.dryRun),
+          ...(options.summaryOnly ? { summaryOnly: true } : {}),
+          ...(options.profile ? { profile: options.profile as 'chill' | 'assertive' } : {}),
+        })
 
-        // Carry forward what earlier reviews already said, so a re-review
-        // reports only what is new rather than repeating itself.
-        const prs = await gitProvider.getPullRequests('open')
-        const pr = prs.find(candidate => candidate.number === number)
-
-        // `--auto` is what the generated workflow passes. Without it this is
-        // someone at a terminal, who has already decided they want a review.
-        if (pr) {
-          const { reviewSkipReason } = await import('../src/review/filters')
-          const skip = reviewSkipReason(config, pr, options.auto ? 'automatic' : 'requested')
-          if (skip) {
-            log.info(`🔍 Skipping PR #${number}: ${skip}`)
-            return
-          }
-        }
-
-        diff = await gitProvider.getPullRequestDiff(number)
-        const state = parseReviewState(pr?.body)
-        seenFingerprints = state?.fingerprints ?? []
-        prBody = pr?.body ?? null
-        wasPaused = Boolean(state?.paused)
-
-        // The commit being reviewed now, not the one reviewed last time.
-        // Reading it from the stored state recorded a stale sha, so the next
-        // run could not tell whether this commit had been seen.
-        headSha = await gitProvider.getPullRequestHeadSha(number)
+        logger.success(`✅ ${status}`)
+        return
       }
-      else {
+
+      let diff: string
+
+      {
         const base = options.base || config.repository?.baseBranch || 'main'
         const mode = options.staged ? 'staged' : options.branch ? 'branch' : 'working'
         log.info(`🔍 Reviewing ${mode} changes${mode === 'branch' ? ` against ${base}` : ''}...`)
@@ -1648,10 +1631,12 @@ cli
       }
 
       // Analyzers run locally against the working tree, so a local review gets
-      // the same secret scanning and linting a CI review does — with no token.
+      // the same secret scanning and linting a pull request review does — with
+      // no token. The `|| prNumber` that used to sit in this condition is why
+      // a pull request review got none of it.
       const { parseUnifiedDiff } = await import('../src/review/diff')
       const changedFiles = parseUnifiedDiff(diff).files.map(file => file.path)
-      const analysis = config.analysis?.enabled === false || prNumber
+      const analysis = config.analysis?.enabled === false
         ? { findings: [], ran: [], skipped: [] }
         : await runAnalyzers({
             files: changedFiles,
@@ -1676,30 +1661,18 @@ cli
         return
       }
 
-      // Guidelines are inlined into the prompt, so they are always read from
-      // the base branch — reading them from the PR's own branch would let a
-      // contributor rewrite the rules their code is reviewed against.
-      const baseRef = config.repository?.baseBranch || options.base || 'main'
-      const guidelines = gitProvider
-        ? await loadGuidelines(
-            (path, ref) => gitProvider!.getFileContent(path, ref),
-            baseRef,
-            config.ai?.review?.guidelineFiles,
-            logger,
-          )
-        : ''
-
+      // A local review has no provider to read the base branch through, so it
+      // runs without repository guidelines. Reading them from the working tree
+      // would be a different thing: guidelines are trusted context, and the
+      // working tree is whatever the person running this has edited.
       const reviewed = await reviewDiff(ai!, {
         diff,
         profile: options.profile ?? config.ai?.review?.profile,
         summaryOnly: options.summaryOnly ?? config.ai?.review?.summaryOnly,
-        instructions: composeInstructions({
-          global: config.ai?.review?.instructions,
-          guidelines,
-        }),
+        instructions: composeInstructions({ global: config.ai?.review?.instructions }),
         pathFilters: config.ai?.review?.pathFilters,
         pathInstructions: config.ai?.review?.pathInstructions,
-        seenFingerprints,
+        seenFingerprints: [],
         logger: log,
       })
 
@@ -1711,50 +1684,15 @@ cli
         omittedFiles: [...reviewed.omittedFiles, ...analysis.skipped.map(entry => `${entry.name} (${entry.reason})`)],
       }
 
-      const prepared = prepareReview(result, {
-        headSha,
-        requestChangesOn: config.ai?.review?.requestChangesOn,
-        seenFingerprints,
-      })
+      process.stdout.write(formatReview(result, format))
 
-      if (!prNumber) {
-        process.stdout.write(formatReview(result, format))
-
-        if (options.fix) {
-          const applied = await applyFixes(result.findings, Boolean(options.yes), logger)
-          logger.success(`🔧 Applied ${applied} suggestion(s)`)
-        }
-
-        if (options.failOn && shouldFail(result.findings, options.failOn as 'critical'))
-          process.exit(1)
-        return
+      if (options.fix) {
+        const applied = await applyFixes(result.findings, Boolean(options.yes), logger)
+        logger.success(`🔧 Applied ${applied} suggestion(s)`)
       }
 
-      if (options.dryRun) {
-        logger.info(`\n${prepared.body}\n`)
-        for (const comment of prepared.comments)
-          logger.info(`${comment.path}:${comment.line}\n${comment.body}\n`)
-        logger.success(`✅ Review complete: ${result.findings.length} finding(s)`)
-        return
-      }
-
-      assertSupports(gitProvider!, 'inlineReviewComments', 'createReview', 'posting a review')
-      const reviewedNumber = Number.parseInt(prNumber, 10)
-      await gitProvider.createReview(reviewedNumber, prepared)
-
-      // The review has landed; recording where it got to is bookkeeping, so a
-      // failure here must not present as a failed review.
-      try {
-        const { upsertReviewState } = await import('../src/review/marker')
-        await gitProvider.updatePullRequest(reviewedNumber, {
-          body: upsertReviewState(prBody, { ...prepared.state, ...(wasPaused ? { paused: true } : {}) }),
-        })
-      }
-      catch (error) {
-        logger.warn(`Could not record review state on PR #${prNumber}: ${error instanceof Error ? error.message : String(error)}`)
-      }
-
-      logger.success(`✅ Reviewed PR #${prNumber}: ${result.findings.length} finding(s)`)
+      if (options.failOn && shouldFail(result.findings, options.failOn as 'critical'))
+        process.exit(1)
     }
     catch (error) {
       logger.error('Review failed:', error)

@@ -1,3 +1,4 @@
+import type { AiClient } from '../ai/types'
 import type { GitProvider } from '../git/provider'
 import { assertSupports } from '../git/provider'
 import type { BuddyConfig } from '../types'
@@ -8,6 +9,7 @@ import { getDefaultLogger } from '../utils/logger'
 import { parseUnifiedDiff } from './diff'
 import { reviewDiff } from './engine'
 import { composeInstructions, loadGuidelines } from './guidelines'
+import type { ReviewProfile } from './engine'
 import type { ReviewTrigger } from './filters'
 import { reviewSkipReason } from './filters'
 import { needsReview, parseReviewState, upsertReviewState } from './marker'
@@ -25,6 +27,18 @@ export interface RunReviewOptions {
   summaryOnly?: boolean
   /** Skip when the head commit was already reviewed */
   skipIfReviewed?: boolean
+  /** Override the configured review profile */
+  profile?: ReviewProfile
+  /** Report what would be posted without posting it */
+  dryRun?: boolean
+  /**
+   * Client to review with; omitted means build one from config.
+   *
+   * Injectable for the same reason `attemptFix` takes one: an orchestration
+   * that constructs its own client cannot be tested without a key, and this
+   * one drifted from its second caller for exactly that long.
+   */
+  ai?: AiClient | null
   /**
    * Whether Buddy chose to review or was asked to (default: `requested`).
    *
@@ -80,7 +94,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
     return 'Already reviewed at this commit.'
   }
 
-  const ai = createAiClient(config, logger)
+  const ai = options.ai === undefined ? createAiClient(config, logger) : options.ai
 
   // Analyzers run whether or not AI is configured, so a repository without a
   // key still gets secret scanning and workflow auditing on its pull requests.
@@ -110,6 +124,11 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
       { headSha, requestChangesOn: config.ai?.review?.requestChangesOn },
     )
 
+    if (options.dryRun) {
+      reportDryRun(prepared, logger)
+      return `Would post ${analysis.findings.length} static-analysis finding(s).`
+    }
+
     assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
     await provider.createReview(prNumber, prepared)
     await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
@@ -129,7 +148,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   const result = await reviewDiff(ai, {
     diff,
-    profile: config.ai?.review?.profile,
+    profile: options.profile ?? config.ai?.review?.profile,
     summaryOnly: options.summaryOnly ?? config.ai?.review?.summaryOnly,
     instructions: composeInstructions({
       global: config.ai?.review?.instructions,
@@ -151,6 +170,11 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
     seenFingerprints: options.full ? [] : state?.fingerprints ?? [],
   })
 
+  if (options.dryRun) {
+    reportDryRun(prepared, logger)
+    return `Would post ${result.findings.length} finding(s).`
+  }
+
   assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
   await provider.createReview(prNumber, prepared)
   await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
@@ -158,6 +182,19 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
   return result.findings.length === 0
     ? 'Reviewed — nothing to report.'
     : `Reviewed — ${result.findings.length} finding(s) posted.`
+}
+
+/**
+ * Print a review instead of posting it.
+ *
+ * @param prepared - The review that would have been posted
+ * @param logger - Where to print
+ */
+function reportDryRun(prepared: PreparedReview, logger: Logger): void {
+  logger.info(`\n${prepared.body}\n`)
+
+  for (const comment of prepared.comments)
+    logger.info(`${comment.path}:${comment.line}\n${comment.body}\n`)
 }
 
 /**
