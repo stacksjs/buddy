@@ -209,3 +209,48 @@ describe('re-running a failed run', () => {
     expect(await gitlab().rerunWorkflowRun(77)).toBe(false)
   })
 })
+
+/**
+ * GitLab declared `ciLogs: true` and could not return a log. `optional` did
+ * not pass `raw`, so the transport ran `JSON.parse` over a plain-text job
+ * trace, threw, and the catch reported that as "no logs" — making `buddy
+ * fix-ci` on GitLab answer "could not read the run logs" every single time.
+ */
+describe('reading a job log', () => {
+  it('success case - gitlab returns the plain-text trace', async () => {
+    const TRACE = `$ bun install\nerror: lockfile had changes, but lockfile is frozen\n`
+
+    globalThis.fetch = (async () => new Response(TRACE, {
+      status: 200,
+      headers: { 'content-type': 'text/plain' },
+    })) as unknown as typeof fetch
+
+    expect(await gitlab().getWorkflowRunLogs(77)).toBe(TRACE)
+  })
+
+  it('success case - asks for the job trace, not the pipeline', async () => {
+    const urls: string[] = []
+    globalThis.fetch = (async (input: string) => {
+      urls.push(String(input))
+      return new Response('log text', { status: 200 })
+    }) as unknown as typeof fetch
+
+    await gitlab().getWorkflowRunLogs(77)
+
+    expect(urls[0]).toContain('/jobs/77/trace')
+  })
+
+  it('edge case - a missing job reads as no log rather than an error', async () => {
+    globalThis.fetch = (async () => new Response('', { status: 404 })) as unknown as typeof fetch
+
+    expect(await gitlab().getWorkflowRunLogs(77)).toBeNull()
+  })
+
+  it('success case - a trace that happens to be JSON is still returned verbatim', async () => {
+    // The bug was parsing at all. A trace whose first line is JSON must not
+    // come back as an object.
+    globalThis.fetch = (async () => new Response('{"step":"install"}', { status: 200 })) as unknown as typeof fetch
+
+    expect(await gitlab().getWorkflowRunLogs(77)).toBe('{"step":"install"}')
+  })
+})

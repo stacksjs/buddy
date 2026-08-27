@@ -204,9 +204,9 @@ export class GitLabProvider implements GitProvider {
   }
 
   /** A request whose 404 is an answer rather than an error. */
-  private async optional<T>(method: string, path: string): Promise<T | null> {
+  private async optional<T>(method: string, path: string, options: { raw?: boolean } = {}): Promise<T | null> {
     try {
-      return await this.request<T>(method, path)
+      return await this.request<T>(method, path, undefined, options)
     }
     catch (error) {
       if (String(error).includes('404'))
@@ -651,8 +651,15 @@ export class GitLabProvider implements GitProvider {
   }
 
   async getWorkflowRunLogs(runId: number): Promise<string | null> {
-    return this.optional<string>('GET', `/projects/${this.projectId}/jobs/${runId}/trace`)
-      .catch(() => null)
+    // `raw`, because a job trace is plain text. Without it the transport ran
+    // `JSON.parse` over the log, threw on the first line that was not JSON —
+    // which is every line — and the catch below reported that as "no logs".
+    // GitLab declared `ciLogs: true` and could not return one.
+    return this.optional<string>('GET', `/projects/${this.projectId}/jobs/${runId}/trace`, { raw: true })
+      .catch((error) => {
+        this.logger.debug(`Could not read the trace for job ${runId}: ${formatError(error)}`)
+        return null
+      })
   }
 
   /**
