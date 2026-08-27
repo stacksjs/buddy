@@ -29,6 +29,10 @@ function deps(overrides: Partial<HandlerDeps> = {}): HandlerDeps & { calls: stri
       calls.push(`fixCi:${pr}`)
       return 'reported'
     },
+    resolve: async (pr) => {
+      calls.push(`resolve:${pr}`)
+      return 'Closed 2 thread(s) I opened.'
+    },
     plan: async (number, isPullRequest, request) => {
       calls.push(`plan:${number}:${isPullRequest}:${request}`)
       return '## Plan\n\n1. Do the thing'
@@ -133,6 +137,28 @@ describe('command handlers', () => {
       const outcome = await createHandlers(deps()).plan(context({ command: { name: 'plan', args: '', raw: '' } }))
 
       expect(outcome.reply).toContain('## Plan')
+    })
+  })
+
+  describe('resolve', () => {
+    it('success case - closes the threads on the pull request', async () => {
+      const dependencies = deps()
+      const outcome = await createHandlers(dependencies).resolve(
+        context({ command: { name: 'resolve', args: '', raw: '@buddy resolve' } }),
+      )
+
+      expect(outcome.handled).toBe(true)
+      expect(dependencies.calls).toEqual(['resolve:42'])
+    })
+
+    it('failure case - an issue has no review threads', async () => {
+      const dependencies = deps()
+      const outcome = await createHandlers(dependencies).resolve(
+        context({ command: { name: 'resolve', args: '', raw: '' }, isPullRequest: false }),
+      )
+
+      expect(outcome.handled).toBe(false)
+      expect(dependencies.calls).toEqual([])
     })
   })
 })

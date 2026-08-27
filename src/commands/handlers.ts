@@ -17,6 +17,8 @@ export interface HandlerDeps {
   fixCi: (prNumber: number) => Promise<string>
   /** Turn an issue or pull request into an implementation plan */
   plan: (number: number, isPullRequest: boolean, request: string) => Promise<string>
+  /** Close the review threads Buddy opened on a pull request */
+  resolve: (prNumber: number) => Promise<string>
   /** Record a durable note */
   remember: (text: string, context: CommandContext) => Promise<string>
 }
@@ -115,6 +117,18 @@ export function createHandlers(deps: HandlerDeps): Record<string, CommandHandler
 
       const reply = await deps.remember(text, context)
       return { handled: true, reply }
+    },
+
+    async resolve(context): Promise<CommandOutcome> {
+      if (!context.isPullRequest) {
+        return {
+          handled: false,
+          reply: 'There are no review threads here — this is an issue, not a pull request.',
+        }
+      }
+
+      const status = await deps.resolve(context.number)
+      return { handled: true, reply: status }
     },
 
     async plan(context): Promise<CommandOutcome> {

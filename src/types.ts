@@ -14,6 +14,7 @@ export type {
   ProviderBranch,
   ProviderCapabilities,
   ReviewSubmission,
+  ReviewThread,
   ReviewSubmissionResult,
   WorkflowRun,
 } from './git/provider'

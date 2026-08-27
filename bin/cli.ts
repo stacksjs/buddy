@@ -1476,6 +1476,10 @@ cli
             const { runPlan } = await import('../src/agent')
             return await runPlan({ config, provider, number, isPullRequest, request, logger })
           },
+          resolve: async (prNumber) => {
+            const { resolveBuddyThreads } = await import('../src/review')
+            return await resolveBuddyThreads({ provider, prNumber, logger })
+          },
           remember: async (text, context) => {
             const { addLearning, createLearning, loadLearnings, serializeLearnings, DEFAULT_LEARNINGS_FILE }
               = await import('../src/ai')

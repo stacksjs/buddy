@@ -94,6 +94,9 @@ export class BitbucketProvider implements GitProvider {
       // Bitbucket Pipelines is a separate product with its own API surface,
       // and this provider reads none of it.
       ciRuns: false,
+      // Bitbucket resolves comment threads in its own UI only; the API
+      // exposes no way to mark one resolved.
+      reviewThreads: false,
       teamReviewers: false,
       // Bitbucket has no draft state at all.
       draftPullRequests: false,

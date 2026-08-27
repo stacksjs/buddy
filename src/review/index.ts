@@ -30,6 +30,8 @@ export {
 } from './guidelines'
 export type { RefFileReader } from './guidelines'
 export { prepareReview, renderFinding } from './poster'
+export { resolveBuddyThreads } from './resolve'
+export type { ResolveThreadsOptions } from './resolve'
 export { runReviewForPR } from './run'
 export type { RunReviewOptions } from './run'
 export type { InlineComment, PreparedReview } from './poster'

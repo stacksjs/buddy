@@ -64,6 +64,7 @@ if (supports(provider, 'pinIssues', 'pinIssue'))
 | `commentReactions`     | `reactToComment`                             |
 | `ciLogs`               | `getWorkflowRunLogs`                         |
 | `ciRuns`               | `listWorkflowRuns`, `rerunWorkflowRun`       |
+| `reviewThreads`        | `listReviewThreads`, `resolveReviewThread`   |
 | `teamReviewers`        | Requesting review from a team                |
 | `draftPullRequests`    | Opening a pull request as a draft            |
 | `permissionLookup`     | `hasWriteAccess`                             |
@@ -83,6 +84,7 @@ if (supports(provider, 'pinIssues', 'pinIssue'))
 | `commentReactions`     | ✅     | ✅ (award emoji) | ❌  |
 | `ciLogs`               | ✅     | ✅     | ❌        |
 | `ciRuns`               | ✅     | ✅ (jobs) | ❌     |
+| `reviewThreads`        | ✅     | ✅ (discussions) | ❌ |
 | `teamReviewers`        | ✅     | ❌     | ❌        |
 | `draftPullRequests`    | ✅     | ✅ (title prefix) | ❌ |
 | `permissionLookup`     | ✅     | ✅     | ✅        |
