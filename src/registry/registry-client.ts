@@ -1721,8 +1721,15 @@ export class RegistryClient {
   /**
    * Check if a package version meets the minimum release age requirement
    */
-  async meetsMinimumReleaseAge(packageName: string, version: string, dependencyType?: string): Promise<boolean> {
-    const minimumReleaseAge = this.config?.packages?.minimumReleaseAge ?? 0
+  async meetsMinimumReleaseAge(
+    packageName: string,
+    version: string,
+    dependencyType?: string,
+    requiredMinutes?: number,
+  ): Promise<boolean> {
+    // A package rule can set its own hold, so the caller may already know what
+    // this package's age requirement is; the global value is the fallback.
+    const minimumReleaseAge = requiredMinutes ?? this.config?.packages?.minimumReleaseAge ?? 0
     const excludeList = this.config?.packages?.minimumReleaseAgeExclude ?? []
 
     // If no minimum age is set, allow all packages
