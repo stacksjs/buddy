@@ -10,10 +10,12 @@ export type {
   CheckRunResult,
   GitProvider,
   GitProviderName,
+  ListWorkflowRunsOptions,
   ProviderBranch,
   ProviderCapabilities,
   ReviewSubmission,
   ReviewSubmissionResult,
+  WorkflowRun,
 } from './git/provider'
 
 /** Advisory severity, ordered from least to most severe. */

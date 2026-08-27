@@ -28,11 +28,13 @@ export type {
   CheckRunResult,
   GitProvider,
   GitProviderName,
+  ListWorkflowRunsOptions,
   ProviderBranch,
   ProviderCapabilities,
   ProviderConfig,
   ReviewSubmission,
   ReviewSubmissionResult,
+  WorkflowRun,
 } from './git/provider'
 export { diagnose, renderDoctorReport } from './doctor'
 export type { DoctorCheck, DoctorEnvironment, DoctorReport } from './doctor'

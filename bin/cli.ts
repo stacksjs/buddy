@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import type { FailureKind } from '../src/ci/classify'
 import type { GitProvider } from '../src/git/provider'
 import type { ReviewFinding } from '../src/review/findings'
 import type { ReviewFormat } from '../src/review/local'
@@ -1355,7 +1356,7 @@ cli
         return
       }
 
-      const { attemptFix } = await import('../src/ci')
+      const { attemptFix, failsOnBaseBranch } = await import('../src/ci')
       const { parseFixAttempts, upsertFixAttempts } = await import('../src/ci/attempts')
       const { createAiClient } = await import('../src/ai')
 
@@ -1368,15 +1369,36 @@ cli
         pullRequest = open.find(candidate => candidate.number === prNumber)
       }
       const priorAttempts = parseFixAttempts(pullRequest?.body)?.attempts ?? 0
+      const baseBranch = config.repository?.baseBranch ?? 'main'
+
+      // Both of these are capability-gated rather than assumed: a provider
+      // that cannot read a run history still gets the full diagnosis, it just
+      // cannot tell an inherited failure from a new one.
+      const canReadRuns = supports(provider, 'ciRuns', 'listWorkflowRuns')
+      const canRerun = supports(provider, 'ciRuns', 'rerunWorkflowRun')
 
       const outcome = await attemptFix({
         log,
         priorAttempts,
         workspace: process.cwd(),
-        baseBranch: config.repository?.baseBranch ?? 'main',
+        baseBranch,
         ai: createAiClient(config, logger),
         logger,
         dryRun: Boolean(options.dryRun),
+        ...(canReadRuns
+          ? {
+              checkBase: (kind: FailureKind) => failsOnBaseBranch(
+                {
+                  listWorkflowRuns: (branch, listOptions) => provider.listWorkflowRuns!(branch, listOptions),
+                  getWorkflowRunLogs: id => provider.getWorkflowRunLogs!(id),
+                },
+                baseBranch,
+                kind,
+                logger,
+              ),
+            }
+          : {}),
+        ...(canRerun && runId ? { rerun: () => provider.rerunWorkflowRun!(runId) } : {}),
         regenerateLockfile: async () => {
           const { regenerateLockFile, detectRequiredPackageManagers, getAllLockFilePaths } = await import('../src/utils/lock-file')
           const { commitAndPush } = await import('../src/utils/git')

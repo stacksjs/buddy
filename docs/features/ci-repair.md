@@ -90,6 +90,28 @@ the pull request.
 A comment cannot say *which* run failed, so `@buddy fix-ci` in a thread replies
 pointing at that job rather than guessing.
 
+### Whose failure is it
+
+Before anything else, Buddy asks whether the base branch is already failing the
+same way. Not *is the base red* — that would down tools on exactly the
+repositories that need the help most — but is it red **in the same way**: the
+newest run of each workflow on the base branch is classified from its own log,
+and compared against the failure at hand.
+
+If they match, Buddy declines and says so. Repairing an inherited failure on a
+pull request attributes someone else's regression to that change, and hides the
+regression where nobody is looking for it.
+
+Comparing classifications is an approximation, and it errs deliberately. Two
+unrelated type errors both classify as `type-error`, so a genuine regression on
+a base branch that already fails to type-check reads as inherited — Buddy
+declines and explains, rather than committing a guess about code it has already
+been told is broken.
+
+This needs the [`ciRuns` capability](/advanced/providers). A provider without it
+still gets the full diagnosis; it just cannot tell an inherited failure from a
+new one.
+
 ## From the CLI
 
 ```bash
@@ -134,24 +156,40 @@ The log is matched against failure signatures before any model is involved. That
 | Kind | What it means | Repair |
 | --- | --- | --- |
 | `lockfile-drift` | The lock file is out of step with its manifest | Regenerated, committed and pushed |
-| `flake` | Network, rate limit or runner problem | Worth one retry |
+| `flake` | Network, rate limit or runner problem | Failed jobs re-run |
 | `install` | Dependencies could not be resolved | Agent, or reported |
 | `type-error` | The change does not type-check | Agent |
 | `test-failure` | An assertion failed | Agent, or reported |
 | `lint` | Lint or formatting violations | Agent |
 | `unknown` | Nothing recognisable | Reported, with the interesting log lines |
 
-### Re-running after a mechanical fix
+### Re-running a flake
+
+A transient failure needs no repair, only another go at the same commit — so
+that is what Buddy does. It re-runs the failed jobs of the run it was handed
+and says so in its comment. This needs `actions: write`, which the generated
+workflow already grants; without it Buddy reports the diagnosis and points you
+at the Actions tab.
+
+The attempt counter is what keeps this from becoming a loop. A re-run that
+fails again brings Buddy straight back to the same pull request, and the count
+lives on the pull request precisely so it survives that.
+
+### Why a mechanical fix does not go green by itself
 
 The lock-file repair commits to the branch and pushes it, but the pull request
-does not go green by itself. The job pushes with `GITHUB_TOKEN`, which keeps the
-commit attributed to the bot rather than to whoever owns a personal access
-token — and GitHub deliberately does not start a new workflow run for a push
-made with it.
+stays red. Two things combine to cause that, and neither has a way around it
+here:
+
+- The job pushes with `GITHUB_TOKEN`, which keeps the commit attributed to the
+  bot rather than to whoever owns a personal access token — and GitHub
+  deliberately does not start a workflow run for a push made with it.
+- Re-running the old run does not help either, because a re-run executes
+  against the commit it *originally* ran on. That commit is the broken one.
 
 So the fix lands, and the checks need re-running: from the Actions tab, or by
 the next push to the branch. Buddy tells you which of the two happened in the
-comment it leaves.
+comment it leaves. This is the one case the re-run above cannot cover.
 
 With no AI provider configured, classification and the mechanical repairs still work. You lose the agent-driven fixes, not the diagnosis.
 

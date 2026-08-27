@@ -52,6 +52,14 @@ export interface ProviderCapabilities {
   commentReactions: boolean
   /** Read CI logs for a failed run (`getWorkflowRunLogs`) */
   ciLogs: boolean
+  /**
+   * Enumerate and re-run CI runs (`listWorkflowRuns`, `rerunWorkflowRun`).
+   *
+   * Separate from `ciLogs` because reading one run's log and reasoning about
+   * a branch's run history are different APIs — GitLab exposes the first
+   * against a job and the second against that job's siblings.
+   */
+  ciRuns: boolean
   /** Request review from a team as well as individuals */
   teamReviewers: boolean
   /** Open a pull request in a draft/WIP state */
@@ -87,12 +95,45 @@ export const NO_CAPABILITIES: ProviderCapabilities = {
   nativeAutoMerge: false,
   commentReactions: false,
   ciLogs: false,
+  ciRuns: false,
   teamReviewers: false,
   draftPullRequests: false,
   permissionLookup: false,
   branchHousekeeping: false,
   reopenPullRequests: false,
   labels: false,
+}
+
+/**
+ * A CI run as the provider reports it.
+ *
+ * "Run" is GitHub's word. GitLab has pipelines *and* jobs, and this maps onto
+ * jobs, because a job is what `getWorkflowRunLogs` reads there — an `id` that
+ * could not be handed straight back to that method would be a trap.
+ */
+export interface WorkflowRun {
+  /** Provider-side identifier, accepted by `getWorkflowRunLogs` */
+  id: number
+  /** Workflow, pipeline or job name */
+  name: string
+  /** Commit the run was started against */
+  headSha: string
+  /** Branch the run was started on */
+  headBranch: string
+  /** Whether the run has finished */
+  status: 'queued' | 'in_progress' | 'completed'
+  /** How it finished, or `null` while it is still running */
+  conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | null
+  /** When the run was created */
+  createdAt: Date
+}
+
+/** Narrowing for {@link GitProvider.listWorkflowRuns}. */
+export interface ListWorkflowRunsOptions {
+  /** Only runs in this state */
+  status?: WorkflowRun['status']
+  /** Most recent runs to return (default 20) */
+  limit?: number
 }
 
 /** A branch buddy created, as the provider reports it. */
@@ -225,6 +266,25 @@ export interface GitProvider {
 
   /** Requires `ciLogs`; null when logs are unavailable or expired */
   getWorkflowRunLogs?: (runId: number) => Promise<string | null>
+
+  /**
+   * Requires `ciRuns`; most recent first.
+   *
+   * Resolves `[]` rather than throwing when the history cannot be read. The
+   * caller asking is deciding whether a failure is pre-existing, and an
+   * unreadable history is no evidence either way — raising it as an error
+   * would fail a repair run over a question it only asked in passing.
+   */
+  listWorkflowRuns?: (branch: string, options?: ListWorkflowRunsOptions) => Promise<WorkflowRun[]>
+
+  /**
+   * Requires `ciRuns`; resolves false when the platform refused.
+   *
+   * Re-runs against the run's *original* commit, so this clears a failure that
+   * a retry can clear on its own. It is not a way to re-check a commit that
+   * has since been repaired — that needs a new run, not this one again.
+   */
+  rerunWorkflowRun?: (runId: number, failedJobsOnly?: boolean) => Promise<boolean>
 
   // -- Housekeeping (requires `branchHousekeeping`) -------------------------
 

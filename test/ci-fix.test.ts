@@ -221,3 +221,131 @@ describe('the lock-file repair reports what it actually did', () => {
     expect(outcome.report).toContain('dry run')
   })
 })
+
+/**
+ * The flake branch reported that "re-running the failed job is likely to clear
+ * it" and then re-ran nothing, because no provider could be asked to. It can
+ * be now, so the branch does what its own report claims.
+ */
+describe('retrying a flake', () => {
+  const base = { workspace: '/tmp', baseBranch: 'main' }
+
+  it('success case - re-runs the failed jobs', async () => {
+    let rerun = false
+    const outcome = await attemptFix({
+      ...base,
+      log: FLAKE_LOG,
+      rerun: async () => {
+        rerun = true
+        return true
+      },
+    })
+
+    expect(rerun).toBe(true)
+    expect(outcome.action).toBe('retry')
+    expect(outcome.report).toContain('re-ran the failed jobs')
+  })
+
+  it('success case - a re-run is not reported as a repair', async () => {
+    // The jobs were asked to run again and may still fail. Reporting that as
+    // fixed would be a guess dressed up as a result.
+    const outcome = await attemptFix({ ...base, log: FLAKE_LOG, rerun: async () => true })
+
+    expect(outcome.fixed).toBe(false)
+  })
+
+  it('failure case - a refused re-run says so and points at the Actions tab', async () => {
+    const outcome = await attemptFix({ ...base, log: FLAKE_LOG, rerun: async () => false })
+
+    expect(outcome.action).toBe('retry')
+    expect(outcome.report).toContain('could not re-run')
+    expect(outcome.report).toContain('Actions tab')
+  })
+
+  it('success case - a dry run re-runs nothing', async () => {
+    let rerun = false
+    const outcome = await attemptFix({
+      ...base,
+      log: FLAKE_LOG,
+      dryRun: true,
+      rerun: async () => {
+        rerun = true
+        return true
+      },
+    })
+
+    expect(rerun).toBe(false)
+    expect(outcome.report).toContain('dry run')
+  })
+
+  it('edge case - a provider that cannot re-run still gets the diagnosis', async () => {
+    const outcome = await attemptFix({ ...base, log: FLAKE_LOG })
+
+    expect(outcome.action).toBe('retry')
+    expect(outcome.report).toContain('transient')
+  })
+})
+
+/**
+ * `failsOnBase` could only ever be answered by a caller that already knew.
+ * `checkBase` lets one work it out, which is what makes the guard reachable.
+ */
+describe('asking whether the base branch already fails', () => {
+  const base = { workspace: '/tmp', baseBranch: 'main' }
+
+  it('success case - the hook is asked with the classification', async () => {
+    // The comparison is per-kind, so the hook cannot be called before the
+    // failure at hand has been classified.
+    let asked: string | undefined
+    await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      checkBase: async (kind) => {
+        asked = kind
+        return false
+      },
+      regenerateLockfile: async () => ({ regenerated: true, pushed: true }),
+    })
+
+    expect(asked).toBe('lockfile-drift')
+  })
+
+  it('success case - an inherited failure is declined before any repair', async () => {
+    let regenerated = false
+    const outcome = await attemptFix({
+      ...base,
+      log: LOCKFILE_LOG,
+      checkBase: async () => true,
+      regenerateLockfile: async () => {
+        regenerated = true
+        return { regenerated: true, pushed: true }
+      },
+    })
+
+    expect(regenerated).toBe(false)
+    expect(outcome.action).toBe('skipped')
+    expect(outcome.report).toContain('base branch')
+  })
+
+  it('success case - an explicit answer skips the lookup', async () => {
+    // A caller that already knows should not pay for the API calls.
+    let asked = false
+    await attemptFix({
+      ...base,
+      log: TYPE_ERROR_LOG,
+      failsOnBase: false,
+      checkBase: async () => {
+        asked = true
+        return true
+      },
+    })
+
+    expect(asked).toBe(false)
+  })
+
+  it('edge case - no hook at all leaves the guard closed', async () => {
+    const outcome = await attemptFix({ ...base, log: FLAKE_LOG })
+
+    expect(outcome.action).not.toBe('skipped')
+  })
+})
