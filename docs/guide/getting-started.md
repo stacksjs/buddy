@@ -140,7 +140,7 @@ After setup, Buddy creates two workflows:
 
 One unified workflow covering checks, updates and the dashboard:
 
-- Scans for updates every 2 hours, refreshing the dashboard 15 minutes later
+- Scans for updates on the schedule your [preset](/cli/setup#preset-details) sets, refreshing the dashboard on the same or its own tick
 - Rebase and dashboard checkboxes are event-driven, so ticking a box triggers a run immediately
 - Runs a daily cleanup pass at 4 AM UTC and a weekly dependency report Monday at 9 AM UTC
 - Answers `@buddy` comments and supports manual triggers
