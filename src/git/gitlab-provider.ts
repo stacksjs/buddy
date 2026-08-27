@@ -7,11 +7,23 @@ import type {
   ProviderCapabilities,
   ReviewSubmission,
   ReviewSubmissionResult,
+  ReviewThread,
   WorkflowRun,
 } from './provider'
 import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
+
+/** GitLab's merge request discussion, as much of it as buddy reads. */
+interface GitLabDiscussion {
+  id: string
+  notes?: Array<{
+    author?: { username?: string }
+    resolvable?: boolean
+    resolved?: boolean
+    position?: { new_path?: string }
+  }>
+}
 
 /** GitLab's CI job, as much of it as buddy reads. */
 interface GitLabJob {
@@ -145,6 +157,8 @@ export class GitLabProvider implements GitProvider {
       ciLogs: true,
       // Jobs, not pipelines — see `listWorkflowRuns`.
       ciRuns: true,
+      // Discussions, which GitLab resolves per merge request.
+      reviewThreads: true,
       teamReviewers: false,
       draftPullRequests: true,
       permissionLookup: true,
@@ -703,6 +717,64 @@ export class GitLabProvider implements GitProvider {
     }
     catch (error) {
       this.logger.warn(`Could not retry job ${runId}: ${formatError(error)}`)
+      return false
+    }
+  }
+
+  /**
+   * List the resolvable discussions on a merge request, oldest first.
+   *
+   * Only resolvable ones: GitLab returns system notes and plain comments from
+   * the same endpoint, and neither can be resolved, so including them would
+   * hand a caller threads it can do nothing with.
+   *
+   * @param prNumber - Merge request iid
+   * @returns Threads, oldest first; `[]` when unreadable
+   */
+  async listReviewThreads(prNumber: number): Promise<ReviewThread[]> {
+    try {
+      const discussions = await this.request<GitLabDiscussion[]>(
+        'GET',
+        `/projects/${this.projectId}/merge_requests/${prNumber}/discussions?per_page=100`,
+      )
+
+      return (discussions ?? [])
+        .filter(discussion => (discussion.notes ?? []).some(note => note.resolvable))
+        .map(discussion => ({
+          id: discussion.id,
+          isResolved: (discussion.notes ?? []).every(note => !note.resolvable || note.resolved),
+          ...(discussion.notes?.[0]?.position?.new_path
+            ? { path: discussion.notes[0].position!.new_path! }
+            : {}),
+          authorLogins: (discussion.notes ?? [])
+            .map(note => note.author?.username)
+            .filter((login): login is string => typeof login === 'string'),
+        }))
+    }
+    catch (error) {
+      this.logger.debug(`Could not read discussions on !${prNumber}: ${formatError(error)}`)
+      return []
+    }
+  }
+
+  /**
+   * Mark a discussion resolved.
+   *
+   * @param prNumber - Merge request iid the discussion belongs to
+   * @param threadId - Discussion id
+   * @returns Whether GitLab accepted it
+   */
+  async resolveReviewThread(prNumber: number, threadId: string): Promise<boolean> {
+    try {
+      await this.request(
+        'PUT',
+        `/projects/${this.projectId}/merge_requests/${prNumber}/discussions/${encodeURIComponent(threadId)}`,
+        { resolved: true },
+      )
+      return true
+    }
+    catch (error) {
+      this.logger.warn(`Could not resolve discussion ${threadId}: ${formatError(error)}`)
       return false
     }
   }

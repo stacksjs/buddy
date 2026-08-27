@@ -53,6 +53,14 @@ export interface ProviderCapabilities {
   /** Read CI logs for a failed run (`getWorkflowRunLogs`) */
   ciLogs: boolean
   /**
+   * Read and resolve review threads (`listReviewThreads`, `resolveReviewThread`).
+   *
+   * Separate from `inlineReviewComments`, which only covers *posting* one. A
+   * platform can accept a line-anchored comment without modelling the thread
+   * it starts, and resolving needs the thread.
+   */
+  reviewThreads: boolean
+  /**
    * Enumerate and re-run CI runs (`listWorkflowRuns`, `rerunWorkflowRun`).
    *
    * Separate from `ciLogs` because reading one run's log and reasoning about
@@ -96,12 +104,31 @@ export const NO_CAPABILITIES: ProviderCapabilities = {
   commentReactions: false,
   ciLogs: false,
   ciRuns: false,
+  reviewThreads: false,
   teamReviewers: false,
   draftPullRequests: false,
   permissionLookup: false,
   branchHousekeeping: false,
   reopenPullRequests: false,
   labels: false,
+}
+
+/**
+ * A review thread as the provider reports it.
+ *
+ * `authorLogins` rather than a single author because a thread is a
+ * conversation: the caller resolving one needs to know who *started* it, and
+ * the first login is that person.
+ */
+export interface ReviewThread {
+  /** Provider-side identifier, accepted by `resolveReviewThread` */
+  id: string
+  /** Whether the thread is already resolved */
+  isResolved: boolean
+  /** File the thread is anchored to, when it is anchored */
+  path?: string
+  /** Logins that commented, oldest first */
+  authorLogins: string[]
 }
 
 /**
@@ -266,6 +293,23 @@ export interface GitProvider {
 
   /** Requires `ciLogs`; null when logs are unavailable or expired */
   getWorkflowRunLogs?: (runId: number) => Promise<string | null>
+
+  /**
+   * Requires `reviewThreads`; threads on a pull request, oldest first.
+   *
+   * Resolves `[]` rather than throwing when they cannot be read, so a caller
+   * tidying up treats an unreadable conversation as nothing to tidy.
+   */
+  listReviewThreads?: (prNumber: number) => Promise<ReviewThread[]>
+
+  /**
+   * Requires `reviewThreads`; resolves false when the platform refused.
+   *
+   * Takes the pull request as well as the thread because a thread id is only
+   * unique within one on GitLab, where resolving addresses a discussion under
+   * its merge request rather than a globally-addressable node.
+   */
+  resolveReviewThread?: (prNumber: number, threadId: string) => Promise<boolean>
 
   /**
    * Requires `ciRuns`; most recent first.

@@ -33,6 +33,7 @@ export type {
   ProviderCapabilities,
   ProviderConfig,
   ReviewSubmission,
+  ReviewThread,
   ReviewSubmissionResult,
   WorkflowRun,
 } from './git/provider'

@@ -1,6 +1,6 @@
 import type { FileChange, Issue, IssueOptions, PullRequest, PullRequestOptions } from '../types'
 import type { Logger } from '../utils/logger'
-import type { GitProvider, ListWorkflowRunsOptions, ProviderCapabilities, WorkflowRun } from './provider'
+import type { GitProvider, ListWorkflowRunsOptions, ProviderCapabilities, ReviewThread, WorkflowRun } from './provider'
 import { Buffer } from 'node:buffer'
 import { spawn } from 'node:child_process'
 import process from 'node:process'
@@ -149,6 +149,7 @@ export class GitHubProvider implements GitProvider {
       commentReactions: true,
       ciLogs: true,
       ciRuns: true,
+      reviewThreads: true,
       teamReviewers: true,
       draftPullRequests: true,
       permissionLookup: true,
@@ -1431,6 +1432,95 @@ export class GitHubProvider implements GitProvider {
 
     this.logger.success(`✅ Auto-merge queued for PR #${prNumber} (${strategy})`)
     return true
+  }
+
+  /**
+   * List the review threads on a pull request, oldest first.
+   *
+   * REST exposes review comments but not the threads they belong to, nor
+   * whether one is resolved — both of which are GraphQL-only. Resolves `[]`
+   * rather than throwing, because a caller tidying up should treat an
+   * unreadable conversation as nothing to tidy.
+   *
+   * @param prNumber - Pull request to read
+   * @returns Threads, oldest first; `[]` when unreadable
+   */
+  async listReviewThreads(prNumber: number): Promise<ReviewThread[]> {
+    const query = `query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          reviewThreads(first: 100) {
+            nodes {
+              id
+              isResolved
+              path
+              comments(first: 10) { nodes { author { login } } }
+            }
+          }
+        }
+      }
+    }`
+
+    try {
+      const response = await this.graphqlRequest(query, {
+        owner: this.owner,
+        repo: this.repo,
+        number: prNumber,
+      })
+
+      if (response.errors?.length) {
+        this.logger.debug(`Could not read review threads on #${prNumber}: ${
+          response.errors.map((error: { message: string }) => error.message).join('; ')
+        }`)
+        return []
+      }
+
+      const nodes = response.data?.repository?.pullRequest?.reviewThreads?.nodes ?? []
+      return nodes.filter(Boolean).map((node: Record<string, any>) => ({
+        id: String(node.id),
+        isResolved: Boolean(node.isResolved),
+        ...(node.path ? { path: String(node.path) } : {}),
+        authorLogins: (node.comments?.nodes ?? [])
+          .map((comment: { author?: { login?: string } }) => comment?.author?.login)
+          .filter((login: unknown): login is string => typeof login === 'string'),
+      }))
+    }
+    catch (error) {
+      this.logger.debug(`Could not read review threads on #${prNumber}: ${formatError(error)}`)
+      return []
+    }
+  }
+
+  /**
+   * Mark a review thread resolved.
+   *
+   * @param _prNumber - Unused; GitHub thread ids are globally addressable
+   * @param threadId - Thread to resolve
+   * @returns Whether GitHub accepted it
+   */
+  async resolveReviewThread(_prNumber: number, threadId: string): Promise<boolean> {
+    const mutation = `mutation($threadId: ID!) {
+      resolveReviewThread(input: { threadId: $threadId }) {
+        thread { isResolved }
+      }
+    }`
+
+    try {
+      const response = await this.graphqlRequest(mutation, { threadId })
+
+      if (response.errors?.length) {
+        this.logger.warn(`Could not resolve review thread: ${
+          response.errors.map((error: { message: string }) => error.message).join('; ')
+        }`)
+        return false
+      }
+
+      return Boolean(response.data?.resolveReviewThread?.thread?.isResolved)
+    }
+    catch (error) {
+      this.logger.warn(`Could not resolve review thread: ${formatError(error)}`)
+      return false
+    }
   }
 
   /**
