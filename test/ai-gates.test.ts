@@ -303,6 +303,56 @@ describe('post-merge actions', () => {
     draft: false,
   }
 
+  it('failure case - refreshing the dashboard is not reported without a refresher', async () => {
+    // This branch used to push `refresh-dashboard` onto `performed` and do
+    // nothing — the one action here that claimed success with no work behind
+    // it, which is worse than not offering the action at all.
+    const outcome = await runPostMerge(fakeProvider(), merged, { refreshDashboard: true })
+
+    expect(outcome.performed).not.toContain('refresh-dashboard')
+    expect(outcome.skipped).toContainEqual({
+      action: 'refresh-dashboard',
+      reason: 'no dashboard refresher was supplied',
+    })
+  })
+
+  it('success case - refreshes the dashboard when a refresher is supplied', async () => {
+    let refreshed = false
+    const outcome = await runPostMerge(fakeProvider(), merged, { refreshDashboard: true }, {
+      refreshDashboard: async () => {
+        refreshed = true
+      },
+    })
+
+    expect(refreshed).toBe(true)
+    expect(outcome.performed).toContain('refresh-dashboard')
+  })
+
+  it('failure case - a refresh that throws is reported, not claimed', async () => {
+    // The pull request has already merged, so a failed refresh must not read
+    // as a failed run — but it must not read as a success either.
+    const outcome = await runPostMerge(fakeProvider(), merged, { refreshDashboard: true }, {
+      logger: Logger.silent(),
+      refreshDashboard: async () => {
+        throw new Error('rate limited')
+      },
+    })
+
+    expect(outcome.performed).not.toContain('refresh-dashboard')
+    expect(outcome.skipped).toContainEqual({ action: 'refresh-dashboard', reason: 'refresh failed' })
+  })
+
+  it('edge case - a refresher is not called when the action is off', async () => {
+    let refreshed = false
+    await runPostMerge(fakeProvider(), merged, {}, {
+      refreshDashboard: async () => {
+        refreshed = true
+      },
+    })
+
+    expect(refreshed).toBe(false)
+  })
+
   it('success case - appends to the changelog', async () => {
     const provider = fakeProvider()
     const outcome = await runPostMerge(provider, merged, { changelog: { enabled: true } })

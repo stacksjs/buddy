@@ -82,7 +82,19 @@ export async function runPostMerge(
   provider: GitProvider,
   pr: PullRequest,
   config: PostMergeConfig = {},
-  options: { baseBranch?: string, logger?: Logger } = {},
+  options: {
+    baseBranch?: string
+    logger?: Logger
+    /**
+     * Refresh the dependency dashboard.
+     *
+     * A hook rather than something this module does, because refreshing means
+     * a full scan and this file only knows about a provider. Absent means the
+     * caller cannot refresh, which is reported as a skip rather than passed
+     * off as done.
+     */
+    refreshDashboard?: () => Promise<void>
+  } = {},
 ): Promise<PostMergeOutcome> {
   const logger = options.logger ?? getDefaultLogger()
   const baseBranch = options.baseBranch ?? pr.base ?? 'main'
@@ -138,8 +150,24 @@ export async function runPostMerge(
     }
   }
 
-  if (config.refreshDashboard)
-    performed.push('refresh-dashboard')
+  if (config.refreshDashboard) {
+    // This branch used to push `refresh-dashboard` onto `performed` and do
+    // nothing at all — the one action here that reported success without
+    // having any work behind it.
+    if (!options.refreshDashboard) {
+      skipped.push({ action: 'refresh-dashboard', reason: 'no dashboard refresher was supplied' })
+    }
+    else {
+      try {
+        await options.refreshDashboard()
+        performed.push('refresh-dashboard')
+      }
+      catch (error) {
+        logger.warn(`⚠️ Could not refresh the dashboard: ${error}`)
+        skipped.push({ action: 'refresh-dashboard', reason: 'refresh failed' })
+      }
+    }
+  }
 
   return { performed, skipped }
 }
