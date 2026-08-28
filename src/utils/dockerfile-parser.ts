@@ -112,16 +112,33 @@ export async function parseDockerfile(filePath: string, content: string): Promis
 /**
  * Parse a Docker image reference into name and version components
  */
-function parseImageReference(imageRef: string): { name: string, version: string } | null {
+function parseImageReference(imageRef: string): { name: string, version: string, digest?: string } | null {
   try {
     // Handle different image reference formats:
     // - image:tag
     // - registry/image:tag
     // - registry:port/image:tag
     // - registry/namespace/image:tag
+    // - image:tag@sha256:digest
 
     let name: string
     let version: string
+
+    // Split the digest off first. Everything below reasons about the *last*
+    // colon, and a digest contributes two of them — so `node:20@sha256:abc`
+    // parsed as the image `node:20@sha256` at version `abc`, which is not an
+    // image, is never found in any registry, and appears on the dependency
+    // dashboard as though it were real.
+    const digestIndex = imageRef.indexOf('@')
+    const digest = digestIndex === -1 ? undefined : imageRef.slice(digestIndex + 1)
+    if (digestIndex !== -1)
+      imageRef = imageRef.slice(0, digestIndex)
+
+    // Pinned by digest alone, with no tag. There is no version to move, and
+    // reporting it as `latest` would put a tag on the dashboard that the file
+    // does not contain.
+    if (digest && !imageRef.includes(':'))
+      return null
 
     if (imageRef.includes(':')) {
       const lastColonIndex = imageRef.lastIndexOf(':')
@@ -146,12 +163,12 @@ function parseImageReference(imageRef: string): { name: string, version: string 
       version = 'latest'
     }
 
-    // Skip if version contains variables or is a digest
+    // Skip if version contains variables or is a bare digest
     if (version.includes('$') || version.startsWith('sha256:')) {
       return null
     }
 
-    return { name, version }
+    return { name, version, ...(digest ? { digest } : {}) }
   }
   catch (error) {
     getDefaultLogger().warn(`Failed to parse image reference ${imageRef}:`, error)
@@ -230,7 +247,12 @@ export async function resolveDockerDigest(
 /**
  * Update Dockerfile content with new image versions
  */
-export async function updateDockerfile(filePath: string, content: string, updates: PackageUpdate[]): Promise<string> {
+export async function updateDockerfile(
+  filePath: string,
+  content: string,
+  updates: PackageUpdate[],
+  registries?: DockerRegistryConfig,
+): Promise<string> {
   try {
     if (!isDockerfile(filePath)) {
       getDefaultLogger().info(`⚠️ updateDockerfile: ${filePath} is not a Dockerfile, returning original content`)
@@ -251,8 +273,15 @@ export async function updateDockerfile(filePath: string, content: string, update
       // Create regex to find FROM instructions with this image
       // Handle various formats: FROM image:tag, FROM image:tag as alias
       const escapedImageName = cleanImageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // The tag is captured without its digest, so a pinned reference does not
+      // swallow `@sha256:…` into the version and then lose it on replacement.
+      //
+      // The trailing group is horizontal whitespace only. `\\s` matches a
+      // newline, so with the `m` flag it ran past the end of the line and took
+      // every following line with it — a multi-stage Dockerfile that builds
+      // from the same image twice had both `FROM` lines collapsed into one.
       const fromRegex = new RegExp(
-        `(FROM\\s+${escapedImageName})(:)([^\\s]+)(\\s.*)?$`,
+        `(FROM\\s+${escapedImageName})(:)([^\\s@]+)(@sha256:[a-f0-9]+)?([ \\t].*)?$`,
         'gim',
       )
 
@@ -269,19 +298,40 @@ export async function updateDockerfile(filePath: string, content: string, update
         const fullMatch = match[0]
         const beforeColon = match[1] // "FROM image"
         const colon = match[2] // ":"
-        const currentVersion = match[3] // "tag"
-        const afterVersion = match[4] || '' // " as alias" or empty
+        const currentVersion = match[3] // "tag", without any digest
+        const currentDigest = match[4] || '' // "@sha256:…" or empty
+        const afterVersion = match[5] || '' // " as alias" or empty
 
         if (shouldRespectVersion(currentVersion)) {
           getDefaultLogger().info(`⚠️ Skipping update for ${cleanImageName} - version "${currentVersion}" should be respected`)
           continue
         }
 
+        // A pinned reference has to move both halves together. Writing the new
+        // tag beside the old digest would leave the old image running while
+        // the file claims otherwise, and dropping the digest silently unpins
+        // an image somebody pinned on purpose — both worse than not updating.
+        let digest = currentDigest
+        if (currentDigest) {
+          const resolved = await resolveDockerDigest(cleanImageName, update.newVersion, registries)
+
+          if (!resolved) {
+            getDefaultLogger().warn(
+              `⚠️ Leaving ${cleanImageName} pinned at ${currentVersion}: could not resolve the digest for ${update.newVersion}`,
+            )
+            continue
+          }
+
+          digest = `@${resolved}`
+        }
+
         // Replace with new version
-        const replacement = `${beforeColon}${colon}${update.newVersion}${afterVersion}`
+        const replacement = `${beforeColon}${colon}${update.newVersion}${digest}${afterVersion}`
         updatedContent = updatedContent.replace(fullMatch, replacement)
 
-        getDefaultLogger().info(`📝 Updated ${cleanImageName}: ${currentVersion} → ${update.newVersion}`)
+        getDefaultLogger().info(
+          `📝 Updated ${cleanImageName}: ${currentVersion} → ${update.newVersion}${digest ? ' (digest re-resolved)' : ''}`,
+        )
       }
     }
 
@@ -296,7 +346,10 @@ export async function updateDockerfile(filePath: string, content: string, update
 /**
  * Generate file changes for Dockerfiles
  */
-export async function generateDockerfileUpdates(updates: PackageUpdate[]): Promise<Array<{ path: string, content: string, type: 'update' }>> {
+export async function generateDockerfileUpdates(
+  updates: PackageUpdate[],
+  registries?: DockerRegistryConfig,
+): Promise<Array<{ path: string, content: string, type: 'update' }>> {
   const fileUpdates: Array<{ path: string, content: string, type: 'update' }> = []
 
   // Group updates by file
@@ -318,7 +371,7 @@ export async function generateDockerfileUpdates(updates: PackageUpdate[]): Promi
       const fs = await import('node:fs')
       if (fs.existsSync(filePath)) {
         const currentContent = fs.readFileSync(filePath, 'utf-8')
-        const updatedContent = await updateDockerfile(filePath, currentContent, dockerUpdates)
+        const updatedContent = await updateDockerfile(filePath, currentContent, dockerUpdates, registries)
 
         // Only add file update if content actually changed
         if (updatedContent !== currentContent) {
