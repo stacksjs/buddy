@@ -1826,11 +1826,14 @@ export class Buddy {
     }
 
     const changes: Array<{ path: string, content: string, type: 'update' }> = []
+    const ecosystems = new Set<string>()
 
     for (const [file, fileUpdates] of byFile) {
       const adapter = adapterNamed(fileUpdates[0].dependencyType)
       if (!adapter)
         continue
+
+      ecosystems.add(adapter.name)
 
       try {
         const path = join(this.projectPath, file)
@@ -1860,7 +1863,72 @@ export class Buddy {
       }
     }
 
-    return changes
+    return [...changes, ...await this.regenerateAdapterLockfiles(changes, [...ecosystems])]
+  }
+
+  /**
+   * Bring the adapter ecosystems' lockfiles back in step with their manifests.
+   *
+   * `regenerateLockfiles` and every adapter's `postWrite` were written, tested
+   * and exported, and nothing called them — so a Python, Rust, Go or Ruby
+   * manifest was updated and its lockfile left describing the old version.
+   * That is precisely the `lockfile-drift` failure `fix-ci` exists to
+   * diagnose, arriving on a pull request buddy opened itself.
+   *
+   * The manifests are written to disk first because `postWrite` runs the
+   * ecosystem's own tool against the working tree — it reads the file, not the
+   * change about to be committed. The tree is a CI checkout that is discarded
+   * after the run, which is why writing to it is acceptable here and would not
+   * be somewhere longer-lived.
+   *
+   * @param changes - Manifest changes already produced
+   * @param ecosystems - Ecosystem names whose manifests changed
+   * @returns File changes for the regenerated lockfiles
+   */
+  private async regenerateAdapterLockfiles(
+    changes: Array<{ path: string, content: string, type: 'update' }>,
+    ecosystems: string[],
+  ): Promise<Array<{ path: string, content: string, type: 'update' }>> {
+    if (changes.length === 0 || ecosystems.length === 0)
+      return []
+
+    const { regenerateLockfiles } = await import('./ecosystems')
+
+    try {
+      for (const change of changes)
+        await Bun.write(join(this.projectPath, change.path), change.content)
+    }
+    catch (error) {
+      // Without the manifests on disk the tools would lock the old versions,
+      // which is worse than leaving the lockfile alone.
+      this.logger.warn(`⚠️ Could not stage manifests for lockfile regeneration: ${error}`)
+      return []
+    }
+
+    const { regenerated, notes } = await regenerateLockfiles(this.projectPath, ecosystems)
+
+    // A missing tool is reported rather than swallowed: the pull request will
+    // carry a manifest its lockfile does not match, and that is worth saying.
+    for (const note of notes)
+      this.logger.info(`ℹ️ ${note}`)
+
+    const locked: Array<{ path: string, content: string, type: 'update' }> = []
+
+    for (const lockfile of regenerated) {
+      try {
+        locked.push({
+          path: lockfile,
+          content: await Bun.file(join(this.projectPath, lockfile)).text(),
+          type: 'update',
+        })
+        this.logger.info(`🔒 Regenerated ${lockfile}`)
+      }
+      catch (error) {
+        this.logger.warn(`⚠️ Could not read the regenerated ${lockfile}: ${error}`)
+      }
+    }
+
+    return locked
   }
 
   /**
