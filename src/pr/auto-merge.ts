@@ -1,4 +1,5 @@
-import type { BuddyConfig, PackageUpdate, PRManifest } from '../types'
+import type { BuddyConfig, PackageUpdate, PRManifest, PRManifestUpdate } from '../types'
+import { groupsToRules, resolveRuleEffects } from '../rules/engine'
 import { parseManifest } from './pr-manifest'
 
 /** Branch prefix every buddy pull request is opened from. */
@@ -116,7 +117,72 @@ export function evaluateAutoMerge(
   if (manifest.truncated)
     return { eligible: false, reason: `PR #${pr.number} has a truncated manifest, so its full update set cannot be verified` }
 
+  // A rule that names auto-merge explicitly settles it in either direction;
+  // the global conditions are the default for everything it does not cover.
+  const ruled = evaluateRuleAutoMerge(manifest, config)
+  if (ruled)
+    return ruled
+
   return evaluateConditions(manifest, labels, settings)
+}
+
+/**
+ * Whether a package rule decides auto-merge for this pull request.
+ *
+ * `autoMerge` on a rule was resolved into `ResolvedEffects` and merged by
+ * `mergeGroupEffects`, and nothing ever read either — so a rule saying "these
+ * are safe to merge without review" did nothing, and one saying the opposite
+ * did nothing either.
+ *
+ * The all-or-nothing reading is `mergeGroupEffects`'s, not a new invention: a
+ * group qualifies only when every update in it is covered. One package no rule
+ * has vouched for sends the whole pull request back to the global conditions.
+ *
+ * @param manifest - The pull request's embedded update manifest
+ * @param config - Configuration supplying the rules
+ * @returns A decision when a rule settles it, `null` to fall through
+ */
+function evaluateRuleAutoMerge(manifest: PRManifest, config: BuddyConfig): AutoMergeDecision | null {
+  const rules = [...groupsToRules(config.packages?.groups), ...(config.packages?.rules ?? [])]
+  if (rules.length === 0 || manifest.updates.length === 0)
+    return null
+
+  // A manifest sheds `type` and `dependencyType` before it sheds rows, and
+  // does not mark itself truncated when it does. Rules match on both, so
+  // evaluating one against a manifest missing them would decide on data that
+  // is not there — fall through to the conditions instead.
+  const complete = manifest.updates.every(update => update.type && update.dependencyType)
+  if (!complete)
+    return null
+
+  const effects = manifest.updates.map(update => resolveRuleEffects(toPackageUpdate(update), rules))
+
+  if (effects.some(effect => effect.autoMerge === false))
+    return { eligible: false, reason: 'a package rule holds one of these updates back from auto-merge' }
+
+  if (effects.every(effect => effect.autoMerge === true))
+    return { eligible: true, reason: 'every update is covered by a package rule that enables auto-merge' }
+
+  return null
+}
+
+/**
+ * Rebuild the update a manifest row describes, for rule matching.
+ *
+ * Only the fields `ruleMatches` reads are reconstructed; the manifest carries
+ * nothing else and nothing here needs more.
+ *
+ * @param row - A manifest row
+ */
+function toPackageUpdate(row: PRManifestUpdate): PackageUpdate {
+  return {
+    name: row.name,
+    currentVersion: row.current,
+    newVersion: row.target,
+    updateType: row.type,
+    file: row.file,
+    dependencyType: row.dependencyType,
+  } as PackageUpdate
 }
 
 function evaluateConditions(
@@ -219,8 +285,13 @@ export function evaluateAutoMergeForUpdates(
       target: update.newVersion,
       type: update.updateType,
       file: update.file,
+      dependencyType: update.dependencyType,
     })),
   }
+
+  const ruled = evaluateRuleAutoMerge(manifest, config)
+  if (ruled)
+    return ruled
 
   return evaluateConditions(manifest, labels, settings)
 }

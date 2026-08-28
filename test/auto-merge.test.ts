@@ -264,3 +264,109 @@ describe('security-only, end to end', () => {
     expect(evaluateAutoMerge(makePR([makeUpdate()], { labels: ['security'] }), config, true).eligible).toBe(false)
   })
 })
+
+/**
+ * `autoMerge` on a package rule was resolved into `ResolvedEffects` and merged
+ * by `mergeGroupEffects`, and nothing ever read either — so a rule saying
+ * "these are safe to merge without review" did nothing, and one saying the
+ * opposite did nothing either.
+ */
+describe('rule-level auto-merge', () => {
+  /** A config whose global conditions would refuse everything. */
+  function withRules(rules: unknown[]): BuddyConfig {
+    return {
+      pullRequest: { autoMerge: { enabled: true, strategy: 'squash', conditions: ['patch-only'] } },
+      packages: { strategy: 'all', rules },
+    } as unknown as BuddyConfig
+  }
+
+  it('success case - a rule admits a major the conditions would refuse', () => {
+    // `patch-only` alone would send this back. The rule is the point.
+    const pr = makePR([makeUpdate({ name: 'react', updateType: 'major', newVersion: '19.0.0' })])
+    const config = withRules([{ matchPackages: ['react'], autoMerge: true }])
+
+    const decision = evaluateAutoMerge(pr, config, true)
+
+    expect(decision.eligible).toBe(true)
+    expect(decision.reason).toContain('package rule')
+  })
+
+  it('failure case - a rule holds back what the conditions would admit', () => {
+    // A patch that `patch-only` accepts, refused because a rule says so.
+    const pr = makePR([makeUpdate({ name: 'left-pad' })])
+    const config = withRules([{ matchPackages: ['left-pad'], autoMerge: false }])
+
+    const decision = evaluateAutoMerge(pr, config, true)
+
+    expect(decision.eligible).toBe(false)
+    expect(decision.reason).toContain('holds one of these updates back')
+  })
+
+  it('failure case - one uncovered package sends the whole PR back to the conditions', () => {
+    // `mergeGroupEffects` reads this all-or-nothing, and so does this: a
+    // package no rule has vouched for is enough.
+    const pr = makePR([
+      makeUpdate({ name: 'react', updateType: 'major' }),
+      makeUpdate({ name: 'lodash', updateType: 'major' }),
+    ])
+    const config = withRules([{ matchPackages: ['react'], autoMerge: true }])
+
+    expect(evaluateAutoMerge(pr, config, true).eligible).toBe(false)
+  })
+
+  it('success case - a blocking rule wins over an admitting one', () => {
+    const pr = makePR([
+      makeUpdate({ name: 'react', updateType: 'patch' }),
+      makeUpdate({ name: 'danger', updateType: 'patch' }),
+    ])
+    const config = withRules([
+      { matchPackages: ['**'], autoMerge: true },
+      { matchPackages: ['danger'], autoMerge: false },
+    ])
+
+    const decision = evaluateAutoMerge(pr, config, true)
+
+    expect(decision.eligible).toBe(false)
+  })
+
+  it('success case - rules that say nothing about auto-merge change nothing', () => {
+    // A rule setting only a group name must not accidentally decide this.
+    const pr = makePR([makeUpdate({ updateType: 'major' })])
+    const config = withRules([{ matchPackages: ['**'], groupName: 'Everything' }])
+
+    const decision = evaluateAutoMerge(pr, config, true)
+
+    expect(decision.eligible).toBe(false)
+    expect(decision.reason).not.toContain('package rule')
+  })
+
+  it('failure case - a rule cannot grant auto-merge on a shed manifest', () => {
+    // A large manifest drops `type` and `dependencyType` without marking
+    // itself truncated. Rules match on both, so a rule evaluated against one
+    // would be deciding on data that is not there.
+    const pr = makePR([makeUpdate({ name: 'react', updateType: 'major' })])
+    pr.body = pr.body.replace(/"type":"[a-z]+",/g, '').replace(/"dependencyType":"[^"]+",?/g, '')
+    const config = withRules([{ matchPackages: ['react'], autoMerge: true }])
+
+    expect(evaluateAutoMerge(pr, config, true).eligible).toBe(false)
+  })
+
+  it('success case - the same rule applies through evaluateAutoMergeForUpdates', () => {
+    // The pre-PR path must agree with the post-PR one, or a group would be
+    // opened as auto-mergeable and then refused at merge time.
+    const decision = evaluateAutoMergeForUpdates(
+      [makeUpdate({ name: 'react', updateType: 'major' })],
+      [],
+      withRules([{ matchPackages: ['react'], autoMerge: true }]),
+    )
+
+    expect(decision.eligible).toBe(true)
+  })
+
+  it('edge case - no rules at all leaves the conditions in charge', () => {
+    const pr = makePR([makeUpdate()])
+    const config = makeConfig(['patch-only'])
+
+    expect(evaluateAutoMerge(pr, config, true).eligible).toBe(true)
+  })
+})
