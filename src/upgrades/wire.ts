@@ -3,6 +3,7 @@ import type { BuddyConfig, PackageUpdate } from '../types'
 import type { Logger } from '../utils/logger'
 import type { UpgradeResult } from './migrate'
 import { stripManifest } from '../pr/pr-manifest'
+import { groupsToRules, resolveRuleEffects } from '../rules/engine'
 import { getDefaultLogger } from '../utils/logger'
 import { attemptMajorUpgrade } from './migrate'
 import { collectSpanNotes, describeSpanGaps } from './span'
@@ -92,6 +93,10 @@ export async function analyzeGroupMajors(options: GroupUpgradeOptions): Promise<
   const results: GroupUpgradeOutcome['results'] = []
   const skipped: GroupUpgradeOutcome['skipped'] = []
 
+  // `autoMigrate` on a package rule was resolved into the effects and read by
+  // nobody, so only the repository-wide setting ever reached the migration.
+  const rules = [...groupsToRules(options.config.packages?.groups), ...(options.config.packages?.rules ?? [])]
+
   for (const update of majors) {
     if (!matchesGlobs(update.name, settings.packages)) {
       skipped.push({ name: update.name, reason: 'not matched by ai.majorUpgrades.packages' })
@@ -103,6 +108,14 @@ export async function analyzeGroupMajors(options: GroupUpgradeOptions): Promise<
       const span = collectSpanNotes(releases, update.currentVersion, update.newVersion)
       const gaps = describeSpanGaps(span)
 
+      // Resolved per package rather than per group: this loop already runs
+      // once per major, and the documented reading — "one package opting in is
+      // enough, since migrating what can be migrated leaves everything else
+      // exactly as it would have been" — is an argument for deciding each on
+      // its own rather than letting one opt-in carry the rest.
+      const ruled = rules.length > 0 ? resolveRuleEffects(update, rules).autoMigrate : undefined
+      const autoMigrate = ruled ?? settings.autoMigrate
+
       const result = await attemptMajorUpgrade({
         update,
         releaseNotes: span.notes,
@@ -110,7 +123,7 @@ export async function analyzeGroupMajors(options: GroupUpgradeOptions): Promise<
         workspace: options.workspace,
         baseBranch: options.baseBranch,
         ai: options.ai,
-        ...(settings.autoMigrate !== undefined ? { autoMigrate: settings.autoMigrate } : {}),
+        ...(autoMigrate !== undefined ? { autoMigrate } : {}),
         ...(settings.draftBelowConfidence ? { draftBelowConfidence: settings.draftBelowConfidence } : {}),
         logger,
       })

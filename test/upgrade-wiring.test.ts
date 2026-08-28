@@ -220,3 +220,79 @@ describe('report placement', () => {
     expect(appendUpgradeReport('## Tables', 'report')).toContain('report')
   })
 })
+
+/**
+ * `autoMigrate` on a package rule was resolved into `ResolvedEffects` and
+ * aggregated by `mergeGroupEffects`, and nothing read either — only the
+ * repository-wide `ai.majorUpgrades.autoMigrate` ever reached the migration.
+ */
+describe('rule-level autoMigrate', () => {
+  /** A plan with a change, so attempting the migration is distinguishable. */
+  const WITH_CHANGES = {
+    changes: [{
+      description: 'the legacy import was removed',
+      action: 'import from the package root instead',
+      affectedFiles: [],
+      automatable: true,
+    }],
+    confidence: 'high',
+    effort: 2,
+    risks: [],
+  }
+
+  function configWith(rules: unknown[], globalAutoMigrate?: boolean): BuddyConfig {
+    return {
+      ai: {
+        majorUpgrades: {
+          enabled: true,
+          ...(globalAutoMigrate === undefined ? {} : { autoMigrate: globalAutoMigrate }),
+        },
+      },
+      packages: { strategy: 'all', rules },
+    } as unknown as BuddyConfig
+  }
+
+  /** Analysis alone is one completion; attempting the migration adds another. */
+  async function completions(config: BuddyConfig, update = makeUpdate()): Promise<number> {
+    const ai = scriptedClient(WITH_CHANGES)
+    await analyzeGroupMajors({ ...baseOptions(config, ai), updates: [update] })
+    return ai.requests.length
+  }
+
+  it('success case - a rule turns the migration on where the global is off', async () => {
+    expect(await completions(configWith([{ matchPackages: ['react'], autoMigrate: true }]))).toBe(2)
+  })
+
+  it('failure case - a rule turns it off where the global is on', async () => {
+    expect(await completions(configWith([{ matchPackages: ['react'], autoMigrate: false }], true))).toBe(1)
+  })
+
+  it('success case - the global still applies where no rule matches', async () => {
+    expect(await completions(configWith([{ matchPackages: ['lodash'], autoMigrate: true }], true))).toBe(2)
+    expect(await completions(configWith([{ matchPackages: ['lodash'], autoMigrate: true }], false))).toBe(1)
+  })
+
+  it('success case - each package decides for itself', async () => {
+    // The documented reading is that migrating what can be migrated leaves
+    // everything else exactly as it would have been — which is an argument
+    // for resolving per package rather than letting one opt-in carry a group.
+    const ai = scriptedClient(WITH_CHANGES)
+    await analyzeGroupMajors({
+      ...baseOptions(configWith([{ matchPackages: ['react'], autoMigrate: true }]), ai),
+      updates: [makeUpdate({ name: 'react' }), makeUpdate({ name: 'lodash' })],
+    })
+
+    // Two analyses, and one migration attempt — react's.
+    expect(ai.requests.length).toBe(3)
+  })
+
+  it('edge case - a rule saying nothing about migration changes nothing', async () => {
+    expect(await completions(configWith([{ matchPackages: ['react'], groupName: 'React' }], false))).toBe(1)
+    expect(await completions(configWith([{ matchPackages: ['react'], groupName: 'React' }], true))).toBe(2)
+  })
+
+  it('edge case - no rules leaves the global in charge', async () => {
+    expect(await completions(configWith([], true))).toBe(2)
+    expect(await completions(configWith([]))).toBe(1)
+  })
+})
