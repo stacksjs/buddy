@@ -3148,6 +3148,11 @@ cli
       const outcome = await runPostMerge(provider, pr, config.gates?.postMerge ?? {}, {
         baseBranch: config.repository?.baseBranch ?? pr.base,
         logger,
+        // Supplied here because refreshing means a full scan, which is
+        // `Buddy`'s job rather than the gate module's.
+        refreshDashboard: async () => {
+          await new Buddy(config).createOrUpdateDashboard()
+        },
       })
 
       for (const action of outcome.performed)
