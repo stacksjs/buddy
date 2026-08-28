@@ -18,6 +18,9 @@ export {
   parseTouchSelections,
   planTouch,
   renderTouchOffer,
+  TOUCH_OFFER_MARKER,
+  hasTouchOffer,
+  withTouchOffer,
   simplifyTouch,
   unitTestsTouch,
 } from './tasks'
