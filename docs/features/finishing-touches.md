@@ -22,7 +22,7 @@ hero:
     - file: "on the pull request"
       lang: "ascii"
       content: |
-        buddy  commented on #128
+        buddy  updated the description of #128
 
           Finishing touches — tick one and I will
           open it as a pull request against this
@@ -99,9 +99,14 @@ Touches whose output is a *suggestion* rather than a commit — `simplify` and `
 
 ## Running one
 
-From the thread, tick the checkbox Buddy posts. From the CLI:
+Tick the checkbox Buddy posts. It appends them to the pull request's
+description when the request is opened or marked ready — the description
+rather than a comment, because that is what fires the `pull_request: edited`
+event a tick has to be noticed by. Offering is idempotent, so a draft later
+marked ready does not collect a second set of boxes.
 
 ```bash
+buddy touch 128 --offer              # post the checkboxes
 buddy touch 128                      # read the ticked boxes and run them
 buddy touch 128 --name unit-tests    # run one directly
 buddy touch 128 --test-command "bun test"

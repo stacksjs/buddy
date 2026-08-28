@@ -109,6 +109,14 @@ describe('generated workflow reachability', () => {
       expect: ['check', 'touch', 'gate'],
     },
     {
+      // The offer has to be posted before there is a box to tick, so `touch`
+      // runs on the opening event too.
+      event: 'pull request opened (finishing-touch offer)',
+      github: { event_name: 'pull_request', event: { action: 'opened', pull_request: { draft: false, merged: false } } },
+      outputs: { run_review: 'true' },
+      expect: ['touch'],
+    },
+    {
       event: 'pull request merged',
       github: { event_name: 'pull_request', event: { action: 'closed', pull_request: { draft: false, merged: true } } },
       outputs: {},

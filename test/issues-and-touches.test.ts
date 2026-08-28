@@ -2,8 +2,10 @@ import { describe, expect, it } from 'bun:test'
 import {
   FINISHING_TOUCHES,
   getFinishingTouch,
+  hasTouchOffer,
   parseTouchSelections,
   renderTouchOffer,
+  withTouchOffer,
 } from '../src/agent/tasks'
 import {
   constrainLabels,
@@ -165,5 +167,59 @@ describe('finishing touches', () => {
 
   it('edge case - nothing ticked selects nothing', () => {
     expect(parseTouchSelections(renderTouchOffer())).toEqual([])
+  })
+})
+
+/**
+ * `renderTouchOffer` had no production caller. `buddy touch` read ticked boxes
+ * out of `pullRequest.body`, and nothing ever wrote any there — so the flow the
+ * feature page is built around ("tick the checkbox Buddy posts") could not
+ * start. `--offer` is what posts them.
+ */
+describe('offering finishing touches', () => {
+  it('success case - appends the offer to a body', () => {
+    const body = withTouchOffer('The original description.')
+
+    expect(body).toContain('The original description.')
+    expect(body).toContain('buddy:touch=unit-tests')
+  })
+
+  it('success case - the offer it writes is the one the parser reads', () => {
+    // The two halves have to agree on the marker, or a tick is invisible.
+    const ticked = withTouchOffer('desc').replace('- [ ] <!-- buddy:touch=unit-tests', '- [x] <!-- buddy:touch=unit-tests')
+
+    expect(parseTouchSelections(ticked)).toEqual(['unit-tests'])
+  })
+
+  it('failure case - a body that already has the offer is left alone', () => {
+    // The job posts on `opened` and on `ready_for_review`, so a draft marked
+    // ready would otherwise get a second set of boxes that tick independently
+    // of the first.
+    const once = withTouchOffer('desc')
+
+    expect(withTouchOffer(once)).toBe(once)
+    expect(once.match(/buddy:touches/g)).toHaveLength(1)
+  })
+
+  it('success case - recognises a body that carries the offer', () => {
+    expect(hasTouchOffer(withTouchOffer('desc'))).toBe(true)
+    expect(hasTouchOffer('desc')).toBe(false)
+    expect(hasTouchOffer(null)).toBe(false)
+  })
+
+  it('edge case - an empty body still gets an offer', () => {
+    expect(hasTouchOffer(withTouchOffer(null))).toBe(true)
+  })
+
+  it('edge case - offering nothing changes nothing', () => {
+    // `renderTouchOffer([])` is empty, and an empty offer must not append a
+    // marker that `parseTouchSelections` would then find no boxes under.
+    expect(withTouchOffer('desc', [])).toBe('desc')
+  })
+
+  it('success case - ticks already in the body survive being offered again', () => {
+    const ticked = withTouchOffer('desc').replace('- [ ] <!-- buddy:touch=docstrings', '- [x] <!-- buddy:touch=docstrings')
+
+    expect(parseTouchSelections(withTouchOffer(ticked))).toEqual(['docstrings'])
   })
 })

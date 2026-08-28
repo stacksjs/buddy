@@ -1823,7 +1823,10 @@ ${generateComposerSetupSteps()}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [determine-jobs, setup]
-    if: \${{ github.event_name == 'pull_request' && github.event.action == 'edited' }}
+    # Two moments, not one: the offer has to be posted before there is a box to
+    # tick, and \`edited\` is when a tick arrives. Offering only on \`edited\`
+    # would mean the checkboxes never appeared at all.
+    if: \${{ github.event_name == 'pull_request' && (github.event.action == 'edited' || github.event.action == 'opened' || github.event.action == 'ready_for_review') }}
 
     steps:
       - name: Checkout repository
@@ -1838,7 +1841,15 @@ ${generateComposerSetupSteps()}
       - name: Install dependencies
         run: bun install
 
+      # Idempotent: a body that already carries the offer is left alone, so a
+      # pull request opened as a draft and later marked ready is not offered
+      # a second set of boxes that tick independently of the first.
+      - name: Offer finishing touches
+        if: \${{ github.event.action != 'edited' }}
+        run: bunx @buddysh/buddy touch \${{ github.event.pull_request.number }} --offer --verbose
+
       - name: Run finishing touches
+        if: \${{ github.event.action == 'edited' }}
         run: bunx @buddysh/buddy touch \${{ github.event.pull_request.number }} --verbose
 
   # Post-merge actions. Guarded on the merged flag, because the closed action

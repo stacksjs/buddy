@@ -2749,13 +2749,16 @@ cli
 cli
   .command('touch <pr-number>', 'Run a finishing touch ticked on a pull request, as a stacked PR')
   .option('--name <touch>', 'Run a specific touch rather than reading the checkboxes')
+  .option('--offer', 'Post the checkboxes on the pull request rather than running one')
   .option('--test-command <command>', 'Command that verifies the change')
   .option('--dry-run', 'Report what would run without acting')
   .option('--verbose, -v', 'Enable verbose logging')
   .example('buddy touch 42')
+  .example('buddy touch 42 --offer')
   .example('buddy touch 42 --name unit-tests')
   .action(async (prNumber: string, options: CLIOptions & {
     name?: string
+    offer?: boolean
     testCommand?: string
     dryRun?: boolean
   }) => {
@@ -2773,7 +2776,30 @@ cli
         process.exit(1)
       }
 
-      const { FINISHING_TOUCHES, getFinishingTouch, parseTouchSelections } = await import('../src/agent/tasks')
+      const { FINISHING_TOUCHES, getFinishingTouch, hasTouchOffer, parseTouchSelections, withTouchOffer }
+        = await import('../src/agent/tasks')
+
+      // Posting the offer is what makes the checkboxes exist. `renderTouchOffer`
+      // had no production caller, so `buddy touch` read ticks from a body that
+      // nothing ever wrote them into — the documented "tick a box" flow could
+      // not start.
+      if (options.offer) {
+        if (hasTouchOffer(pullRequest.body)) {
+          logger.info(`ℹ️ PR #${pullRequest.number} already carries the finishing-touch offer`)
+          return
+        }
+
+        const body = withTouchOffer(pullRequest.body)
+
+        if (options.dryRun) {
+          logger.info(`🔍 [DRY RUN] Would offer finishing touches on PR #${pullRequest.number}`)
+          return
+        }
+
+        await provider.updatePullRequest(pullRequest.number, { body })
+        logger.success(`✅ Offered finishing touches on PR #${pullRequest.number}`)
+        return
+      }
 
       // The checkboxes are the request. A touch named on the command line is
       // the manual path, for a maintainer who did not want to tick a box.

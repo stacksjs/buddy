@@ -144,6 +144,9 @@ export function getFinishingTouch(name: string): FinishingTouch {
   return touch
 }
 
+/** Opens the offer block, so it can be found and replaced rather than repeated. */
+export const TOUCH_OFFER_MARKER = '<!-- buddy:touches -->'
+
 /**
  * Render the offer of available touches as checkbox markers.
  *
@@ -161,7 +164,39 @@ export function renderTouchOffer(names: string[] = Object.keys(FINISHING_TOUCHES
   if (lines.length === 0)
     return ''
 
-  return `<details><summary>Finishing touches</summary>\n\nTick one to have it run:\n\n${lines.join('\n')}\n\n</details>`
+  return `${TOUCH_OFFER_MARKER}\n<details><summary>Finishing touches</summary>\n\nTick one to have it run:\n\n${lines.join('\n')}\n\n</details>`
+}
+
+/**
+ * Whether a pull request body already carries the offer.
+ *
+ * Checked before appending, because the job that posts it runs on more than
+ * one event and a body that accumulated the block twice would show a second
+ * set of boxes that tick independently of the first.
+ *
+ * @param body - Pull request body
+ */
+export function hasTouchOffer(body: string | null | undefined): boolean {
+  return Boolean(body?.includes(TOUCH_OFFER_MARKER))
+}
+
+/**
+ * Append the offer to a pull request body, once.
+ *
+ * @param body - Current body
+ * @param names - Touches to offer
+ * @returns The body with the offer, or unchanged when it already has one
+ */
+export function withTouchOffer(body: string | null | undefined, names?: string[]): string {
+  const current = body ?? ''
+  if (hasTouchOffer(current))
+    return current
+
+  const offer = renderTouchOffer(names)
+  if (!offer)
+    return current
+
+  return `${current.trimEnd()}\n\n${offer}\n`
 }
 
 /** Parse which touches a maintainer ticked. */
