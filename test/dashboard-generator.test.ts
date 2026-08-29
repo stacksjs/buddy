@@ -855,3 +855,73 @@ Dependency files: {{detectedDependencies.dependencyFiles.count}}
     expect(result.body).toContain('<!-- rebase-branch=renovate/symfony-console-7.x -->')
   })
 })
+
+/**
+ * `includePackageJson`, `includeDependencyFiles` and `includeGitHubActions`
+ * were declared, documented in the defaults table as `true`, and read by
+ * nothing — every ecosystem was always listed whatever the config said.
+ */
+describe('per-ecosystem include toggles', () => {
+  const generator = new DashboardGenerator()
+
+  function file(path: string, type: PackageFile['type'], depType: PackageFile['dependencies'][number]['type']): PackageFile {
+    return {
+      path,
+      type,
+      content: '',
+      dependencies: [{ name: `dep-in-${path}`, currentVersion: '1.0.0', type: depType, file: path }],
+    }
+  }
+
+  const data: DashboardData = {
+    repository: { owner: 'o', name: 'r', provider: 'github' },
+    openPRs: [],
+    detectedDependencies: {
+      packageJson: [file('package.json', 'package.json', 'dependencies')],
+      dependencyFiles: [file('deps.yaml', 'deps.yaml', 'dependencies')],
+      githubActions: [file('.github/workflows/ci.yml', 'github-actions', 'github-actions')],
+    },
+    lastUpdated: new Date('2024-01-01T00:00:00Z'),
+  }
+
+  it('success case - everything is listed by default', () => {
+    const { body } = generator.generateDashboard(data)
+
+    expect(body).toContain('<summary>npm</summary>')
+    expect(body).toContain('<summary>github-actions</summary>')
+    expect(body).toContain('<summary>dependency-files</summary>')
+  })
+
+  it('success case - includePackageJson: false drops the npm section only', () => {
+    const { body } = generator.generateDashboard(data, { includePackageJson: false })
+
+    expect(body).not.toContain('<summary>npm</summary>')
+    expect(body).toContain('<summary>github-actions</summary>')
+    expect(body).toContain('<summary>dependency-files</summary>')
+  })
+
+  it('success case - includeGitHubActions: false drops the actions section only', () => {
+    const { body } = generator.generateDashboard(data, { includeGitHubActions: false })
+
+    expect(body).not.toContain('<summary>github-actions</summary>')
+    expect(body).toContain('<summary>npm</summary>')
+  })
+
+  it('success case - includeDependencyFiles: false drops the dependency-files section only', () => {
+    const { body } = generator.generateDashboard(data, { includeDependencyFiles: false })
+
+    expect(body).not.toContain('<summary>dependency-files</summary>')
+    expect(body).toContain('<summary>npm</summary>')
+  })
+
+  it('edge case - all three off leaves the heading and nothing under it', () => {
+    const { body } = generator.generateDashboard(data, {
+      includePackageJson: false,
+      includeDependencyFiles: false,
+      includeGitHubActions: false,
+    })
+
+    expect(body).toContain('## Detected dependencies')
+    expect(body).not.toContain('<summary>')
+  })
+})

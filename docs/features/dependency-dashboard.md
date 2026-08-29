@@ -62,7 +62,7 @@ export default {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | `boolean` | `false` | Enable dependency dashboard |
+| `enabled` | `boolean` | `true` | Set to `false` to stop the dashboard being created or refreshed |
 | `title` | `string` | `'Dependency Dashboard'` | Custom dashboard title |
 | `labels` | `string[]` | `['dependencies', 'dashboard']` | Labels to add to the issue |
 | `assignees` | `string[]` | `[]` | Users to assign to the issue |

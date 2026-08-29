@@ -18,6 +18,10 @@ export class DashboardGenerator {
     showDetectedDependencies?: boolean
     showDeprecatedDependencies?: boolean
     showVulnerableDependencies?: boolean
+    /** Per-ecosystem toggles within the detected-dependencies section */
+    includePackageJson?: boolean
+    includeDependencyFiles?: boolean
+    includeGitHubActions?: boolean
     bodyTemplate?: string
   } = {}): { title: string, body: string } {
     const {
@@ -25,6 +29,9 @@ export class DashboardGenerator {
       showDetectedDependencies = true,
       showDeprecatedDependencies = true,
       showVulnerableDependencies = true,
+      includePackageJson = true,
+      includeDependencyFiles = true,
+      includeGitHubActions = true,
       bodyTemplate,
     } = options
 
@@ -61,7 +68,13 @@ export class DashboardGenerator {
     }
 
     if (showDetectedDependencies) {
-      body += this.generateDetectedDependenciesSection(data.detectedDependencies)
+      // The three `include*` toggles were declared, documented in the defaults
+      // table, and read by nothing — every ecosystem was always listed.
+      body += this.generateDetectedDependenciesSection({
+        packageJson: includePackageJson ? data.detectedDependencies.packageJson : [],
+        dependencyFiles: includeDependencyFiles ? data.detectedDependencies.dependencyFiles : [],
+        githubActions: includeGitHubActions ? data.detectedDependencies.githubActions : [],
+      })
     }
 
     body += this.generateFooter()

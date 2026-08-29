@@ -3289,6 +3289,9 @@ export class Buddy {
         showOpenPRs: dashboardConfig.showOpenPRs ?? true,
         showDetectedDependencies: dashboardConfig.showDetectedDependencies ?? true,
         showDeprecatedDependencies: dashboardConfig.showDeprecatedDependencies ?? true,
+        includePackageJson: dashboardConfig.includePackageJson ?? true,
+        includeDependencyFiles: dashboardConfig.includeDependencyFiles ?? true,
+        includeGitHubActions: dashboardConfig.includeGitHubActions ?? true,
         bodyTemplate: dashboardConfig.bodyTemplate,
       })
 
