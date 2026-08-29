@@ -226,10 +226,18 @@ export interface BuddyConfig {
    * the numbers; it never produces them.
    */
   reports?: {
-    /** Generate reports (default: false) */
+    /**
+     * Publish the scheduled report (default: false).
+     *
+     * Governs only the run the generated workflow starts: a cron trigger
+     * cannot read this file, so the workflow passes `--scheduled` and the
+     * command declines to publish unless this is `true`. A person running
+     * `buddy report --publish` by hand has already decided.
+     *
+     * The cadence itself lives in the workflow's `schedule:` block — there
+     * is no config key for it, because nothing at trigger time could read one.
+     */
     enabled?: boolean
-    /** Cron expression for the scheduled run */
-    schedule?: string
     /** Reporting window (default: `30d`) */
     period?: '7d' | '30d' | '90d'
     /** What the AI narrative should emphasise */

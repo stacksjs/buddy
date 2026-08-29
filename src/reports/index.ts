@@ -21,3 +21,4 @@ export type {
   ReportPeriod,
 } from './metrics'
 export { REPORT_MARKER, renderReport, withNarrative } from './render'
+export { shouldPublishReport } from './publish-gate'
