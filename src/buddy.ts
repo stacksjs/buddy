@@ -1745,7 +1745,12 @@ export class Buddy {
       try {
         const { generateDockerfileUpdates } = await import('./utils/dockerfile-parser')
         // Pass only the Dockerfile updates for this specific group
-        const dockerUpdates = await generateDockerfileUpdates(dockerfileUpdates)
+        // Passed through so a digest on a private image can be re-resolved
+        // with the same credentials the scan used to find the tag.
+        const dockerUpdates = await generateDockerfileUpdates(
+          dockerfileUpdates,
+          this.config.registries?.docker,
+        )
         fileUpdates.push(...dockerUpdates)
       }
       catch (error) {
