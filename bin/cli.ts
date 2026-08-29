@@ -793,6 +793,16 @@ cli
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
 
+    // Explicit `false` only. Unset stays on: the setting was documented as
+    // defaulting to false and was read by nothing, and enforcing that
+    // literally would switch off the dashboard for every repository that
+    // never wrote a `dashboard` block — the same trap `ai.review.enabled`
+    // set, and the same reading that avoids it.
+    if (config.dashboard?.enabled === false) {
+      logger.info('ℹ️ Dashboard is disabled by config (dashboard.enabled: false)')
+      return
+    }
+
     try {
       logger.info('Creating or updating dependency dashboard...')
 
@@ -3151,6 +3161,8 @@ cli
         // Supplied here because refreshing means a full scan, which is
         // `Buddy`'s job rather than the gate module's.
         refreshDashboard: async () => {
+          if (config.dashboard?.enabled === false)
+            throw new Error('dashboard.enabled is false')
           await new Buddy(config).createOrUpdateDashboard()
         },
       })
