@@ -159,6 +159,7 @@ matches `react` but not `@types/node`. Use `['**']` for every package, or
 | `autoMerge`         | Allows unattended merge — see the caveat below            |
 | `autoMigrate`       | Attempts the migration for matching majors                |
 | `minimumReleaseAge` | Minutes a version must have been published                |
+| `engines`           | Propose bumps to the runtimes under `engines` (default off) |
 | `prPriority`        | Ordering within `maxPRsPerRun`; higher goes first         |
 
 `prPriority` is applied **before** the per-run cap, so a high-priority group

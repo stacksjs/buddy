@@ -1,4 +1,4 @@
-import type { Dependency } from '../types'
+import type { Dependency, PackageUpdate } from '../types'
 
 /** Runtimes buddy knows how to resolve a version for. */
 export const KNOWN_ENGINES: Record<string, { registry: 'npm' | 'github', source: string }> = {
@@ -216,4 +216,70 @@ export function bumpEngineConstraint(constraint: string, latest: string): string
     return null
 
   return `${operator}${truncated.join('.')}`
+}
+
+/**
+ * Classify an engine bump by the first component that changed.
+ *
+ * Constraints carry operators and are often imprecise (`>=20`), so semver
+ * ordering cannot be applied to them directly. Comparing the numeric parts
+ * positionally is what the constraint means anyway.
+ *
+ * @param current - The declared constraint
+ * @param next - The proposed constraint
+ * @returns The semver impact of the change
+ * @example
+ * ```ts
+ * engineUpdateType('>=20', '>=22')     // 'major'
+ * engineUpdateType('>=20.5', '>=20.9') // 'minor'
+ * ```
+ */
+export function engineUpdateType(current: string, next: string): PackageUpdate['updateType'] {
+  const parts = (value: string): number[] => (/(\d+(?:\.\d+)*)/.exec(value)?.[1] ?? '0').split('.').map(Number)
+  const before = parts(current)
+  const after = parts(next)
+
+  if ((after[0] ?? 0) !== (before[0] ?? 0))
+    return 'major'
+  if ((after[1] ?? 0) !== (before[1] ?? 0))
+    return 'minor'
+  return 'patch'
+}
+
+/**
+ * Rewrite engine constraints in a package.json's text.
+ *
+ * String replacement rather than parse-and-serialise, for the same reason the
+ * dependency writer does it: the file's indentation, key order and trailing
+ * newline are somebody's choices, and re-serialising would silently discard
+ * them in a pull request that claims to touch one line.
+ *
+ * Scoped to the `engines` object, so an engine whose name is also a dependency
+ * — `npm`, `yarn` — is not rewritten in `devDependencies` by mistake.
+ *
+ * @param content - Current package.json text
+ * @param updates - Engine updates to apply
+ * @returns The rewritten text, unchanged when nothing matched
+ */
+export function applyEngineUpdates(content: string, updates: PackageUpdate[]): string {
+  const block = /("engines"\s*:\s*\{)([\s\S]*?)(\})/.exec(content)
+  if (!block)
+    return content
+
+  const [whole, open, body, close] = block
+  let next = body
+
+  for (const update of updates) {
+    if (update.dependencyType !== 'engines')
+      continue
+
+    const name = update.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const current = update.currentVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    next = next.replace(
+      new RegExp(`("${name}"\\s*:\\s*")${current}(")`),
+      `$1${update.newVersion}$2`,
+    )
+  }
+
+  return next === body ? content : content.replace(whole, `${open}${next}${close}`)
 }
