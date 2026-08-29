@@ -43,7 +43,9 @@ const VERDICT_SCHEMA = {
 
 /** A gate that could not run, reported as neutral rather than as a pass. */
 function neutral(name: string, summary: string): GateResult {
-  return { name, mode: 'warning', passed: true, summary, detail: 'This check did not run.' }
+  // `passed: true` so a skipped gate never blocks; `neutral: true` so it is
+  // never rendered, counted or titled as though it had run and found nothing.
+  return { name, mode: 'warning', passed: true, neutral: true, summary, detail: 'This check did not run.' }
 }
 
 /**

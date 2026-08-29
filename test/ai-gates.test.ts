@@ -9,6 +9,7 @@ import {
   isMergeEvent,
   runAiGates,
   runPostMerge,
+  summarizeGates,
 } from '../src/gates'
 import {
   clearQuickSelection,
@@ -484,5 +485,52 @@ describe('EOL feeds the dependency gate', () => {
 
     expect(note).toBe('')
     expect(checkDependencies([{ name: 'node', version: '22' }], { mode: 'error' }).passed).toBe(true)
+  })
+})
+
+/**
+ * `neutral()` in the assertion gates returned `passed: true`, and `GateResult`
+ * had no other state — so a gate that could not run was rendered with the same
+ * green tick as one that ran and found nothing, and a check run made of
+ * nothing but skipped gates was titled "All checks passed".
+ */
+describe('neutral gate results', () => {
+  const passed = { name: 'deps', mode: 'error' as const, passed: true, summary: 'fine' }
+  const skipped = { name: 'linked-issue', mode: 'warning' as const, passed: true, neutral: true, summary: 'No AI provider configured' }
+  const failed = { name: 'size', mode: 'error' as const, passed: false, summary: 'too big' }
+
+  it('failure case - all gates skipped is not "all checks passed"', () => {
+    const summary = summarizeGates([skipped])
+
+    expect(summary.conclusion).toBe('neutral')
+    expect(summary.title).toContain('did not run')
+    expect(summary.title).not.toContain('passed')
+  })
+
+  it('success case - a skipped gate beside a real pass is counted apart', () => {
+    const summary = summarizeGates([passed, skipped])
+
+    expect(summary.conclusion).toBe('success')
+    expect(summary.title).toBe('1 check(s) passed, 1 did not run')
+  })
+
+  it('success case - a skipped gate renders as skipped, not as a tick', () => {
+    const { summary } = summarizeGates([passed, skipped])
+
+    expect(summary).toContain('⏭️ **linked-issue**')
+    expect(summary).toContain('✅ **deps**')
+  })
+
+  it('failure case - a skipped gate never blocks', () => {
+    expect(summarizeGates([skipped, failed]).conclusion).toBe('failure')
+    expect(summarizeGates([skipped, passed]).conclusion).toBe('success')
+  })
+
+  it('success case - a gate that could not run is flagged neutral', async () => {
+    // No AI is the commonest reason. It says so rather than passing.
+    const result = await checkLinkedIssue(null, { diff: 'x', linkedIssues: [{ number: 1, title: 't', body: 'b' }] } as never, 'error')
+
+    expect(result.neutral).toBe(true)
+    expect(result.passed).toBe(true)
   })
 })

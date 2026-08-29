@@ -3029,7 +3029,7 @@ cli
       }
 
       const provider = await providerFor(config, 'running gates', logger)
-      const { findLinkedIssues, runAiGates, runGates, summarizeGates } = await import('../src/gates')
+      const { findLinkedIssues, runAiGates, runGates, gateIcon, summarizeGates } = await import('../src/gates')
       const { parseManifest } = await import('../src/pr/pr-manifest')
 
       const prs = await provider.getPullRequests('open')
@@ -3105,7 +3105,7 @@ cli
       const summary = summarizeGates(results)
 
       for (const result of results)
-        logger.info(`${result.passed ? '✅' : result.mode === 'error' ? '❌' : '⚠️'} ${result.name}: ${result.summary}`)
+        logger.info(`${gateIcon(result)} ${result.name}: ${result.summary}`)
 
       const blocking = summary.conclusion === 'failure'
 

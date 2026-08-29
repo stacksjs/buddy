@@ -8,6 +8,8 @@ export interface MigrationOutcome {
   applied: boolean
   /** Whether the repository's own verification passed afterwards */
   verified: boolean
+  /** Agent runs it took, when more than one was allowed */
+  attempts?: number
   /** Files the migration touched */
   changedFiles: string[]
   /** Verification output, when it ran */

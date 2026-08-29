@@ -9,6 +9,14 @@ export interface GateResult {
   /** `error` blocks the merge under branch protection; `warning` does not */
   mode: GateMode
   passed: boolean
+  /**
+   * The gate did not run — no AI configured, nothing to check against, the
+   * assessment failed. Distinct from `passed`, which it used to be folded
+   * into: a gate that could not run was rendered with the same green tick as
+   * one that ran and found nothing, and a check run made of nothing but
+   * skipped gates reported "All checks passed".
+   */
+  neutral?: boolean
   /** What failed, or what passed */
   summary: string
   /** Extra explanation shown under the summary */
@@ -199,23 +207,51 @@ export function summarizeGates(results: GateResult[]): {
 
   const blocking = results.filter(result => !result.passed && result.mode === 'error')
   const warnings = results.filter(result => !result.passed && result.mode === 'warning')
+  const skipped = results.filter(result => result.neutral)
 
   const lines = results.map((result) => {
-    const icon = result.passed ? '✅' : result.mode === 'error' ? '❌' : '⚠️'
+    const icon = gateIcon(result)
     return `${icon} **${result.name}** — ${result.summary}${result.detail ? `\n\n${result.detail}\n` : ''}`
   })
 
+  // Every gate skipped is not a pass. It is the "no checks configured" case
+  // arrived at a different way, and gets the same conclusion.
+  if (skipped.length === results.length) {
+    return {
+      conclusion: 'neutral',
+      title: `${skipped.length} check(s) did not run`,
+      summary: lines.join('\n\n'),
+    }
+  }
+
+  const ran = results.length - skipped.length
   const title = blocking.length > 0
     ? `${blocking.length} check(s) failed`
     : warnings.length > 0
       ? `${warnings.length} warning(s)`
-      : 'All checks passed'
+      : skipped.length > 0
+        ? `${ran} check(s) passed, ${skipped.length} did not run`
+        : 'All checks passed'
 
   return {
     conclusion: blocking.length > 0 ? 'failure' : 'success',
     title,
     summary: lines.join('\n\n'),
   }
+}
+
+/**
+ * The icon a gate result renders with.
+ *
+ * Shared with the CLI so a skipped gate looks the same in a terminal as in
+ * the check run.
+ *
+ * @param result - A gate result
+ */
+export function gateIcon(result: GateResult): string {
+  if (result.neutral)
+    return '⏭️'
+  return result.passed ? '✅' : result.mode === 'error' ? '❌' : '⚠️'
 }
 
 function escapeRegExp(value: string): string {

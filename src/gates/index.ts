@@ -3,6 +3,7 @@ export {
   checkDescription,
   checkTitleFormat,
   runGates,
+  gateIcon,
   summarizeGates,
 } from './checks'
 export type { GateConfig, GateInput, GateMode, GateResult } from './checks'
