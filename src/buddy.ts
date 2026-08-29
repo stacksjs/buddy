@@ -168,6 +168,15 @@ export class Buddy {
       // Get outdated Zig dependencies
       const zigStartTime = Date.now()
       const zigUpdates = await this.checkZigForUpdates(packageFiles)
+
+      // Runtimes declared under `engines`. Both halves of this — resolving a
+      // newer runtime and rewriting the constraint — existed and were tested,
+      // and no scan step called either, so an engine was listed on the
+      // dashboard and never proposed. Opt-in, because bumping one is a
+      // deployment decision rather than a dependency one.
+      const engineUpdates = this.config.packages?.engines === true
+        ? await this.checkEnginesForUpdates(packageFiles)
+        : []
       this.logger.info(`⏱️  Zig dependency checks took ${Date.now() - zigStartTime}ms (found ${zigUpdates.length} updates)`)
 
       // pnpm catalogs are where the version lives in a workspace that uses
@@ -212,6 +221,7 @@ export class Buddy {
         ...githubActionsUpdates,
         ...dockerUpdates,
         ...zigUpdates,
+        ...engineUpdates,
         ...adapterScan.updates,
         ...catalogScan.updates,
       ]
@@ -1404,6 +1414,71 @@ export class Buddy {
   }
 
   /**
+   * Propose bumps to the runtimes declared under `engines`.
+   *
+   * Node and Deno publish releases on GitHub; the package managers publish to
+   * npm. `resolveEngineVersion` knows which is which, and the lookups are the
+   * clients this instance already has, so the npm side shares the registry
+   * cache with everything else in the scan.
+   *
+   * @param packageFiles - Every scanned manifest
+   * @returns One update per engine whose constraint no longer admits the newest release
+   */
+  private async checkEnginesForUpdates(packageFiles: PackageFile[]): Promise<PackageUpdate[]> {
+    const { bumpEngineConstraint, engineUpdateType, resolveEngineVersion } = await import('./scanner/package-json-extras')
+    const { fetchLatestActionVersion } = await import('./utils/github-actions-parser')
+
+    const engines = packageFiles.flatMap(file =>
+      file.dependencies
+        .filter(dep => dep.type === 'engines')
+        .map(dep => ({ file, dep })),
+    )
+
+    if (engines.length === 0)
+      return []
+
+    this.logger.info(`⚡ Checking ${engines.length} engine constraint(s)...`)
+
+    const lookups = {
+      npm: (name: string) => this.registryClient.getLatestVersion(name),
+      // The action fetcher takes `owner/repo` and returns the latest release
+      // tag, which is exactly the shape a runtime's GitHub releases have.
+      github: (repo: string) => fetchLatestActionVersion(repo),
+    }
+
+    const checks = engines.map(async ({ file, dep }): Promise<PackageUpdate | null> => {
+      try {
+        const latest = await resolveEngineVersion(dep.name, lookups)
+        if (!latest)
+          return null
+
+        const proposed = bumpEngineConstraint(dep.currentVersion, latest)
+        if (!proposed) {
+          this.logger.debug(`${dep.name} ${dep.currentVersion} already admits ${latest}`)
+          return null
+        }
+
+        this.logger.info(`Update available: ${dep.name} ${dep.currentVersion} → ${proposed}`)
+
+        return {
+          name: dep.name,
+          currentVersion: dep.currentVersion,
+          newVersion: proposed,
+          updateType: engineUpdateType(dep.currentVersion, proposed),
+          dependencyType: 'engines',
+          file: file.path,
+        }
+      }
+      catch (error) {
+        this.logger.warn(`Could not check engine ${dep.name}:`, error)
+        return null
+      }
+    })
+
+    return (await Promise.all(checks)).filter((update): update is PackageUpdate => update !== null)
+  }
+
+  /**
    * Check Dockerfiles for updates
    */
   private async checkDockerfilesForUpdates(packageFiles: PackageFile[]): Promise<PackageUpdate[]> {
@@ -1601,10 +1676,37 @@ export class Buddy {
     // Handle package.json updates - only for actual package.json files, not dependency or GitHub Actions files
     const packageJsonUpdates = updates.filter(update =>
       update.file.endsWith('package.json')
+      && update.dependencyType !== 'engines'
       && !update.file.includes('.yaml')
       && !update.file.includes('.yml')
       && !update.file.includes('.github/workflows/'),
     )
+
+    // Engine constraints live under `engines`, which the dependency-section
+    // loop below never looks in — an engine update sent through it logged
+    // "not found" and wrote nothing.
+    const engineUpdates = updates.filter(update => update.dependencyType === 'engines')
+    if (engineUpdates.length > 0) {
+      const { applyEngineUpdates } = await import('./scanner/package-json-extras')
+      const byFile = new Map<string, PackageUpdate[]>()
+      for (const update of engineUpdates)
+        byFile.set(update.file, [...(byFile.get(update.file) ?? []), update])
+
+      for (const [path, fileEngines] of byFile) {
+        try {
+          const original = fs.readFileSync(path, 'utf-8')
+          const content = applyEngineUpdates(original, fileEngines)
+          if (content === original) {
+            this.logger.warn(`⚠️ No engine changes written to ${path}`)
+            continue
+          }
+          fileUpdates.push({ path, content, type: 'update' })
+        }
+        catch (error) {
+          this.logger.warn(`Failed to update engines in ${path}:`, error)
+        }
+      }
+    }
 
     // Group package.json updates by file
     const updatesByPackageFile = new Map<string, PackageUpdate[]>()

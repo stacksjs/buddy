@@ -290,7 +290,7 @@ function validatePackages(issues: ConfigIssue[], config: BuddyConfig): void {
   checkStringArray(issues, 'packages.minimumReleaseAgeExclude', packages.minimumReleaseAgeExclude)
   checkNumber(issues, 'packages.minimumReleaseAge', packages.minimumReleaseAge, { min: 0 })
 
-  for (const key of ['includePrerelease', 'excludeMajor', 'respectLatest'] as const) {
+  for (const key of ['includePrerelease', 'excludeMajor', 'respectLatest', 'engines'] as const) {
     const value = packages[key]
     if (value !== undefined && typeof value !== 'boolean')
       issues.push({ path: `packages.${key}`, message: `expected a boolean, got ${quote(value)}` })

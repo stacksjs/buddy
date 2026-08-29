@@ -135,6 +135,15 @@ export interface BuddyConfig {
     excludeMajor?: boolean
     /** Respect "latest" and "*" version indicators (default: true) */
     respectLatest?: boolean
+    /**
+     * Propose bumps to the runtimes declared under `engines` (default: false).
+     *
+     * Off by default because an engine constraint is a deployment decision
+     * rather than a dependency one: raising `node: '>=20'` to `'>=22'` is a
+     * statement about every environment the project runs in, not just the
+     * lockfile. The constraint's shape is preserved — a floor stays a floor.
+     */
+    engines?: boolean
     /** Minimum age in minutes that a package version must have before installation (default: 0) */
     minimumReleaseAge?: number
     /** Package names to exclude from minimum release age requirement */
