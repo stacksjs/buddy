@@ -3172,6 +3172,7 @@ cli
   .option('--format <name>', 'Output format: markdown|json', { default: 'markdown' })
   .option('--prompt <focus>', 'Focus for the AI narrative, when a provider is configured')
   .option('--publish', 'Publish to the repository\'s report issue')
+  .option('--scheduled', 'This is the workflow\'s scheduled run; honour reports.enabled')
   .option('--verbose, -v', 'Enable verbose logging')
   .example('buddy report --period 7d')
   .example('buddy report --prompt "focus on security posture" --publish')
@@ -3180,6 +3181,7 @@ cli
     format?: string
     prompt?: string
     publish?: boolean
+    scheduled?: boolean
   }) => {
     const quiet = options.format === 'json'
     const logger = options.verbose ? Logger.verbose() : quiet ? Logger.silent() : Logger.quiet()
@@ -3199,7 +3201,9 @@ cli
         withNarrative,
       } = await import('../src/reports')
 
-      const period = (options.period ?? '30d') as '7d' | '30d' | '90d'
+      // The flag wins, then config, then the default. `reports.period` was
+      // documented, defaulted and never consulted — only the flag was.
+      const period = (options.period ?? config.reports?.period ?? '30d') as '7d' | '30d' | '90d'
       if (!REPORT_PERIODS.includes(period)) {
         logger.error(`❌ Unknown period '${period}'. Expected one of ${REPORT_PERIODS.join(', ')}.`)
         process.exit(1)
@@ -3266,6 +3270,16 @@ cli
         options.prompt ?? config.reports?.prompt,
         logger,
       )
+
+      // The generated workflow passes --scheduled, so this is where the
+      // documented "default: false" is actually enforced. It cannot be
+      // enforced in the workflow: a cron trigger cannot read the config.
+      const { shouldPublishReport } = await import('../src/reports')
+      const gate = shouldPublishReport({ scheduled: Boolean(options.scheduled), enabled: config.reports?.enabled })
+      if (options.publish && !gate.publish) {
+        logger.info(`ℹ️ Not publishing: ${gate.reason}`)
+        return
+      }
 
       if (!options.publish) {
         process.stdout.write(`${report}\n`)

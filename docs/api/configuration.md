@@ -315,11 +315,8 @@ Scheduled dependency-health and activity reports.
 
 ```typescript
 interface ReportSettings {
-  /** Generate reports (default: false) */
+  /** Publish the scheduled report (default: false) */
   enabled?: boolean
-
-  /** Cron expression for the scheduled run */
-  schedule?: string
 
   /** Reporting window (default: `30d`) */
   period?: '7d' | '30d' | '90d'
@@ -338,6 +335,13 @@ interface ReportSettings {
 The report is computed from scan results and pull request history, so it works
 with no AI provider. A configured provider adds a narrative around the
 numbers; it never produces them.
+
+`enabled` governs only the run the generated workflow starts — a cron trigger
+cannot read this file, so the workflow passes `--scheduled` and the command
+declines to publish unless it is `true`. Running `buddy report --publish` by
+hand publishes regardless. The cadence lives in the workflow's `schedule:`
+block; there is no config key for it, because nothing at trigger time could
+read one.
 
 ## Analysis
 

@@ -1915,7 +1915,10 @@ ${generateComposerSetupSteps()}
         run: bun install
 
       - name: Generate report
-        run: bunx @buddysh/buddy report --publish --verbose
+        # --scheduled is what makes reports.enabled mean anything: the cron
+        # cannot read the config, so the command has to know this run came
+        # from it rather than from a person who has already decided.
+        run: bunx @buddysh/buddy report --publish --scheduled --verbose
 
   # Review a pull request on open, ready-for-review, or push
   review:
