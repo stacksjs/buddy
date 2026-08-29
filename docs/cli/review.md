@@ -44,6 +44,11 @@ fetched, costing one API call rather than a full review:
 Without `--auto` none of these apply except `enabled`, because a person at a
 terminal has already decided they want the review.
 
+`--format` and `--fail-on` apply here too. The review is posted to the pull
+request regardless; they govern what the terminal sees and the exit code, so
+`buddy review 123 --fail-on major` can gate a pipeline on the review it just
+left.
+
 A pull request review runs the same path as [`@buddy review`](/features/pr-conversations),
 so both assemble the same context: the analyzers, the guidelines and the
 learnings `@buddy remember` has recorded — all read from the base branch, never

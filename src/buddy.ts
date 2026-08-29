@@ -2062,7 +2062,7 @@ export class Buddy {
    */
   async checkPackages(packageNames: string[]): Promise<PackageUpdate[]> {
     this.logger.info(`Checking specific packages: ${packageNames.join(', ')}`)
-    return this.registryClient.getUpdatesForPackages(packageNames)
+    return this.applyStrategy(await this.registryClient.getUpdatesForPackages(packageNames))
   }
 
   /**
@@ -2070,7 +2070,19 @@ export class Buddy {
    */
   async checkPackagesWithPattern(pattern: string): Promise<PackageUpdate[]> {
     this.logger.info(`Checking packages with pattern: ${pattern}`)
-    return this.registryClient.getUpdatesWithPattern(pattern)
+    return this.applyStrategy(await this.registryClient.getUpdatesWithPattern(pattern))
+  }
+
+  /**
+   * Apply the configured strategy to a targeted check.
+   *
+   * The full scan filtered by strategy and these two paths did not, so
+   * `buddy scan --strategy patch --packages react` folded `--strategy` into
+   * the config and then listed the major anyway.
+   */
+  private applyStrategy(updates: PackageUpdate[]): PackageUpdate[] {
+    const strategy = this.config.packages?.strategy
+    return strategy ? this.filterUpdatesByStrategy(updates, strategy) : updates
   }
 
   /**
