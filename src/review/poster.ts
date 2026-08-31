@@ -42,14 +42,22 @@ export interface PreparedReview {
  * as prose only, since a half-right suggestion costs more to undo than to
  * write by hand.
  *
+ * On a platform whose `reviewSuggestions` capability is false the block
+ * renders as a plain code fence instead: Bitbucket shows a literal
+ * suggestion fence as noise, and the one-click apply it promises does not
+ * exist there.
+ *
  * @param finding - Finding to render
+ * @param options - Whether the platform renders suggestion blocks (default: it does)
  */
-export function renderFinding(finding: ReviewFinding): string {
+export function renderFinding(finding: ReviewFinding, options?: { suggestions?: boolean }): string {
   const source = finding.tool ? ` \`[${finding.tool}]\`` : ''
   let body = `**${SEVERITY_BADGE[finding.severity]}** · \`${finding.category}\`${source}\n\n${finding.message}`
 
   if (finding.suggestion) {
-    body += `\n\n\`\`\`suggestion\n${finding.suggestion}\n\`\`\``
+    body += options?.suggestions === false
+      ? `\n\nSuggested replacement:\n\n\`\`\`\n${finding.suggestion}\n\`\`\``
+      : `\n\n\`\`\`suggestion\n${finding.suggestion}\n\`\`\``
   }
 
   return body
@@ -70,13 +78,15 @@ export function prepareReview(
     requestChangesOn?: 'never' | 'critical'
     /** Fingerprints already reported, carried forward into the new state */
     seenFingerprints?: string[]
+    /** Whether the platform renders suggestion blocks (default: it does) */
+    suggestions?: boolean
   },
 ): PreparedReview {
   const comments: InlineComment[] = result.findings.map(finding => ({
     path: finding.path,
     line: finding.line,
     side: 'RIGHT' as const,
-    body: renderFinding(finding),
+    body: renderFinding(finding, { suggestions: options.suggestions !== false }),
   }))
 
   const counts = countBySeverity(result.findings)

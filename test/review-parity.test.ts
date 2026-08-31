@@ -50,9 +50,9 @@ function stub(files: Record<string, string> = {}): { provider: GitProvider, seen
       seen.filesRead.push({ path, ref })
       return files[path] ?? null
     },
-    createReview: async (prNumber: number, review: { body: string }) => {
+    createReview: async (prNumber: number, review: { body: string, comments?: unknown[] }) => {
       seen.reviews.push({ pr: prNumber, body: review.body })
-      return { id: 1 }
+      return { posted: true, inlineComments: review.comments?.length ?? 0 }
     },
     updatePullRequest: async () => pr,
   } as unknown as GitProvider
