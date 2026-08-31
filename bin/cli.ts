@@ -1610,9 +1610,9 @@ cli
       // runs was the one path missing both.
       if (prNumber) {
         const gitProvider = await providerFor(config, 'reviewing a pull request', log)
-        const { runReviewForPR } = await import('../src/review/run')
+        const { reviewPullRequest } = await import('../src/review/run')
 
-        const status = await runReviewForPR({
+        const { status, result } = await reviewPullRequest({
           config,
           provider: gitProvider,
           prNumber: Number.parseInt(prNumber, 10),
@@ -1626,6 +1626,17 @@ cli
         })
 
         logger.success(`✅ ${status}`)
+
+        // `--format` and `--fail-on` were accepted on this path and applied
+        // only on the local one, so a pull request review could not be
+        // rendered as JSON or made to fail a pipeline. The review is posted
+        // regardless; these govern what the terminal sees and the exit code.
+        if (result && format !== 'pretty')
+          process.stdout.write(formatReview(result, format))
+
+        if (result && options.failOn && shouldFail(result.findings, options.failOn as 'critical'))
+          process.exit(1)
+
         return
       }
 

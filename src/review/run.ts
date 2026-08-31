@@ -10,6 +10,7 @@ import { parseUnifiedDiff } from './diff'
 import { reviewDiff } from './engine'
 import { composeInstructions, loadGuidelines } from './guidelines'
 import type { ReviewProfile } from './engine'
+import type { ReviewResult } from './findings'
 import type { ReviewTrigger } from './filters'
 import { reviewSkipReason } from './filters'
 import { needsReview, parseReviewState, upsertReviewState } from './marker'
@@ -60,30 +61,49 @@ export interface RunReviewOptions {
  * @param options - Repository context and review settings
  * @returns A short status line describing what happened
  */
-export async function runReviewForPR(options: RunReviewOptions): Promise<string> {
+/** What a pull request review produced, for callers that need more than a status line. */
+export interface ReviewOutcome {
+  /** A short status line describing what happened */
+  status: string
+  /** The review, when one was computed — absent when skipped, paused or empty */
+  result?: ReviewResult
+}
+
+/**
+ * Review a pull request and report both the status and the findings.
+ *
+ * `runReviewForPR` returns only the status line, which is all a comment reply
+ * needs. The CLI needs the findings too: `--format` renders them and
+ * `--fail-on` gates the exit code on them, and both were accepted on the pull
+ * request path and then never applied, because the findings never came back.
+ *
+ * @param options - Repository context and review settings
+ * @returns The status, and the review when one was computed
+ */
+export async function reviewPullRequest(options: RunReviewOptions): Promise<ReviewOutcome> {
   const logger = options.logger ?? getDefaultLogger()
   const { config, provider, prNumber } = options
 
   const prs = await provider.getPullRequests('open')
   const pr = prs.find(candidate => candidate.number === prNumber)
   if (!pr)
-    return `Could not find open pull request #${prNumber}.`
+    return { status: `Could not find open pull request #${prNumber}.` }
 
   // Checked before the diff is fetched or a model is contacted, so an ignored
   // pull request costs one API call rather than a review's worth of tokens.
   const skip = reviewSkipReason(config, pr, options.trigger ?? 'requested')
   if (skip) {
     logger.info(`🔍 Skipping PR #${prNumber}: ${skip}`)
-    return skip
+    return { status: skip }
   }
 
   const state = parseReviewState(pr.body)
   if (state?.paused && !options.full)
-    return 'Reviews are paused on this pull request. Say `@buddy resume` to restart them.'
+    return { status: 'Reviews are paused on this pull request. Say `@buddy resume` to restart them.' }
 
   const diff = await provider.getPullRequestDiff(prNumber)
   if (!diff.trim())
-    return 'There are no changes to review.'
+    return { status: 'There are no changes to review.' }
 
   const parsed = parseUnifiedDiff(diff)
   const changedFiles = parsed.files.map(file => file.path)
@@ -91,7 +111,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   if (options.skipIfReviewed && !needsReview(state, headSha)) {
     logger.info(`🔍 PR #${prNumber} already reviewed at ${headSha}`)
-    return 'Already reviewed at this commit.'
+    return { status: 'Already reviewed at this commit.' }
   }
 
   const ai = options.ai === undefined ? createAiClient(config, logger) : options.ai
@@ -111,7 +131,7 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   if (!ai) {
     if (analysis.findings.length === 0)
-      return 'No AI provider configured and static analysis found nothing to report.'
+      return { status: 'No AI provider configured and static analysis found nothing to report.' }
 
     const prepared = prepareReview(
       {
@@ -124,15 +144,23 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
       { headSha, requestChangesOn: config.ai?.review?.requestChangesOn },
     )
 
+    const staticResult: ReviewResult = {
+      summary: 'Static analysis only — no AI provider is configured.',
+      walkthrough: [],
+      findings: analysis.findings,
+      effort: 1,
+      omittedFiles: [],
+    }
+
     if (options.dryRun) {
       reportDryRun(prepared, logger)
-      return `Would post ${analysis.findings.length} static-analysis finding(s).`
+      return { status: `Would post ${analysis.findings.length} static-analysis finding(s).`, result: staticResult }
     }
 
     assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
     await provider.createReview(prNumber, prepared)
     await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
-    return `Posted ${analysis.findings.length} static-analysis finding(s).`
+    return { status: `Posted ${analysis.findings.length} static-analysis finding(s).`, result: staticResult }
   }
 
   // Guidelines and learnings are read from the base branch: both are inlined
@@ -172,17 +200,36 @@ export async function runReviewForPR(options: RunReviewOptions): Promise<string>
 
   if (options.dryRun) {
     reportDryRun(prepared, logger)
-    return `Would post ${result.findings.length} finding(s).`
+    return { status: `Would post ${result.findings.length} finding(s).`, result }
   }
 
   assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
   await provider.createReview(prNumber, prepared)
   await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
 
-  return result.findings.length === 0
-    ? 'Reviewed — nothing to report.'
-    : `Reviewed — ${result.findings.length} finding(s) posted.`
+  return {
+    status: result.findings.length === 0
+      ? 'Reviewed — nothing to report.'
+      : `Reviewed — ${result.findings.length} finding(s) posted.`,
+    result,
+  }
 }
+
+/**
+ * Review a pull request end to end and post the result.
+ *
+ * Shared by the CLI, the `@buddy review` command and the automatic
+ * trigger, so all three assemble context — guidelines, learnings, analyzer
+ * findings — the same way rather than drifting apart.
+ *
+ * @param options - Repository context and review settings
+ * @returns A short status line describing what happened
+ */
+export async function runReviewForPR(options: RunReviewOptions): Promise<string> {
+  return (await reviewPullRequest(options)).status
+}
+
+
 
 /**
  * Print a review instead of posting it.
