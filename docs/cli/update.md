@@ -17,7 +17,7 @@ buddy scan [options]
 - `--verbose, -v` - Enable verbose logging
 - `--packages <names>` - Comma-separated list of packages to check
 - `--pattern <pattern>` - Glob pattern to match packages
-- `--strategy <type>` - Update strategy: major|minor|patch|all (default: all)
+- `--strategy <type>` - Update strategy: major|minor|patch|all (default: `packages.strategy` from config, else all)
 - `--ignore <names>` - Comma-separated list of packages to ignore
 - `--respect-latest` - Leave `latest`, `*` and other dynamic ranges alone (default)
 - `--no-respect-latest` - Propose updates for dynamic ranges too
@@ -75,7 +75,7 @@ buddy update [options]
 ### Options
 
 - `--verbose, -v` - Enable verbose logging
-- `--strategy <type>` - Update strategy: major|minor|patch|all (default: all)
+- `--strategy <type>` - Update strategy: major|minor|patch|all (default: `packages.strategy` from config, else all)
 - `--ignore <names>` - Comma-separated list of packages to ignore
 - `--dry-run` - Preview changes without making them
 - `--reviewers <names>` - Comma-separated reviewers to assign, overriding `pullRequest.reviewers`

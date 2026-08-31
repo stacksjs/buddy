@@ -657,7 +657,7 @@ cli
   .option('--verbose, -v', 'Enable verbose logging')
   .option('--packages <names>', 'Comma-separated list of packages to check')
   .option('--pattern <pattern>', 'Glob pattern to match packages')
-  .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
+  .option('--strategy <type>', 'Update strategy: major|minor|patch|all (default: packages.strategy from config, else all)')
   .option('--ignore <names>', 'Comma-separated list of packages to ignore')
   .option('--respect-latest', 'Respect "latest", "*", and other dynamic version indicators (default: true)')
   .option('--no-respect-latest', 'Allow updating "latest", "*", and other dynamic version indicators')
@@ -847,7 +847,7 @@ cli
 cli
   .command('update', 'Update dependencies and create PRs')
   .option('--verbose, -v', 'Enable verbose logging')
-  .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
+  .option('--strategy <type>', 'Update strategy: major|minor|patch|all (default: packages.strategy from config, else all)')
   .option('--ignore <names>', 'Comma-separated list of packages to ignore')
   .option('--dry-run', 'Preview changes without making them')
   .option('--reviewers <names>', 'Comma-separated reviewers to assign (overrides pullRequest.reviewers)')
@@ -1766,7 +1766,7 @@ cli
 cli
   .command('check <packages...>', 'Check specific packages for updates')
   .option('--verbose, -v', 'Enable verbose logging')
-  .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
+  .option('--strategy <type>', 'Update strategy: major|minor|patch|all (default: packages.strategy from config, else all)')
   .example('buddy check react typescript')
   .example('buddy check react --verbose')
   .action(async (...args: any[]) => {
@@ -1816,7 +1816,7 @@ cli
 cli
   .command('schedule', 'Run automated dependency updates on schedule')
   .option('--verbose, -v', 'Enable verbose logging')
-  .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
+  .option('--strategy <type>', 'Update strategy: major|minor|patch|all (default: packages.strategy from config, else all)')
   .example('buddy schedule')
   .example('buddy schedule --verbose')
   .example('buddy schedule --strategy patch')
