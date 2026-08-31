@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
@@ -82,7 +82,11 @@ describe('CLI surface', () => {
 
       expect(code).toBe(0)
       expect(output).toContain('disabled by config')
-      expect(existsSync(join(dir, '.github'))).toBe(false)
+      // Bun's native glob rather than node:fs — another suite's fs module
+      // mock leaks into this file under CI's run order, and existsSync came
+      // back undefined there.
+      const entries = Array.from(new Bun.Glob('**/*').scanSync({ cwd: dir, onlyFiles: false }))
+      expect(entries).toEqual(['buddy.config.ts'])
     }
     finally {
       rmSync(dir, { recursive: true, force: true })
