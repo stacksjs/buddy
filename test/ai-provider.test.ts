@@ -376,6 +376,106 @@ describe('anthropic provider', () => {
 
     expect(response.usage.cachedInputTokens).toBe(900)
   })
+
+  it('edge case - the remaining stop reasons land in the normalized set', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    const cases: Array<[string, string]> = [
+      ['stop_sequence', 'end'],
+      ['max_tokens', 'max_tokens'],
+      ['something_new', 'other'],
+    ]
+
+    for (const [wire, normalized] of cases) {
+      stubFetch({
+        id: 'msg',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-5',
+        content: [{ type: 'text', text: 'x' }],
+        stop_reason: wire,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      })
+
+      const response = await createAiClient({})!.complete({ messages: [{ role: 'user', content: 'hi' }] })
+      expect(response.stopReason).toBe(normalized as never)
+    }
+  })
+
+  it('success case - parses json only for schema-constrained requests', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    stubFetch({
+      id: 'msg',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-opus-5',
+      content: [{ type: 'text', text: '{"answer":42}' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1, output_tokens: 1 },
+    })
+
+    const unconstrained = await createAiClient({})!.complete({ messages: [{ role: 'user', content: 'hi' }] })
+    expect(unconstrained.json).toBeUndefined()
+
+    const constrained = await createAiClient({})!.complete({
+      messages: [{ role: 'user', content: 'hi' }],
+      jsonSchema: { type: 'object' },
+    })
+    expect(constrained.json).toEqual({ answer: 42 })
+  })
+
+  it('failure case - malformed json for a schema-constrained request throws', async () => {
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    stubFetch({
+      id: 'msg',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-opus-5',
+      content: [{ type: 'text', text: 'not json' }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1, output_tokens: 1 },
+    })
+
+    await expect(createAiClient({})!.complete({
+      messages: [{ role: 'user', content: 'hi' }],
+      jsonSchema: { type: 'object' },
+    })).rejects.toBeInstanceOf(AiProviderError)
+  })
+
+  it('success case - sends system, tools and the output config on the wire', async () => {
+    // Asserted at the fetch layer, through the real SDK — a second
+    // `mock.module('@anthropic-ai/sdk')` owner would clobber this suite's
+    // stubs process-wide, which is the same landmine the node:fs mock was.
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-test'
+    let body: any
+    globalThis.fetch = (async (input: unknown, init?: { body?: unknown }) => {
+      const raw = init?.body ?? (input instanceof Request ? await input.clone().text() : undefined)
+      body = raw ? JSON.parse(String(raw)) : undefined
+      return new Response(JSON.stringify({
+        id: 'msg',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-5',
+        content: [{ type: 'text', text: '{}' }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 1, output_tokens: 1 },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    await createAiClient({})!.complete({
+      system: 'be brief',
+      effort: 'low',
+      jsonSchema: { type: 'object' },
+      tools: [{ name: 'grep', description: 'search', parameters: { type: 'object' } }],
+      messages: [{ role: 'user', content: 'hi' }],
+    })
+
+    expect(body.model).toBe('claude-opus-5')
+    expect(body.system).toBe('be brief')
+    // The default ceiling is sized to stay under the SDK's HTTP timeout.
+    expect(body.max_tokens).toBe(16000)
+    expect(body.tools).toEqual([{ name: 'grep', description: 'search', input_schema: { type: 'object' } }])
+    expect(body.output_config).toEqual({ effort: 'low', format: { type: 'json_schema', schema: { type: 'object' } } })
+  })
 })
 
 describe('token budget', () => {

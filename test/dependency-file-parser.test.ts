@@ -16,13 +16,25 @@ mock.module('ts-pantry', () => ({
 
 const mockReadFileSync = mock()
 const mockExistsSync = mock()
+
+/**
+ * `mock.module` is process-global and permanent: whatever it installs is what
+ * every later test file gets too. Handing it the bare mocks broke suites that
+ * ran after this one — `existsSync` returned `undefined` everywhere once
+ * `afterEach` reset the mocks (which is how #1434's decline test failed on CI
+ * while passing alone). The replacement functions therefore delegate to the
+ * real fs except while this suite has armed them.
+ */
+let fsMocksArmed = false
 mock.module('node:fs', () => {
   // eslint-disable-next-line ts/no-require-imports
   const originalFs = require('node:fs')
   return {
     ...originalFs,
-    readFileSync: mockReadFileSync,
-    existsSync: mockExistsSync,
+    readFileSync: (...args: unknown[]) =>
+      fsMocksArmed ? mockReadFileSync(...args) : originalFs.readFileSync(...args),
+    existsSync: (...args: unknown[]) =>
+      fsMocksArmed ? mockExistsSync(...args) : originalFs.existsSync(...args),
   }
 })
 
@@ -36,9 +48,13 @@ describe('Dependency File Parser', () => {
     // Set up default mock behaviors
     mockExistsSync.mockReturnValue(true)
     mockReadFileSync.mockReturnValue('mock content')
+    fsMocksArmed = true
   })
 
   afterEach(() => {
+    // Hand the real fs back to everyone else before anything runs after us.
+    fsMocksArmed = false
+
     // Complete cleanup
     mockResolveDependencyFile.mockReset()
     mockReadFileSync.mockReset()
