@@ -38,6 +38,16 @@ export interface UpgradeOptions {
   autoMigrate?: boolean
   /** Open as draft below this confidence (default: high) */
   draftBelowConfidence?: MigrationConfidence
+  /**
+   * Agent runs allowed before the migration is reported as failed (default: 1).
+   *
+   * Declared on `ai.majorUpgrades` and documented, and the agent ran exactly
+   * once whatever it said. A second attempt is handed the first one's output
+   * so it continues rather than starting over.
+   */
+  maxAttempts?: number
+  /** The agent runner; injectable so attempts can be tested without a model */
+  agent?: typeof runAgent
   logger?: Logger
 }
 
@@ -116,9 +126,13 @@ export async function attemptMajorUpgrade(options: UpgradeOptions): Promise<Upgr
     return { plan, report: renderMigrationReport(plan, undefined, usage), draft: false, status: 'analysis-only' }
   }
 
-  const result = await runAgent(options.ai, {
+  const run = options.agent ?? runAgent
+  const maxAttempts = Math.max(1, Math.floor(options.maxAttempts ?? 1))
+  const task = buildMigrationTask(plan)
+
+  let result = await run(options.ai, {
     mode: implementMode,
-    task: buildMigrationTask(plan),
+    task,
     context: {
       workspace: options.workspace,
       baseBranch: options.baseBranch,
@@ -126,11 +140,36 @@ export async function attemptMajorUpgrade(options: UpgradeOptions): Promise<Upgr
     },
     logger,
   })
+  let attempts = 1
+  let applied = result.toolCalls > 0
+
+  // A run that stopped short — out of tool calls, out of time, gave up — is
+  // handed its own output and asked to continue from the workspace as it now
+  // stands. Starting over would redo the work that did land.
+  while (result.stopReason !== 'completed' && attempts < maxAttempts) {
+    attempts++
+    logger.info(`🔧 Migration attempt ${attempts} of ${maxAttempts} (previous run ended: ${result.stopReason})`)
+
+    result = await run(options.ai, {
+      mode: implementMode,
+      task: `${task}\n\nA previous attempt ended (${result.stopReason}) with this output:\n\n${
+        result.output || '(no output)'
+      }\n\nContinue from the workspace as it stands now. Do not redo work that is already done.`,
+      context: {
+        workspace: options.workspace,
+        baseBranch: options.baseBranch,
+        ...(options.branch ? { branch: options.branch } : {}),
+      },
+      logger,
+    })
+    applied = applied || result.toolCalls > 0
+  }
 
   const verified = result.stopReason === 'completed'
   const outcome: MigrationOutcome = {
-    applied: result.toolCalls > 0,
+    applied,
     verified,
+    attempts,
     changedFiles: knownFiles,
     unresolved: verified ? [] : plan.changes.filter(change => !change.automatable).map(change => change.action),
     ...(verified ? {} : { verificationOutput: result.output }),

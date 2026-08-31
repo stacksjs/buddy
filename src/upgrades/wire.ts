@@ -124,6 +124,7 @@ export async function analyzeGroupMajors(options: GroupUpgradeOptions): Promise<
         baseBranch: options.baseBranch,
         ai: options.ai,
         ...(autoMigrate !== undefined ? { autoMigrate } : {}),
+        ...(settings.maxAttempts !== undefined ? { maxAttempts: settings.maxAttempts } : {}),
         ...(settings.draftBelowConfidence ? { draftBelowConfidence: settings.draftBelowConfidence } : {}),
         logger,
       })
