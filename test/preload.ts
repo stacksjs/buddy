@@ -16,6 +16,18 @@
  */
 import { afterEach, beforeEach } from 'bun:test'
 
+/**
+ * Repair a dead working directory between tests.
+ *
+ * A suite that `chdir`s into a temp directory and then deletes it can leave
+ * `process.cwd()` pointing at nothing — every later test that touches the
+ * filesystem, spawns a process or captures `cwd` in `beforeEach` then fails
+ * with an unrelated-looking ENOENT. Suites defend individually; this is the
+ * net under all of them. Repair-only: a *live* cwd is a suite's own business,
+ * so this never moves one.
+ */
+const repoRoot = process.cwd()
+
 /** Set by {@link allowNetwork} for the rare test that genuinely needs the wire. */
 let networkAllowed = false
 
@@ -58,6 +70,13 @@ beforeEach(() => {
   networkAllowed = false
   if (globalThis.fetch !== guardedFetch)
     globalThis.fetch = guardedFetch as unknown as typeof fetch
+
+  try {
+    process.cwd()
+  }
+  catch {
+    process.chdir(repoRoot)
+  }
 })
 
 afterEach(() => {
