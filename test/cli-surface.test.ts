@@ -93,6 +93,18 @@ describe('CLI surface', () => {
     }
   }, 30000)
 
+  it('success case - the strategy flag no longer shadows the config', async () => {
+    // `--strategy` carried `{ default: 'all' }`, so the option was always
+    // "set" and the handler's `options.strategy ?? config.packages?.strategy`
+    // chain never reached the config — packages.strategy was dead on the
+    // scan/update/check/schedule paths unless a flag was typed.
+    const { code, output } = await run(['update', '--help'])
+
+    expect(code).toBe(0)
+    expect(output).toContain('packages.strategy from config')
+    expect(output).not.toContain('(default: all)')
+  }, 30000)
+
   it('failure case - an unknown flag is rejected rather than ignored', async () => {
     // clapp hard-errors on unknown options, which is why a documented-but-
     // unimplemented flag crashed rather than degrading.

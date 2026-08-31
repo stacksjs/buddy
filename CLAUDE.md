@@ -776,61 +776,82 @@ dist/
 
 **Purpose:** Documentation for the buddy package
 
-> The fastest, most intelligent dependency management bot for modern JavaScript and TypeScript projects *(and PHP)*.
+**Sync:** manual — nothing regenerates this section. When README.md changes, copy its body (from the tagline blockquote through the licence, without the badge link definitions) back in here; `bun run check:docs` validates both files.
 
-Buddy is a lightning-fast alternative to Dependabot and Renovate, purpose-built for modern JavaScript, TypeScript, and PHP ecosystems. It intelligently scans your projects, detects outdated & deprecated dependencies across multiple package managers, and creates beautifully formatted pull requests with comprehensive changelogs and metadata.
+> AI code review and dependency updates, in one teammate that runs on your CI with your keys.
+
+Buddy does two jobs that usually take two bots and two subscriptions.
+
+It **reviews code** — pull requests and your local working tree — posting inline findings anchored to the lines you changed, answering `@buddy` questions in the thread, gating merges with real check runs, and repairing failing CI when the fix is unambiguous. An alternative to CodeRabbit and friends, except it runs as a step in your own workflow, against a provider you choose, with no third-party app installed on your repository.
+
+It also **manages dependencies** — scanning across npm, Bun, yarn, pnpm, Composer, Docker, GitHub Actions, pkgx, Launchpad, Go, Rust, Python, Ruby and Zig, grouping related packages, fetching real changelogs, and keeping a pinned dashboard issue. An alternative to Dependabot and Renovate, and it will migrate your existing config from either.
+
+Neither half requires the other. Run the reviewer with no dependency workflows, run the updater with no API key, or run both.
 
 ![Buddy Pull Request Example](.github/art/screenshot.png)
 
 ## Features
 
+### 🔍 **AI Code Review**
+
+- **Inline Findings**: _Anchored to changed lines, describing the failure rather than a style preference_
+- **Incremental by Default**: _A second push gets new findings, not the ones you already read_
+- **Conversational**: _`@buddy review`, `full-review`, `summary`, `pause`, `resume`, `rebase`, `remember` — or just ask a question_
+- **Local Review**: _`buddy review` reads your working tree, so problems are found before the PR exists_
+- **Works Without a Key**: _`--light` runs secret scanning, actionlint, shellcheck, hadolint, markdownlint and syntax checks with no model and no network_
+- **Merge Gates**: _Title format, description quality, linked issue and dependency policy published as a check run_
+- **CI Repair**: _`buddy fix-ci` classifies a failing run and opens the fix when it is clear_
+- **Pipeable**: _`--format json`, `github` annotations, or `agent` to hand findings straight to a coding agent_
+- **Your Provider**: _Anthropic, OpenAI, Google, OpenRouter, or any OpenAI-compatible endpoint_
+
 ### 🚀 **Performance & Speed**
 
-- **Lightning Fast Execution**: *Built with Bun for maximum performance*
-- **Intelligent Scanning**: *Uses `bun outdated` and GitHub releases API for accurate, real-time dependency detection*
-- **Optimized CI/CD**: *Minimal resource usage with smart caching*
+- **Lightning Fast Execution**: _Built with Bun for maximum performance_
+- **Intelligent Scanning**: _Uses `bun outdated` and GitHub releases API for accurate, real-time dependency detection_
+- **Optimized CI/CD**: _Minimal resource usage with smart caching_
 
 ### 📦 **Universal Package Support**
 
-- **Multi-Package Manager**: *Full support for Bun, npm, yarn, pnpm, Composer, pkgx & Launchpad*
-- **GitHub Actions**: *Automatically updates workflow dependencies (`actions/checkout@v4`, etc.)*
-- **Docker Images**: *Detects and updates Dockerfile base images and versions*
-- **Lock File Awareness**: *Respects and updates all lock file formats*
+- **Multi-Package Manager**: _Full support for Bun, npm, yarn, pnpm, Composer, Zig, pkgx & Launchpad_
+- **GitHub Actions**: _Automatically updates workflow dependencies (`actions/checkout@v4`, etc.)_
+- **Docker Images**: _Detects and updates Dockerfile base images and versions_
+- **Zig Dependencies**: _Manages build.zig.zon dependencies with URL and hash tracking_
+- **Lock File Awareness**: _Respects and updates all lock file formats_
 
 ### 🎯 **Smart Dependency Management**
 
-- **Configurable Update Strategies**: *Choose from major, minor, patch, or all updates*
-- **Flexible Package Grouping**: *Group related packages for cleaner, focused PRs*
-- **Intelligent Conflict Detection**: *Prevents breaking changes with smart dependency analysis*
-- **Security-First Updates**: *Prioritizes security patches and vulnerability fixes*
+- **Configurable Update Strategies**: _Choose from major, minor, patch, or all updates_
+- **Flexible Package Grouping**: _Group related packages for cleaner, focused PRs_
+- **Intelligent Conflict Detection**: _Prevents breaking changes with smart dependency analysis_
+- **Security-First Updates**: _Checks every dependency against the [OSV.dev](https://osv.dev) advisory database, and creates vulnerability fixes as their own PR ahead of routine updates_
 
 ### 📊 **Rich Dashboard & Monitoring**
 
-- **Dependency Dashboard**: *Centralized GitHub issue with complete dependency overview*
-- **Interactive Rebase**: *One-click PR updates via checkbox interface*
-- **Real-time Status Tracking**: *Live monitoring of all open PRs and pending updates*
-- **Comprehensive Reporting**: *Detailed update summaries with confidence metrics*
+- **Dependency Dashboard**: _Centralized GitHub issue with complete dependency overview_
+- **Interactive Rebase**: _One-click PR updates via checkbox interface_
+- **Real-time Status Tracking**: _Live monitoring of all open PRs and pending updates_
+- **Comprehensive Reporting**: _Detailed update summaries with confidence metrics_
 
 ### 🎨 **Beautiful Pull Requests**
 
-- **Multi-Format Tables**: *Separate sections for npm, PHP/Composer, pkgx/Launchpad, and GitHub Actions*
-- **Rich Metadata**: *Confidence badges, adoption metrics, age indicators, and download stats*
-- **Detailed Changelogs**: *Automatic release notes and breaking change detection*
-- **Professional Formatting**: *Clean, readable PR descriptions with proper categorization*
+- **Multi-Format Tables**: _Separate sections for npm, PHP/Composer, Zig, pkgx/Launchpad, and GitHub Actions_
+- **Rich Metadata**: _Confidence badges, adoption metrics, age indicators, and download stats_
+- **Detailed Changelogs**: _Automatic release notes and breaking change detection_
+- **Professional Formatting**: _Clean, readable PR descriptions with proper categorization_
 
 ### ⚙️ **Developer Experience**
 
-- **Zero Configuration**: *Works immediately with intelligent defaults*
-- **Interactive Setup**: *Renovate-like guided configuration with validation*
-- **Migration Tools**: *Seamless import from existing Renovate and Dependabot setups*
-- **TypeScript Config**: *Full type safety with `buddy.config.ts`*
+- **Zero Configuration**: _Works immediately with intelligent defaults_
+- **Interactive Setup**: _Renovate-like guided configuration with validation_
+- **Migration Tools**: _Seamless import from existing Renovate and Dependabot setups_
+- **TypeScript Config**: _Full type safety with `buddy.config.ts`_
 
 ### 🔌 **Extensible Integration**
 
-- **Plugin Ecosystem**: *Built-in Slack, Discord, and Jira integrations*
-- **Custom Hooks**: *Extensible system for organization-specific workflows*
-- **CI/CD Ready**: *Pre-built GitHub Actions workflows for all use cases*
-- **API Access**: *Programmatic control for advanced automation*
+- **Plugin Ecosystem**: _Built-in Slack, Discord, and Jira integrations_
+- **Custom Hooks**: _Extensible system for organization-specific workflows_
+- **CI/CD Ready**: _Pre-built GitHub Actions workflows for all use cases_
+- **API Access**: _Programmatic control for advanced automation_
 
 ## Quick Start
 
@@ -963,9 +984,9 @@ Choose from several carefully crafted presets with smart recommendations:
 **🔄 Step 8: Workflow Generation & Validation**
 
 - Generates two GitHub Actions workflows:
-  - `buddy.yml` - Unified workflow: rebase checks, scheduled updates and the dashboard
-  - `buddy-security.yml` - Security audit, kept separate so it triggers on its own path filters
-- Removes the stale `buddy-check.yml`, `buddy-update.yml`, `buddy-dashboard.yml` and `gh-audit.yml` if an earlier version left them behind
+  - `buddy.yml` - Unified workflow (rebase checks, dependency updates, dashboard management)
+  - `buddy-security.yml` - Security audit, kept separate so it can trigger on its own path filters
+- Removes stale `buddy-check.yml`, `buddy-update.yml` and `buddy-dashboard.yml` files from earlier versions
 - **YAML validation** - Ensures generated workflows are syntactically correct
 - **Security best practices** - Validates token usage and permissions
 - **Workflow testing** - Verifies generated workflows meet requirements
@@ -1002,7 +1023,7 @@ buddy scan --verbose
 buddy scan --packages "react,typescript,@types/node"
 
 # Check packages with glob patterns
-buddy scan --pattern "@types/*"
+buddy scan --pattern "@types/_"
 
 # Apply different update strategies
 buddy scan --strategy minor
@@ -1221,11 +1242,11 @@ hooks run, and the plugin file chooses the URL.
 
 | Event | Description | Context |
 |-------|-------------|---------|
-| `pre*setup` | Before setup begins | Initial configuration |
-| `post*setup` | After setup completes | Full setup context |
-| `step*complete` | After each setup step | Step-specific progress |
-| `validation*error` | When validation fails | Error details and recovery |
-| `setup*complete` | Final setup completion | Complete project context |
+| `pre_setup` | Before setup begins | Initial configuration |
+| `post_setup` | After setup completes | Full setup context |
+| `step_complete` | After each setup step | Step-specific progress |
+| `validation_error` | When validation fails | Error details and recovery |
+| `setup_complete` | Final setup completion | Complete project context |
 
 ### Programmatic Usage
 
@@ -1337,6 +1358,7 @@ For the rebase functionality to update GitHub Actions workflow files, you need p
 - ✅ **package.json** - npm/yarn/pnpm dependencies
 - ✅ **Lock files** - package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb
 - ✅ **Dependency files** - deps.yaml, dependencies.yaml, pkgx.yaml
+- ✅ **Zig manifests** - build.zig.zon with URL and hash updates
 - ✅ **GitHub Actions** - workflow files (with proper permissions)
 - ✅ **PR content** - Updated title, body, and metadata
 
@@ -1352,9 +1374,9 @@ buddy dashboard --title "My Dependencies"
 
 ### Automated Dashboard Updates
 
-Buddy includes a pre-built GitHub workflow (`.github/workflows/buddy.yml`) that automatically updates your dependency dashboard:
+The unified workflow (`.github/workflows/buddy.yml`) automatically updates your dependency dashboard:
 
-- **📅 Scheduled**: Every 2 hours, 15 minutes after the dependency update run (cron `15 */2 * * *`)
+- **📅 Scheduled**: On the schedule your preset sets — often the same tick as the dependency update run
 - **🖱️ Manual**: Trigger from Actions tab with custom options
 - **📌 Auto-Pin**: Keeps dashboard pinned by default
 - **🔍 Dry-Run**: Preview mode available
@@ -1419,6 +1441,7 @@ Buddy automatically detects and updates the following dependency file formats:
 - **package.json** - Traditional npm dependencies
 - **composer.json** - PHP dependencies from Packagist
 - **composer.lock** - PHP lock file with exact versions
+- **build.zig.zon** - Zig package manager dependencies with URL and hash tracking
 - **deps.yaml**/**deps.yml** - Launchpad/pkgx dependency declarations
 - **dependencies.yaml**/**dependencies.yml** - Alternative dependency file format
 - **pkgx.yaml**/**pkgx.yml** - pkgx-specific dependency files
@@ -1429,11 +1452,19 @@ Buddy automatically detects and updates the following dependency file formats:
 - **.github/workflows/*.yml** - GitHub Actions workflow files
 - **.github/workflows/*.yaml** - Alternative YAML extension
 
+#### Container Images
+
+Detected anywhere in the tree, in all three naming conventions:
+
+- `Dockerfile`, `Dockerfile.<suffix>` - e.g. `Dockerfile.prod`
+- `<prefix>.dockerfile` - e.g. `docker/api.dockerfile`, common in monorepos
+- `Containerfile`, `<prefix>.containerfile` - the OCI/Podman spelling
+
 All dependency files are parsed using the `ts-pantry` library to ensure compatibility with the pkgx registry ecosystem while maintaining support for tools like Launchpad that reuse the same registry format. GitHub Actions are detected by parsing `uses:` statements in workflow files and checking for updates via the GitHub releases API.
 
 ### Pull Request Format
 
-Buddy generates comprehensive pull requests with **three separate dependency tables**:
+Buddy generates comprehensive pull requests with **separate dependency tables** for each ecosystem:
 
 #### 1. npm Dependencies
 
@@ -1456,7 +1487,17 @@ Focused table for PHP packages from Packagist:
 | phpunit/phpunit | ^10.0.0 → ^10.3.0 | composer.json | ✅ Available |
 ```
 
-#### 3. Launchpad/pkgx Dependencies
+#### 3. Zig Dependencies
+
+Focused table for Zig packages with repository links and update types:
+
+```
+| Package | Change | Type | File |
+|---------|--------|------|------|
+| httpz | 0.5.0 → 0.6.0 | 🟡 minor | build.zig.zon |
+```
+
+#### 4. Launchpad/pkgx Dependencies
 
 Simplified table focusing on package updates and file locations:
 
@@ -1466,7 +1507,7 @@ Simplified table focusing on package updates and file locations:
 | bun.com | ^1.2.16 → ^1.2.19 | deps.yaml | ✅ Available |
 ```
 
-#### 4. GitHub Actions
+#### 5. GitHub Actions
 
 Workflow automation updates with direct links to repositories:
 
@@ -1483,8 +1524,8 @@ Each table is followed by detailed release notes, changelogs, and package statis
 
 - **`all`**: Update all dependencies regardless of semver impact
 - **`major`**: Only major version updates
-- **`minor`**: Major and minor updates (no patch-only)
-- **`patch`**: All updates (major, minor, and patch)
+- **`minor`**: Minor and patch updates (no majors)
+- **`patch`**: Only patch updates
 
 ## Auto-Merge Configuration
 
@@ -1504,20 +1545,20 @@ const config: BuddyConfig = {
 
 ### Auto-Merge Strategies
 
-- **`squash`**: Squash commits and merge *(recommended for clean history)*
-- **`merge`**: Create a merge commit *(preserves individual commits)*
-- **`rebase`**: Rebase and merge *(linear history without merge commits)*
+- **`squash`**: Squash commits and merge _(recommended for clean history)_
+- **`merge`**: Create a merge commit _(preserves individual commits)_
+- **`rebase`**: Rebase and merge _(linear history without merge commits)_
 
 ### Auto-Merge Conditions
 
-- **`patch-only`**: Only auto-merge patch version updates *(safest)*
-- **No conditions**: Auto-merge all updates *(use with caution)*
+- **`patch-only`**: Only auto-merge patch version updates _(safest)_
+- **No conditions**: Auto-merge all updates _(use with caution)_
 
 ### Workflow-Specific Auto-Merge
 
 Each preset configures auto-merge appropriately:
 
-- **High Frequency Updates**: Auto-merge patch updates only *(6AM, 12PM, 6PM)*, manual review for minor updates *(12AM)*
+- **High Frequency Updates**: Auto-merge patch updates only _(6AM, 12PM, 6PM)_, manual review for minor updates _(12AM)_
 - **Security Focused**: Auto-merge security patches every 6 hours
 - **Standard Project**: Auto-merge daily patches, manual review for weekly/monthly updates
 - **Development/Testing**: No auto-merge, dry-run by default, enhanced testing features.
@@ -1637,6 +1678,9 @@ This PR was generated by [Buddy](https://github.com/stacksjs/buddy).
 | **Package Grouping** | 🎨 Intelligent + flexible | 📋 Basic grouping | 🔧 Advanced but complex |
 | **Dashboard** | 📊 Rich interactive dashboard | ❌ No dashboard | 📊 Basic dashboard |
 | **Migration Tools** | 🔄 Automated import | ❌ Manual migration | ❌ Manual migration |
+| **Vulnerability Alerts** | ✅ OSV.dev, prioritized PRs + dashboard | ✅ GitHub Advisory | ✅ OSV / GitHub Advisory |
+| **Private Registries** | ✅ Config or `.npmrc`, per-scope | ✅ Supported | ✅ Supported |
+| **GitHub Enterprise** | ✅ Zero-config on GHES runners | ✅ Supported | ✅ Supported |
 | **Self-hosting** | ✅ Full control | ❌ GitHub-only | ✅ Complex setup |
 | **Plugin System** | 🔌 Extensible ecosystem | ❌ Limited | 🔌 Advanced but complex |
 
@@ -1652,15 +1696,15 @@ name: Buddy Update
 on:
   schedule:
 
-    - cron: '0 */2 * * *' # Every 2 hours
+    - cron: '0 _/2 _ _ _' # Every 2 hours
 
-  workflow*dispatch:
+  workflow_dispatch:
     inputs:
       strategy:
         description: Update strategy
         required: false
         default: patch
-      dry*run:
+      dry_run:
         description: Dry run (preview only)
         required: false
         default: true
@@ -1678,7 +1722,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - if: ${{ github.event.inputs.dry*run != 'true' }}
+      - if: ${{ github.event.inputs.dry_run != 'true' }}
 
         run: bunx @buddysh/buddy update --strategy ${{ github.event.inputs.strategy || 'patch' }} --verbose
         env:
@@ -1704,12 +1748,12 @@ buddy generate-workflows
 
 The updated workflow system automatically:
 
-- **Every 2 hours**: All configured strategies with dry-run by default
+- **On your preset's schedule**: All configured strategies with dry-run by default
 - **Manual trigger**: Any strategy with configurable dry-run option
 - **Enhanced testing**: Comprehensive validation and summaries
 - **Failure handling**: Auto-creates GitHub issues
 - **Smart summaries**: Rich GitHub Actions summaries
-- **Flexible scheduling**: Consistent 2-hour intervals for all presets
+- **Flexible scheduling**: Each preset sets its own update and dashboard cadence
 
 ### GitHub Actions Permissions Setup
 
@@ -1751,7 +1795,69 @@ This indicates the permissions above need to be enabled. Both GitHub CLI and RES
 
 For more details, see the [GitHub documentation on managing GitHub Actions settings](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#preventing-github-actions-from-creating-or-approving-pull-requests).
 
----
+## Testing
+
+```bash
+bun test
+```
+
+## Build From Source
+
+```bash
+bun install     # not optional — see the note below
+bun run build
+```
+
+> [!NOTE]
+> `bun install` is a hard prerequisite for every dev command. On a fresh clone without `node_modules`, `bun test` fails with over a hundred phantom errors (`Cannot find package 'ts-pantry'` and friends) that look like real bugs and are not.
+>
+> Git hooks (staged lint on `pre-commit`, gitlint on `commit-msg`) are declared in `package.json` but are not installed automatically — run `bunx bun-git-hooks` once after cloning to activate them.
+
+## Changelog
+
+Please see our [releases](https://github.com/stacksjs/buddy/releases) page for more information on what has changed recently.
+
+## Contributing
+
+Please see the [Contributing Guide](https://github.com/stacksjs/contributing) for details.
+
+## Community
+
+For help, discussion about best practices, or any other conversation that would benefit from being searchable:
+
+[Discussions on GitHub](https://github.com/stacksjs/buddy/discussions)
+
+For casual chit-chat with others using this package:
+
+[Join the Stacks Discord Server](https://stacksjs.com/discord)
+
+## Postcardware
+
+“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where Stacks is being used! We showcase them on our website too.
+
+Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
+
+## Sponsors
+
+We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
+
+- [JetBrains](https://www.jetbrains.com/)
+- [The Solana Foundation](https://solana.com/)
+
+## Credits
+
+- [Renovatebot](https://renovatebot.com/)
+- [Dependabot](https://dependabot.com/)
+- [Chris Breuer](https://github.com/chrisbbreuer)
+- [All Contributors](../../contributors)
+
+And a special thanks to [Dan Scanlon](https://twitter.com/danscan) for donating the `stacks` name on npm ✨
+
+## License
+
+The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
+
+Made with 💙
 
 ## Linting
 
