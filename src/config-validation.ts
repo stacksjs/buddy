@@ -1,6 +1,7 @@
 import type { BuddyConfig } from './types'
 import type { GitProviderName } from './git/provider'
 import { BUILTIN_ANALYZERS } from './analysis/engine'
+import { EVENT_NAMES } from './events'
 import { IMPLEMENTED_PROVIDERS, PROVIDER_TRACKING_ISSUES } from './git/provider'
 import { ConfigurationError } from './types'
 
@@ -177,6 +178,7 @@ export function validateConfig(config: BuddyConfig): ConfigIssue[] {
   validateSchedules(issues, config)
   validateReleaseNotes(issues, config)
   validateDashboard(issues, config)
+  validateNotifications(issues, config)
   validateAi(issues, config)
   validateAnalysis(issues, config)
 
@@ -686,6 +688,70 @@ function validateDashboard(issues: ConfigIssue[], config: BuddyConfig): void {
 
   if (dashboard.title !== undefined && (typeof dashboard.title !== 'string' || !dashboard.title.trim()))
     issues.push({ path: 'dashboard.title', message: `expected a non-empty string, got ${quote(dashboard.title)}` })
+}
+
+function validateNotifications(issues: ConfigIssue[], config: BuddyConfig): void {
+  const notifications = config.notifications
+  if (notifications === undefined)
+    return
+  if (!isPlainObject(notifications)) {
+    issues.push({ path: 'notifications', message: `expected an object, got ${quote(notifications)}` })
+    return
+  }
+
+  // An `events` filter naming an event that does not exist subscribes to
+  // nothing: the sink is built, the credential is read, and every
+  // notification is silently dropped. `EVENT_NAMES` exists for exactly this
+  // check.
+  const checkEvents = (path: string, events: unknown): void => {
+    if (events === undefined)
+      return
+    if (!Array.isArray(events)) {
+      issues.push({ path, message: `expected an array of event names, got ${quote(events)}` })
+      return
+    }
+    events.forEach((event, index) => {
+      checkEnum(issues, `${path}[${index}]`, event, EVENT_NAMES)
+    })
+  }
+
+  const checkEnvName = (path: string, value: unknown): void => {
+    if (value !== undefined && (typeof value !== 'string' || !value.trim()))
+      issues.push({ path, message: `expected an environment variable name, got ${quote(value)}` })
+  }
+
+  for (const channel of ['slack', 'discord'] as const) {
+    const target = notifications[channel]
+    if (target === undefined)
+      continue
+    if (!isPlainObject(target)) {
+      issues.push({ path: `notifications.${channel}`, message: `expected an object, got ${quote(target)}` })
+      continue
+    }
+    checkEnvName(`notifications.${channel}.webhookEnv`, target.webhookEnv)
+    checkEvents(`notifications.${channel}.events`, target.events)
+  }
+
+  const webhooks = notifications.webhooks
+  if (webhooks === undefined)
+    return
+  if (!Array.isArray(webhooks)) {
+    issues.push({ path: 'notifications.webhooks', message: `expected an array, got ${quote(webhooks)}` })
+    return
+  }
+  webhooks.forEach((webhook, index) => {
+    const base = `notifications.webhooks[${index}]`
+    if (!isPlainObject(webhook)) {
+      issues.push({ path: base, message: `expected an object, got ${quote(webhook)}` })
+      return
+    }
+    if (webhook.url === undefined)
+      issues.push({ path: `${base}.url`, message: 'a webhook needs a url' })
+    else
+      checkUrl(issues, `${base}.url`, webhook.url)
+    checkEnvName(`${base}.secretEnv`, webhook.secretEnv)
+    checkEvents(`${base}.events`, webhook.events)
+  })
 }
 
 /**

@@ -124,3 +124,39 @@ describe('pull request labels', () => {
     expect(labels).not.toContain('should-not-appear')
   })
 })
+
+/**
+ * The docs promise `bulk-update` on PRs carrying five or more updates under
+ * "Dynamic Labeling"; the promise predates any code applying it, so a filter
+ * watching for the label saw every grouped PR slip past unlabelled.
+ */
+describe('bulk-update label', () => {
+  const updateFor = (name: string): PackageUpdate => ({
+    name,
+    currentVersion: '1.0.0',
+    newVersion: '1.0.1',
+    updateType: 'patch',
+    dependencyType: 'dependencies',
+    file: 'package.json',
+  })
+
+  const groupOf = (count: number): UpdateGroup => ({
+    name: 'Patch Updates',
+    updateType: 'patch',
+    title: 'chore(deps): update all non-major dependencies',
+    body: '',
+    updates: Array.from({ length: count }, (_, index) => updateFor(`package-${index}`)),
+  })
+
+  const generator = new PullRequestGenerator({
+    repository: { provider: 'github', owner: 'stacksjs', name: 'buddy' },
+  })
+
+  it('success case - five updates are labelled bulk-update', () => {
+    expect(generator.generateLabels(groupOf(5))).toContain('bulk-update')
+  })
+
+  it('edge case - four updates are not a bulk update', () => {
+    expect(generator.generateLabels(groupOf(4))).not.toContain('bulk-update')
+  })
+})

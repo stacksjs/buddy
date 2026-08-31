@@ -158,6 +158,12 @@ export class PullRequestGenerator {
       labels.push(update.name)
     }
 
+    // The docs have promised `bulk-update` on PRs carrying five or more
+    // updates since before anything applied it; a filter watching for the
+    // label saw grouped PRs slip past unlabelled.
+    if (group.updates.length >= 5)
+      labels.push('bulk-update')
+
     return labels
   }
 
