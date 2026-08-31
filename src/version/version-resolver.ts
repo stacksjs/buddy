@@ -1,5 +1,6 @@
 import type { VersionRange } from '../types'
 import { semver } from 'bun'
+import { getUpdateType } from '../utils/helpers'
 
 export class VersionResolver {
   /**
@@ -43,33 +44,15 @@ export class VersionResolver {
   }
 
   /**
-   * Determine update type between two versions
+   * Determine update type between two versions.
+   *
+   * Delegates to the canonical classifier in `utils/helpers`. This class
+   * used to carry its own variant, which disagreed with the live scan path
+   * on exactly the awkward inputs: 'v2.0.0' read as no change (the v was
+   * never stripped) and 'latest' read as a fabricated major.
    */
   static getUpdateType(fromVersion: string, toVersion: string): 'major' | 'minor' | 'patch' {
-    // Strip leading semver range operators. Do NOT strip `@` — scoped npm package
-    // names start with `@` (e.g. @scope/pkg), so stripping it here would corrupt
-    // any caller that accidentally passed a full spec instead of a version.
-    const cleanFrom = fromVersion.replace(/^[\^~>=<]+/, '')
-    const cleanTo = toVersion.replace(/^[\^~>=<]+/, '')
-
-    const fromParts = cleanFrom.split('.').map((part) => {
-      const num = Number(part)
-      return Number.isNaN(num) ? 0 : num
-    })
-    const toParts = cleanTo.split('.').map((part) => {
-      const num = Number(part)
-      return Number.isNaN(num) ? 0 : num
-    })
-
-    // Ensure we have at least major.minor.patch structure
-    while (fromParts.length < 3) fromParts.push(0)
-    while (toParts.length < 3) toParts.push(0)
-
-    if (toParts[0] > fromParts[0])
-      return 'major'
-    if (toParts[0] === fromParts[0] && toParts[1] > fromParts[1])
-      return 'minor'
-    return 'patch'
+    return getUpdateType(fromVersion, toVersion)
   }
 
   /**

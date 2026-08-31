@@ -417,12 +417,21 @@ export function sortUpdatesByPriority(
 }
 
 /**
- * Parse version string and determine update type using Bun's semver
+ * Parse a version pair and classify the update, using Bun's semver.
+ *
+ * The one implementation of update-type classification. `Buddy` and
+ * `VersionResolver` used to carry private variants, and the three disagreed
+ * on exactly the inputs that matter: short actions tags ('v4'), v-prefixes,
+ * suffixed Docker tags and prereleases.
+ *
+ * Non-semver input ('latest', 'workspace:*', branch names) and downgrades
+ * deliberately degrade to 'patch' — the least-alarming label for a change
+ * that cannot be reasoned about.
  */
 export function getUpdateType(currentVersion: string, newVersion: string): 'major' | 'minor' | 'patch' {
   // Remove any prefixes like ^, ~, >=, v, @, etc.
-  const cleanCurrent = currentVersion.replace(/^[v^~>=<@]+/, '')
-  const cleanNew = newVersion.replace(/^[v^~>=<@]+/, '')
+  const cleanCurrent = padNumericVersion(currentVersion.replace(/^[v^~>=<@]+/, ''))
+  const cleanNew = padNumericVersion(newVersion.replace(/^[v^~>=<@]+/, ''))
 
   // If not an upgrade or equal, treat as patch (no-op or bugfix)
   try {
@@ -434,52 +443,46 @@ export function getUpdateType(currentVersion: string, newVersion: string): 'majo
     return 'patch'
   }
 
-  try {
-    // Parse version parts manually for more reliable comparison
-    const currentParts = cleanCurrent.split('.').map(n => Number.parseInt(n, 10))
-    const newParts = cleanNew.split('.').map(n => Number.parseInt(n, 10))
+  // Parse parts manually: parseInt's truncation at the first non-digit is
+  // what lets a suffixed Docker tag ('3.19-alpine') classify by its numeric
+  // core rather than collapsing to 'patch'.
+  const currentParts = cleanCurrent.split('.').map(n => Number.parseInt(n, 10))
+  const newParts = cleanNew.split('.').map(n => Number.parseInt(n, 10))
 
-    // Ensure we have at least 3 parts (major.minor.patch)
-    while (currentParts.length < 3) currentParts.push(0)
-    while (newParts.length < 3) newParts.push(0)
+  // Ensure we have at least 3 parts (major.minor.patch)
+  while (currentParts.length < 3) currentParts.push(0)
+  while (newParts.length < 3) newParts.push(0)
 
-    const [currentMajor, currentMinor, currentPatch] = currentParts
-    const [newMajor, newMinor, newPatch] = newParts
+  const [currentMajor, currentMinor] = currentParts
+  const [newMajor, newMinor] = newParts
 
-    // Major version change
-    if (newMajor > currentMajor) {
-      return 'major'
-    }
+  if (newMajor > currentMajor)
+    return 'major'
 
-    // Minor version change (same major, higher minor)
-    if (newMajor === currentMajor && newMinor > currentMinor) {
-      return 'minor'
-    }
+  if (newMajor === currentMajor && newMinor > currentMinor)
+    return 'minor'
 
-    // Patch version change (same major and minor, higher patch)
-    if (newMajor === currentMajor && newMinor === currentMinor && newPatch > currentPatch) {
-      return 'patch'
-    }
-  }
-  catch {
-    // Fallback to semver satisfaction checks if parsing fails
-    try {
-      // Patch: within same minor series
-      if (Bun.semver.satisfies(cleanNew, `~${cleanCurrent}`))
-        return 'patch'
-    }
-    catch {}
+  // The guard above confirmed an upgrade with major and minor unchanged: a
+  // patch bump, or a prerelease moving under an unchanged triple
+  // (1.0.0-beta.1 → 1.0.0). This used to fall through to 'major', which let
+  // an excludeMajor filter block a beta graduation as a breaking change.
+  return 'patch'
+}
 
-    try {
-      // Minor: within same major series
-      if (Bun.semver.satisfies(cleanNew, `^${cleanCurrent}`))
-        return 'minor'
-    }
-    catch {}
-  }
-
-  // Otherwise major
-  return 'major'
+/**
+ * Pad a purely numeric short version to major.minor.patch.
+ *
+ * GitHub Actions tags are routinely 'v4', and Bun.semver.order('4.2.2', '4')
+ * is -1 — without padding, the upgrade guard misreads a real bump as a
+ * downgrade. Restricted to all-numeric parts so suffixed tags like
+ * '3.19-alpine' pass through untouched.
+ */
+function padNumericVersion(version: string): string {
+  const parts = version.split('.')
+  if (parts.length >= 3 || !parts.every(part => /^\d+$/.test(part)))
+    return version
+  while (parts.length < 3) parts.push('0')
+  return parts.join('.')
 }
 
 /**
