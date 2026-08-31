@@ -35,7 +35,8 @@ describe('workflow presets', () => {
   describe('the schedule plan', () => {
     it('success case - a preset\'s own cadence reaches the workflow', () => {
       expect(crons('security')).toContain('0 */4 * * *')
-      expect(crons('high-frequency')).toContain('0 */6 * * *')
+      expect(crons('high-frequency')).toContain('0 6 * * *')
+      expect(crons('standard')).toContain('0 9 1 * *')
       expect(crons('testing')).toContain('*/15 * * * *')
     })
 
@@ -45,13 +46,13 @@ describe('workflow presets', () => {
     })
 
     it('success case - a cron shared by two jobs starts both', () => {
-      // Standard puts updates and the dashboard on one expression. An if/elif
+      // Monorepo puts updates and the dashboard on one expression. An if/elif
       // chain would let the first branch win and drop the dashboard entirely.
-      const plan = schedulePlan(getWorkflowPreset('standard'))
-      const shared = plan.find(entry => entry.cron === '0 9 * * 1,3,5')
+      const plan = schedulePlan(getWorkflowPreset('monorepo'))
+      const shared = plan.find(entry => entry.cron === '0 9 * * *')
 
       expect(shared?.jobs).toEqual(['update', 'dashboard'])
-      expect(crons('standard').filter(cron => cron === '0 9 * * 1,3,5')).toHaveLength(1)
+      expect(crons('monorepo').filter(cron => cron === '0 9 * * *')).toHaveLength(1)
     })
 
     it('success case - a cron shared by three jobs starts all three', () => {
@@ -79,6 +80,40 @@ describe('workflow presets', () => {
 
     it('edge case - an unknown preset falls back to standard', () => {
       expect(crons('nonsense')).toEqual(crons('standard'))
+    })
+  })
+
+  describe('per-slot update strategies', () => {
+    it('success case - a custom cadence is a real schedule slot with its own strategy', () => {
+      const plan = schedulePlan(getWorkflowPreset('standard'))
+
+      expect(plan.find(entry => entry.cron === '0 9 * * *')?.updateStrategy).toBe('patch')
+      expect(plan.find(entry => entry.cron === '0 9 * * 1')?.updateStrategy).toBe('minor')
+      expect(plan.find(entry => entry.cron === '0 9 1 * *')?.updateStrategy).toBe('major')
+    })
+
+    it('success case - the tick tells the update job which strategy fired', () => {
+      const yaml = generateUnifiedWorkflow(false, getWorkflowPreset('standard'))
+
+      expect(yaml).toContain('"0 9 1 * *")')
+      expect(yaml).toContain('echo "update_strategy=major" >> $GITHUB_OUTPUT')
+      expect(yaml).toContain('needs.determine-jobs.outputs.update_strategy')
+    })
+
+    it('success case - high-frequency is its four slots, not a fifth catch-all', () => {
+      const plan = schedulePlan(getWorkflowPreset('high-frequency'))
+      const updates = plan.filter(entry => entry.jobs.includes('update'))
+
+      expect(updates.map(entry => entry.cron).sort()).toEqual(['0 0 * * *', '0 12 * * *', '0 18 * * *', '0 6 * * *'])
+      // Midnight is the minor slot the preset describes as manual-review.
+      expect(plan.find(entry => entry.cron === '0 0 * * *')?.updateStrategy).toBe('minor')
+    })
+
+    it('success case - security stops duplicating its own patch cadence', () => {
+      const plan = schedulePlan(getWorkflowPreset('security'))
+
+      expect(plan.some(entry => entry.cron === '0 */6 * * *')).toBe(false)
+      expect(plan.find(entry => entry.cron === '0 */4 * * *')?.updateStrategy).toBe('patch')
     })
   })
 
@@ -129,7 +164,7 @@ describe('workflow presets', () => {
     it('success case - scheduled runs use the preset strategy', () => {
       const yaml = generateUnifiedWorkflow(false, getWorkflowPreset('testing'))
 
-      expect(yaml).toContain(`github.event.inputs.strategy || 'patch'`)
+      expect(yaml).toContain(`github.event.inputs.strategy || needs.determine-jobs.outputs.update_strategy || 'patch'`)
     })
 
     it('success case - the manual trigger defaults to the same strategy', () => {
@@ -181,7 +216,8 @@ describe('the generated config file', () => {
 
   it('success case - the update strategy comes from the preset', async () => {
     expect((await generated('testing')).packages?.strategy).toBe('patch')
-    expect((await generated('standard')).packages?.strategy).toBe('all')
+    // Standard's main slot is the daily-patch cadence its description names.
+    expect((await generated('standard')).packages?.strategy).toBe('patch')
   })
 
   it('success case - the preset\'s custom workflows reach the config', async () => {
@@ -189,8 +225,8 @@ describe('the generated config file', () => {
     // and a config that drops them means the workflows are never written.
     const custom = (await generated('security')).workflows?.custom ?? []
 
-    expect(custom.map(workflow => workflow.name)).toEqual(['security-patches', 'weekly-minor'])
-    expect(custom[0].schedule).toBe('0 */6 * * *')
+    expect(custom.map(workflow => workflow.name)).toEqual(['weekly-minor'])
+    expect(custom[0].schedule).toBe('0 9 * * 1')
   })
 
   it('success case - templates come from the preset', async () => {

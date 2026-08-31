@@ -1390,6 +1390,8 @@ export type ScheduledJob = 'update' | 'dashboard' | 'check' | 'report'
 export interface ScheduleEntry {
   cron: string
   jobs: ScheduledJob[]
+  /** Strategy an `update` tick runs with; absent falls back to the preset default */
+  updateStrategy?: string
 }
 
 /**
@@ -1421,8 +1423,9 @@ export interface ScheduleEntry {
  */
 export function schedulePlan(preset: WorkflowPreset): ScheduleEntry[] {
   const byCron = new Map<string, ScheduledJob[]>()
+  const strategyByCron = new Map<string, string>()
 
-  const add = (cron: string | undefined, job: ScheduledJob): void => {
+  const add = (cron: string | undefined, job: ScheduledJob, strategy?: string): void => {
     if (!cron || cron === 'manual')
       return
 
@@ -1431,14 +1434,26 @@ export function schedulePlan(preset: WorkflowPreset): ScheduleEntry[] {
       jobs.push(job)
 
     byCron.set(cron, jobs)
+
+    if (job === 'update' && strategy && !strategyByCron.has(cron))
+      strategyByCron.set(cron, strategy)
   }
 
-  add(preset.schedules.updates, 'update')
+  add(preset.schedules.updates, 'update', preset.strategy)
+  // The preset's custom cadences are real schedule slots, each with its own
+  // strategy — this is what lets a preset deliver "daily patch, weekly minor,
+  // monthly major" instead of one cron proposing everything.
+  for (const custom of preset.custom ?? [])
+    add(custom.schedule, 'update', custom.strategy)
   add(preset.schedules.dashboard, 'dashboard')
   add(CLEANUP_SCHEDULE, 'check')
   add(REPORT_SCHEDULE, 'report')
 
-  return [...byCron].map(([cron, jobs]) => ({ cron, jobs }))
+  return [...byCron].map(([cron, jobs]) => ({
+    cron,
+    jobs,
+    ...(strategyByCron.has(cron) ? { updateStrategy: strategyByCron.get(cron) } : {}),
+  }))
 }
 
 /** What each job is for, so the generated YAML explains its own schedule. */
@@ -1469,9 +1484,10 @@ function renderScheduleDispatch(plan: ScheduleEntry[]): string {
   if (plan.length === 0)
     return '            echo "ℹ️ No scheduled jobs are configured"'
 
-  const branches = plan.map(({ cron, jobs }) => [
+  const branches = plan.map(({ cron, jobs, updateStrategy }) => [
     `              "${cron}")`,
     ...jobs.map(job => `                echo "run_${job}=true" >> $GITHUB_OUTPUT`),
+    ...(updateStrategy ? [`                echo "update_strategy=${updateStrategy}" >> $GITHUB_OUTPUT`] : []),
     '                ;;',
   ].join('\n'))
 
@@ -1620,6 +1636,7 @@ jobs:
       run_fixci: \${{ steps.determine.outputs.run_fixci }}
       run_report: \${{ steps.determine.outputs.run_report }}
       run_any: \${{ steps.determine.outputs.run_any }}
+      update_strategy: \${{ steps.determine.outputs.update_strategy }}
     steps:
       - name: Determine which jobs to run
         id: determine
@@ -2104,7 +2121,7 @@ ${generateComposerSetupSteps()}
       - name: Display update configuration
         run: |
           echo "🧪 **Buddy Update Mode**"
-          echo "Strategy: \${{ github.event.inputs.strategy || '${preset.strategy}' }}"
+          echo "Strategy: \${{ github.event.inputs.strategy || needs.determine-jobs.outputs.update_strategy || '${preset.strategy}' }}"
           echo "Dry Run: \${{ github.event.inputs.dry_run || 'false' }}"
           echo "Packages: \${{ github.event.inputs.packages || 'all' }}"
           echo "Verbose: \${{ github.event.inputs.verbose || 'true' }}"
@@ -2115,7 +2132,7 @@ ${generateComposerSetupSteps()}
       - name: Run Buddy dependency updates
         if: \${{ github.event.inputs.dry_run != 'true' }}
         run: |
-          STRATEGY="\${{ github.event.inputs.strategy || '${preset.strategy}' }}"
+          STRATEGY="\${{ github.event.inputs.strategy || needs.determine-jobs.outputs.update_strategy || '${preset.strategy}' }}"
           PACKAGES="\${{ github.event.inputs.packages }}"
           VERBOSE="\${{ github.event.inputs.verbose || 'true' }}"
 
@@ -2154,7 +2171,7 @@ ${generateComposerSetupSteps()}
         run: |
           echo "## 🚀 Dependency Update Summary" >> \$GITHUB_STEP_SUMMARY
           echo "" >> \$GITHUB_STEP_SUMMARY
-          echo "- **Strategy**: \${{ github.event.inputs.strategy || '${preset.strategy}' }}" >> \$GITHUB_STEP_SUMMARY
+          echo "- **Strategy**: \${{ github.event.inputs.strategy || needs.determine-jobs.outputs.update_strategy || '${preset.strategy}' }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: \${{ github.event_name }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Dry run**: \${{ github.event.inputs.dry_run || 'false' }}" >> \$GITHUB_STEP_SUMMARY
           echo "- **Packages**: \${{ github.event.inputs.packages || 'all' }}" >> \$GITHUB_STEP_SUMMARY
@@ -2427,11 +2444,16 @@ export function getWorkflowPreset(useCase: string): WorkflowPreset {
       },
       schedules: {
         dashboard: '0 9 * * 1,3,5',
-        updates: '0 9 * * 1,3,5',
+        updates: '0 9 * * *',
       },
-      strategy: 'all',
+      // The description is the contract: patches daily on the main slot,
+      // minors weekly and majors monthly on their own slots below.
+      strategy: 'patch',
       autoMerge: false,
-      custom: [],
+      custom: [
+        { name: 'weekly-minor', schedule: '0 9 * * 1', strategy: 'minor', autoMerge: false },
+        { name: 'monthly-major', schedule: '0 9 1 * *', strategy: 'major', autoMerge: false },
+      ],
     },
     'high-frequency': {
       name: 'High Frequency Updates',
@@ -2439,9 +2461,12 @@ export function getWorkflowPreset(useCase: string): WorkflowPreset {
       templates: {},
       schedules: {
         dashboard: '0 9 * * *',
-        updates: '0 */6 * * *',
+        // The four custom slots below are the cadence; a fifth catch-all
+        // here would double-run beside them with a wider strategy than the
+        // preset describes.
+        updates: 'manual',
       },
-      strategy: 'all',
+      strategy: 'patch',
       autoMerge: true,
       custom: [
         { name: 'morning-updates', schedule: '0 6 * * *', strategy: 'patch', autoMerge: true, autoMergeStrategy: 'squash' },
@@ -2458,10 +2483,12 @@ export function getWorkflowPreset(useCase: string): WorkflowPreset {
         dashboard: '0 9 * * *',
         updates: '0 */4 * * *',
       },
-      strategy: 'all',
+      // "Frequent patch updates": the every-four-hours slot proposes
+      // patches and minors wait for the weekly slot. The old
+      // security-patches slot duplicated the main cadence and is gone.
+      strategy: 'patch',
       autoMerge: true,
       custom: [
-        { name: 'security-patches', schedule: '0 */6 * * *', strategy: 'patch', autoMerge: true, autoMergeStrategy: 'squash' },
         { name: 'weekly-minor', schedule: '0 9 * * 1', strategy: 'minor', autoMerge: false },
       ],
     },
@@ -2476,9 +2503,11 @@ export function getWorkflowPreset(useCase: string): WorkflowPreset {
         dashboard: '0 9 * * 1',
         updates: '0 9 * * 1',
       },
-      strategy: 'all',
+      strategy: 'patch',
       autoMerge: false,
-      custom: [],
+      custom: [
+        { name: 'monthly-updates', schedule: '0 9 1 * *', strategy: 'all', autoMerge: false },
+      ],
     },
     'docker': {
       name: 'Docker Project',

@@ -246,7 +246,7 @@ Choose from carefully crafted presets:
 | **Development/Testing** | Manual triggers + frequent checks for testing |
 | **Custom Configuration** | Create your own schedule |
 
-The preset names the intent you picked; the workflow it writes is the same either way. See [Preset Details](#preset-details) for what that means once setup is done.
+Each preset writes its own schedule into the workflow — the cadences and per-slot update strategies are live data, not labels. See [Preset Details](#preset-details) for what each generates.
 
 ### Step 9: Configuration File Generation
 
