@@ -2360,7 +2360,12 @@ export async function generateCoreWorkflows(preset: WorkflowPreset, _repoInfo: R
   // workflows into a GitLab repository would produce files that never run,
   // which reads as a successful setup until the first schedule does nothing.
   const provider = _repoInfo.provider ?? 'github'
-  const template = ciTemplateFor(provider)
+  // The review job is what makes the pipeline more than a scheduler. The
+  // GitHub workflow has always carried one; these two were generated without
+  // it because the option existed and the call site never passed it. The
+  // command honours `ai.review` at run time and works without a key, so the
+  // job is as safe to include here as it is there.
+  const template = ciTemplateFor(provider, { review: true })
 
   if (template) {
     fs.writeFileSync(template.path, template.content)

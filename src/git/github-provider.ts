@@ -1608,19 +1608,29 @@ export class GitHubProvider implements GitProvider {
       this.logger.info(`✅ Deleted branch ${branchName} via git`)
     }
     catch (error) {
-      // If git push fails, it might be because the branch doesn't exist remotely
-      // or we don't have push permissions. Try to delete locally and ignore errors.
+      // The local tracking branch is tidied either way; it is not what the
+      // caller asked about and its absence is not an error.
       try {
-        // Also delete local tracking branch if it exists
         await this.runCommand('git', ['branch', '-D', branchName])
-        this.logger.info(`✅ Deleted local branch ${branchName}`)
       }
       catch {
         // Ignore local deletion errors - branch might not exist locally
       }
 
+      // A branch that is already gone is the outcome the caller wanted, so
+      // that one failure is a success. Every other failure — no push
+      // permission, network, protected branch — is reported by throwing, the
+      // way the GitLab and Bitbucket providers already do. This used to
+      // swallow all of them, which made `cleanupStaleBranches`'s `failed`
+      // bucket unreachable: every branch was reported deleted whether the
+      // push succeeded or not.
+      if (/remote ref does not exist|unable to delete '[^']*': remote ref/i.test(formatError(error))) {
+        this.logger.info(`ℹ️ Branch ${branchName} was already gone`)
+        return
+      }
+
       this.logger.warn(`⚠️ Failed to delete remote branch ${branchName}: ${formatError(error)}`)
-      // Don't throw - branch deletion failures are not critical
+      throw error
     }
   }
 

@@ -752,8 +752,15 @@ export class Buddy {
                 }
 
                 await gitProvider.closePullRequest(existingPR.number)
-                await gitProvider.deleteBranch(existingPR.head)
-                this.logger.success(`✅ Auto-closed PR #${existingPR.number} and deleted branch ${existingPR.head}`)
+                // The pull request is closed either way; a branch that would
+                // not delete is worth a warning, not a failed run.
+                try {
+                  await gitProvider.deleteBranch(existingPR.head)
+                  this.logger.success(`✅ Auto-closed PR #${existingPR.number} and deleted branch ${existingPR.head}`)
+                }
+                catch (deleteError) {
+                  this.logger.warn(`⚠️ Auto-closed PR #${existingPR.number} but could not delete ${existingPR.head}:`, deleteError)
+                }
                 continue
               }
               catch (error) {
