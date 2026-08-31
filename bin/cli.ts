@@ -1645,6 +1645,10 @@ cli
           // `--auto` is what the generated workflow passes. Without it this is
           // someone at a terminal, who has already decided they want a review.
           trigger: options.auto ? 'automatic' : 'requested',
+          // The workflow fires on every edited event, so without this the
+          // same head commit would be reviewed again each time the PR body
+          // changes. A person re-running the command still gets their review.
+          ...(options.auto ? { skipIfReviewed: true } : {}),
           logger: log,
           dryRun: Boolean(options.dryRun),
           ...(options.summaryOnly ? { summaryOnly: true } : {}),
@@ -1706,6 +1710,14 @@ cli
         }
 
         process.stdout.write(formatReview(result, format))
+
+        // `--fix` was accepted here and silently ignored: the light branch
+        // returned before the block that applies suggestions, so the flag
+        // worked everywhere except the one mode fast enough for a hook.
+        if (options.fix) {
+          const applied = await applyFixes(result.findings, Boolean(options.yes), logger)
+          logger.success(`\u{1f527} Applied ${applied} suggestion(s)`)
+        }
 
         if (options.failOn && shouldFail(result.findings, options.failOn as 'critical'))
           process.exit(1)

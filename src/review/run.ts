@@ -141,7 +141,11 @@ export async function reviewPullRequest(options: RunReviewOptions): Promise<Revi
         effort: 1,
         omittedFiles: [],
       },
-      { headSha, requestChangesOn: config.ai?.review?.requestChangesOn },
+      {
+        headSha,
+        requestChangesOn: config.ai?.review?.requestChangesOn,
+        suggestions: provider.capabilities().reviewSuggestions,
+      },
     )
 
     const staticResult: ReviewResult = {
@@ -158,9 +162,15 @@ export async function reviewPullRequest(options: RunReviewOptions): Promise<Revi
     }
 
     assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
-    await provider.createReview(prNumber, prepared)
+    const submission = await provider.createReview(prNumber, prepared)
+    if (!submission.posted)
+      return { status: 'The review could not be posted.', result: staticResult }
+
     await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
-    return { status: `Posted ${analysis.findings.length} static-analysis finding(s).`, result: staticResult }
+    return {
+      status: `Posted ${analysis.findings.length} static-analysis finding(s).${placementNote(submission, prepared, logger)}`,
+      result: staticResult,
+    }
   }
 
   // Guidelines and learnings are read from the base branch: both are inlined
@@ -196,6 +206,7 @@ export async function reviewPullRequest(options: RunReviewOptions): Promise<Revi
     headSha,
     requestChangesOn: config.ai?.review?.requestChangesOn,
     seenFingerprints: options.full ? [] : state?.fingerprints ?? [],
+    suggestions: provider.capabilities().reviewSuggestions,
   })
 
   if (options.dryRun) {
@@ -204,15 +215,48 @@ export async function reviewPullRequest(options: RunReviewOptions): Promise<Revi
   }
 
   assertSupports(provider, 'inlineReviewComments', 'createReview', 'posting a review')
-  await provider.createReview(prNumber, prepared)
+  const submission = await provider.createReview(prNumber, prepared)
+
+  // A review that never landed must not be recorded as this commit's review:
+  // persisting the state anyway would make every later run skip a review
+  // nobody can see.
+  if (!submission.posted)
+    return { status: 'The review could not be posted.', result }
+
   await persistReviewState(provider, prNumber, pr.body, prepared.state, state?.paused, logger)
 
   return {
     status: result.findings.length === 0
       ? 'Reviewed — nothing to report.'
-      : `Reviewed — ${result.findings.length} finding(s) posted.`,
+      : `Reviewed — ${result.findings.length} finding(s) posted.${placementNote(submission, prepared, logger)}`,
     result,
   }
+}
+
+/**
+ * Describe inline comments the platform dropped, or nothing.
+ *
+ * `createReview` reports how many line-anchored comments were actually
+ * placed. A comment anchored to a line outside the diff is dropped by the
+ * platform, and a review that silently loses findings reads as cleaner than
+ * it is.
+ *
+ * @param submission - What the provider reports it published
+ * @param prepared - What was asked for
+ * @param logger - Logger for the warning
+ * @returns A sentence to append to the status, or an empty string
+ */
+function placementNote(
+  submission: { inlineComments: number },
+  prepared: PreparedReview,
+  logger: Logger,
+): string {
+  const dropped = prepared.comments.length - submission.inlineComments
+  if (dropped <= 0)
+    return ''
+
+  logger.warn(`⚠️ ${dropped} of ${prepared.comments.length} inline comment(s) could not be placed on the diff`)
+  return ` ${dropped} of ${prepared.comments.length} inline comment(s) could not be placed on the diff.`
 }
 
 /**
