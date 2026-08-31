@@ -12,11 +12,10 @@ A **mode** is a playbook plus the capability tiers it may draw tools from. The t
 |---|---|---|
 | `plan` | read | No |
 | `review` | read, comment | No |
-| `restricted` | read | No |
 | `fix-ci` | read, write, shell, git, comment | Yes, on the working branch |
 | `implement` | read, write, shell, git, comment | Yes, on the working branch |
 
-`restricted` is what a run triggered by someone **without write access** gets. Public repositories accept input from anyone, so the actor is gated the same way the task is.
+A run triggered by someone **without write access** never reaches a mode at all: public repositories accept input from anyone, so `checkPermission` refuses non-collaborators every agent-running command before one is chosen.
 
 An unknown mode name raises an error rather than falling back to a default — silently landing in a permissive mode on a typo would be the worst possible failure.
 

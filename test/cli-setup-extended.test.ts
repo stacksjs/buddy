@@ -73,7 +73,7 @@ describe('CLI Setup - Extended Tests', () => {
       // Security preset
       const security = getWorkflowPreset('security')
       expect(security.name).toBe('Security Focused')
-      expect(security.custom?.some(c => c.name === 'security-patches')).toBe(true)
+      expect(security.custom?.some(c => c.name === 'weekly-minor')).toBe(true)
 
       // Minimal preset
       const minimal = getWorkflowPreset('minimal')

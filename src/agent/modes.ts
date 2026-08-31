@@ -82,30 +82,12 @@ Name the files that would change and why, the order of the work, the risks,
 and how the result would be verified.`,
 }
 
-/**
- * The tier every non-collaborator gets.
- *
- * Public repositories accept input from anyone, so a run triggered by someone
- * without write access is capped at reading — the same reasoning as
- * review-mode's tier list, applied to the actor rather than the task.
- */
-export const restrictedMode: AgentMode = {
-  name: 'restricted',
-  tiers: ['read'],
-  maxToolCalls: 20,
-  playbook: `${SHARED_PREAMBLE}
-
-This run was triggered by someone without write access to the repository. You
-can read and answer, but cannot modify anything or post on their behalf.`,
-}
-
 /** Every built-in mode, by name. */
 export const AGENT_MODES: Record<string, AgentMode> = {
   'review': reviewMode,
   'implement': implementMode,
   'fix-ci': fixCiMode,
   'plan': planMode,
-  'restricted': restrictedMode,
 }
 
 /**

@@ -157,8 +157,12 @@ describe('mode tool permissions', () => {
     expect(output.content).toContain('No such tool')
   })
 
-  it('failure case - the restricted tier grants reads only', () => {
-    const belt = new Toolbelt(getAgentMode('restricted'))
+  it('failure case - the plan mode grants reads only', () => {
+    // The read tier alone: no comment tool, nothing that writes. (This was
+    // `restricted` until that mode was deleted — no code path could select
+    // it, since checkPermission refuses non-collaborators before a mode is
+    // ever chosen.)
+    const belt = new Toolbelt(getAgentMode('plan'))
 
     expect(belt.names()).toEqual(['read_file', 'list_dir'])
   })

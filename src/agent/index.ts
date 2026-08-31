@@ -4,7 +4,6 @@ export {
   getAgentMode,
   implementMode,
   planMode,
-  restrictedMode,
   reviewMode,
 } from './modes'
 export { runPlan } from './plan'
