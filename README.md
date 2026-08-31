@@ -1034,8 +1034,14 @@ bun test
 ## Build From Source
 
 ```bash
+bun install     # not optional — see the note below
 bun run build
 ```
+
+> [!NOTE]
+> `bun install` is a hard prerequisite for every dev command. On a fresh clone without `node_modules`, `bun test` fails with over a hundred phantom errors (`Cannot find package 'ts-pantry'` and friends) that look like real bugs and are not.
+>
+> Git hooks (staged lint on `pre-commit`, gitlint on `commit-msg`) are declared in `package.json` but are not installed automatically — run `bunx bun-git-hooks` once after cloning to activate them.
 
 ## Changelog
 
