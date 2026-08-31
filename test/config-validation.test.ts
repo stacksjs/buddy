@@ -192,6 +192,46 @@ describe('config-validation', () => {
     })
   })
 
+  describe('notifications', () => {
+    it('success case - a valid notifications block passes', () => {
+      const issues = validateConfig({
+        notifications: {
+          slack: { webhookEnv: 'SLACK_WEBHOOK_URL', events: ['pr.created', 'run.failed'] },
+          webhooks: [{ url: 'https://example.com/hook', secretEnv: 'HOOK_SECRET', events: ['scan.completed'] }],
+        },
+      })
+
+      expect(issues).toHaveLength(0)
+    })
+
+    it('failure case - a mistyped event name is reported, not silently dropped', () => {
+      // `events` naming an event that does not exist used to build the sink
+      // and then filter every real event out — notifications configured,
+      // credential read, nothing ever delivered.
+      const issues = validateConfig({
+        notifications: { slack: { events: ['pr.opened'] } },
+      })
+
+      expect(issues.some(issue => issue.path === 'notifications.slack.events[0]')).toBe(true)
+    })
+
+    it('failure case - a webhook without a url is reported', () => {
+      const issues = validateConfig({
+        notifications: { webhooks: [{ events: ['pr.created'] }] },
+      } as any)
+
+      expect(issues.some(issue => issue.path === 'notifications.webhooks[0].url')).toBe(true)
+    })
+
+    it('edge case - webhook event filters are validated too', () => {
+      const issues = validateConfig({
+        notifications: { webhooks: [{ url: 'https://example.com/hook', events: ['nope'] }] },
+      })
+
+      expect(issues.some(issue => issue.path === 'notifications.webhooks[0].events[0]')).toBe(true)
+    })
+  })
+
   describe('formatConfigIssues', () => {
     it('should render one line per issue', () => {
       const formatted = formatConfigIssues([

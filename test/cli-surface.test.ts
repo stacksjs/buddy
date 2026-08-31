@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
 
 /**
@@ -13,13 +16,15 @@ const CLI = new URL('../bin/cli.ts', import.meta.url).pathname
  * Run the CLI and capture what a user would see.
  *
  * @param args - Arguments to pass
+ * @param cwd - Directory to run in (default: this repository)
  * @returns Exit code and combined output
  */
-async function run(args: string[]): Promise<{ code: number, output: string }> {
+async function run(args: string[], cwd?: string): Promise<{ code: number, output: string }> {
   const proc = Bun.spawn(['bun', CLI, ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
     env: { ...process.env, APP_ENV: 'test' },
+    ...(cwd ? { cwd } : {}),
   })
 
   const [stdout, stderr] = await Promise.all([
@@ -64,6 +69,24 @@ describe('CLI surface', () => {
     expect(code).toBe(1)
     expect(output).toContain('Expected repo, org or both')
     expect(output).not.toContain('Opening GitHub Actions settings')
+  }, 30000)
+
+  it('success case - generate-workflows declines when workflows.enabled is false', async () => {
+    // `workflows.enabled` was declared, documented and read by nothing — the
+    // command generated the full set of workflow files regardless.
+    const dir = mkdtempSync(join(tmpdir(), 'buddy-workflows-'))
+    writeFileSync(join(dir, 'buddy.config.ts'), 'export default { workflows: { enabled: false } }\n')
+
+    try {
+      const { code, output } = await run(['generate-workflows', '--verbose'], dir)
+
+      expect(code).toBe(0)
+      expect(output).toContain('disabled by config')
+      expect(existsSync(join(dir, '.github'))).toBe(false)
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   }, 30000)
 
   it('failure case - an unknown flag is rejected rather than ignored', async () => {

@@ -12,6 +12,7 @@ export interface WorkflowConfig {
     conditions?: string[]
   }
   reviewers?: string[]
+  assignees?: string[]
   labels?: string[]
 }
 
@@ -65,6 +66,18 @@ export class GitHubActionsTemplate {
    * Generate GitHub Actions workflow
    */
   static generateWorkflow(config: WorkflowConfig): string {
+    // Reviewers, assignees and labels travel as flags. The workflow runs
+    // `./buddy update` against whatever buddy.config.ts the checkout carries,
+    // so a per-workflow override can only reach it through the command line —
+    // these fields were accepted and silently dropped before this.
+    const list = (values?: string[]): string =>
+      (values ?? []).map(value => value.replace(/'/g, '')).filter(Boolean).join(',')
+    const prFlags = [
+      list(config.reviewers) ? ` --reviewers '${list(config.reviewers)}'` : '',
+      list(config.assignees) ? ` --assignees '${list(config.assignees)}'` : '',
+      list(config.labels) ? ` --labels '${list(config.labels)}'` : '',
+    ].join('')
+
     const workflow = `name: ${config.name}
 
 on:
@@ -129,9 +142,9 @@ jobs:
           DRY_RUN="\${{ github.event.inputs.dry_run || 'false' }}"
 
           if [ "\$DRY_RUN" = "true" ]; then
-            ./buddy update --strategy "\$STRATEGY" --dry-run --verbose
+            ./buddy update --strategy "\$STRATEGY" --dry-run --verbose${prFlags}
           else
-            ./buddy update --strategy "\$STRATEGY" --verbose
+            ./buddy update --strategy "\$STRATEGY" --verbose${prFlags}
           fi
 
       - name: Auto-merge eligible PRs
@@ -148,9 +161,10 @@ jobs:
    * Generate workflow for different scheduling strategies
    */
   static generateScheduledWorkflows(config?: BuddyConfig): Record<string, string> {
+    // Global reviewers and labels are deliberately not baked in: the runtime
+    // reads `pullRequest` from buddy.config.ts on every run, and freezing
+    // today's values into the YAML would shadow every later config edit.
     const autoMergeConfig = config?.pullRequest?.autoMerge
-    const reviewers = config?.pullRequest?.reviewers || []
-    const labels = config?.pullRequest?.labels || []
 
     // Determine auto-merge settings based on configuration
     const dailyAutoMerge = autoMergeConfig?.enabled && autoMergeConfig.conditions?.includes('patch-only')
@@ -169,8 +183,6 @@ jobs:
         schedule: config?.schedule?.cron || '0 2 * * *', // 2 AM daily
         strategy: 'patch',
         autoMerge: dailyAutoMerge,
-        reviewers,
-        labels,
       }),
 
       'dependency-updates-weekly.yml': this.generateWorkflow({
@@ -178,8 +190,6 @@ jobs:
         schedule: '0 2 * * 1', // 2 AM Monday
         strategy: 'minor',
         autoMerge: weeklyAutoMerge,
-        reviewers,
-        labels,
       }),
 
       'dependency-updates-monthly.yml': this.generateWorkflow({
@@ -187,8 +197,6 @@ jobs:
         schedule: '0 2 1 * *', // 2 AM first of month
         strategy: 'major',
         autoMerge: monthlyAutoMerge,
-        reviewers,
-        labels,
       }),
     }
   }
@@ -602,6 +610,7 @@ jobs:
       strategy?: 'major' | 'minor' | 'patch' | 'all'
       autoMerge?: boolean | { enabled: boolean, strategy: 'merge' | 'squash' | 'rebase', conditions?: string[] }
       reviewers?: string[]
+      assignees?: string[]
       labels?: string[]
     },
     config?: BuddyConfig,
@@ -632,8 +641,12 @@ jobs:
       schedule: customConfig.schedule,
       strategy: customConfig.strategy || 'all',
       autoMerge: autoMergeConfig,
-      reviewers: customConfig.reviewers || config?.pullRequest?.reviewers || [],
-      labels: customConfig.labels || config?.pullRequest?.labels || [],
+      // Only the per-workflow overrides are baked in; global `pullRequest`
+      // settings are read from config at runtime, and freezing them into the
+      // YAML would shadow every later edit.
+      reviewers: customConfig.reviewers ?? [],
+      assignees: customConfig.assignees ?? [],
+      labels: customConfig.labels ?? [],
     })
   }
 

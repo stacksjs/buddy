@@ -78,6 +78,9 @@ buddy update [options]
 - `--strategy <type>` - Update strategy: major|minor|patch|all (default: all)
 - `--ignore <names>` - Comma-separated list of packages to ignore
 - `--dry-run` - Preview changes without making them
+- `--reviewers <names>` - Comma-separated reviewers to assign, overriding `pullRequest.reviewers`
+- `--assignees <names>` - Comma-separated assignees to assign, overriding `pullRequest.assignees`
+- `--labels <names>` - Comma-separated labels to add, overriding `pullRequest.labels`
 - `--respect-latest` - Leave `latest`, `*` and other dynamic ranges alone (default)
 - `--no-respect-latest` - Update dynamic ranges too
 

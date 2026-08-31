@@ -290,6 +290,12 @@ interface CLIOptions {
   ignore?: string
   dryRun?: boolean
   respectLatest?: boolean
+  /** Comma-separated reviewers `update` assigns, overriding `pullRequest.reviewers` */
+  reviewers?: string
+  /** Comma-separated assignees `update` assigns, overriding `pullRequest.assignees` */
+  assignees?: string
+  /** Comma-separated labels `update` adds, overriding `pullRequest.labels` */
+  labels?: string
   /** Which settings pages `open-settings` should open: repo, org or both. */
   type?: string
   /** Set by the generated workflow: honour the `ai.review` filters. */
@@ -844,6 +850,9 @@ cli
   .option('--strategy <type>', 'Update strategy: major|minor|patch|all', { default: 'all' })
   .option('--ignore <names>', 'Comma-separated list of packages to ignore')
   .option('--dry-run', 'Preview changes without making them')
+  .option('--reviewers <names>', 'Comma-separated reviewers to assign (overrides pullRequest.reviewers)')
+  .option('--assignees <names>', 'Comma-separated assignees to assign (overrides pullRequest.assignees)')
+  .option('--labels <names>', 'Comma-separated labels to add (overrides pullRequest.labels)')
   .option('--respect-latest', 'Respect "latest", "*", and other dynamic version indicators (default: true)')
   .option('--no-respect-latest', 'Allow updating "latest", "*", and other dynamic version indicators')
   .example('buddy update')
@@ -864,9 +873,26 @@ cli
         ignore = options.ignore.split(',').map(p => p.trim())
       }
 
+      // Per-run PR overrides, from the flags a generated workflow passes.
+      // Folded in only when given: `pullRequest` staying unset is itself a
+      // setting, and materialising an empty block would change what runs.
+      const splitList = (value?: string): string[] | undefined =>
+        value ? value.split(',').map(part => part.trim()).filter(Boolean) : undefined
+      const reviewers = splitList(options.reviewers)
+      const assignees = splitList(options.assignees)
+      const labels = splitList(options.labels)
+      const prOverrides = {
+        ...(reviewers ? { reviewers } : {}),
+        ...(assignees ? { assignees } : {}),
+        ...(labels ? { labels } : {}),
+      }
+
       const finalConfig: BuddyConfig = {
         ...config,
         verbose: options.verbose ?? config.verbose,
+        ...(Object.keys(prOverrides).length
+          ? { pullRequest: { ...config.pullRequest, ...prOverrides } }
+          : {}),
         packages: {
           ...config.packages,
           strategy: options.strategy ?? config.packages?.strategy ?? 'all',
@@ -1863,6 +1889,13 @@ cli
     const { resolve } = await import('node:path')
     const logger = options.verbose ? Logger.verbose() : Logger.quiet()
     const config = await resolveConfig(options.config)
+
+    // Explicit `false` only, the same reading the dashboard uses: a
+    // repository that never wrote a `workflows` block keeps the command.
+    if (config.workflows?.enabled === false) {
+      logger.info('\u2139\ufe0f Workflow generation is disabled by config (workflows.enabled: false)')
+      return
+    }
 
     console.log('⚠️  The "generate-workflows" command is deprecated.')
     console.log('💡 Use "buddy setup" for a better interactive experience.\n')
