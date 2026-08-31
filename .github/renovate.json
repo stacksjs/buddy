@@ -1,5 +1,5 @@
 {
-  "extends": [
-    "github>ow3org/renovate-config"
-  ]
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabled": false,
+  "description": "Renovate is retired here: buddy dogfoods itself on this repository (see .github/workflows/buddy.yml). Disabled via config rather than deleted so the Renovate app neither runs nor reopens an onboarding PR."
 }
