@@ -952,7 +952,7 @@ export class RegistryClient {
       }
 
       // First, let's log what composer.json contains
-      const composerJsonPath = path.join(process.cwd(), 'composer.json')
+      const composerJsonPath = path.join(this.projectPath, 'composer.json')
       this.logger.info(`🔍 Reading composer.json from: ${composerJsonPath}`)
 
       if (!fs.existsSync(composerJsonPath)) {

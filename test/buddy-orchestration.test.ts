@@ -749,9 +749,9 @@ describe('buddy orchestration', () => {
       expect(fooTypes?.updates.map((update: PackageUpdate) => update.name)).toEqual(['@types/bun-foo'])
 
       // '@types/node' is claimed by the Types group but its minor update is
-      // filtered out by the group's patch strategy.
-      const types = groups.find((group: { name: string }) => group.name === 'Types')
-      expect(types?.updates).toEqual([])
+      // filtered out by the group's patch strategy — and a group left empty
+      // by its own strategy filter is not emitted at all.
+      expect(groups.find((group: { name: string }) => group.name === 'Types')).toBeUndefined()
 
       const nonMajor = groups.find((group: { name: string }) => group.name === 'Non-Major Updates')
       expect(nonMajor?.updates.map((update: PackageUpdate) => update.name)).toEqual(['react'])
