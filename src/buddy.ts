@@ -1610,6 +1610,33 @@ export class Buddy {
    *   'behind'       — current is behind the target
    *   'failed'       — could not compare (non-semver, malformed, etc.)
    */
+  /**
+   * Read the version package.json declares for every dependency, keyed by
+   * package name. Range prefixes stay in place — compareVersionsSafe strips
+   * them. Returns an empty map when the manifest is missing or unreadable.
+   */
+  private readDeclaredNpmVersions(): Map<string, string> {
+    const declared = new Map<string, string>()
+    try {
+      const fs = require('node:fs')
+      const path = require('node:path')
+      const manifestPath = path.join(this.projectPath, 'package.json')
+      if (!fs.existsSync(manifestPath))
+        return declared
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+      for (const section of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+        for (const [name, version] of Object.entries(manifest[section] ?? {})) {
+          if (typeof version === 'string' && !declared.has(name))
+            declared.set(name, version)
+        }
+      }
+    }
+    catch (error) {
+      this.logger.debug('Could not read declared versions from package.json:', error)
+    }
+    return declared
+  }
+
   private compareVersionsSafe(current: string, target: string): 'at-or-beyond' | 'behind' | 'failed' {
     try {
       const cleanTarget = target.replace(/^[v^~>=<@]+/, '')
@@ -2736,6 +2763,17 @@ export class Buddy {
    * Reads the embedded manifest when present, falling back to scraping the
    * rendered tables for PRs opened before manifests existed.
    */
+  /**
+   * A regex capture from a PR body counts as a repository path only when it
+   * looks like one — markdown links, badges and URLs (renovate-era bodies are
+   * full of them) must not reach the removed-file check as phantom paths.
+   */
+  private isPlausibleRepoPath(candidate: string): boolean {
+    if (!candidate || /[\s()[\]!`]|:\/\//.test(candidate))
+      return false
+    return /^[\w@.-]+(?:\/[\w@.-]+)*$/.test(candidate)
+  }
+
   private extractFilePathsFromPRBody(prBody: string): string[] {
     const manifest = parseManifest(prBody)
     if (manifest)
@@ -2749,7 +2787,7 @@ export class Buddy {
     let match
     while ((match = tableRowRegex.exec(prBody)) !== null) {
       const filePath = match[1].trim()
-      if (filePath && !filePaths.includes(filePath)) {
+      if (this.isPlausibleRepoPath(filePath) && !filePaths.includes(filePath)) {
         filePaths.push(filePath)
       }
     }
@@ -2758,7 +2796,7 @@ export class Buddy {
     const boldFileRegex = /\*\*([^*]+\.(?:json|yaml|yml|lock))\*\*/g
     while ((match = boldFileRegex.exec(prBody)) !== null) {
       const filePath = match[1].trim()
-      if (filePath && !filePaths.includes(filePath)) {
+      if (this.isPlausibleRepoPath(filePath) && !filePaths.includes(filePath)) {
         filePaths.push(filePath)
       }
     }
@@ -2769,7 +2807,7 @@ export class Buddy {
     while ((match = simpleTableRowRegex.exec(prBody)) !== null) {
       const filePath = match[1].trim()
       // Only consider paths that look like file paths (contain / or end with common extensions)
-      if (filePath && (filePath.includes('/') || /\.(?:json|yaml|yml|lock)$/.test(filePath)) && !filePaths.includes(filePath)) {
+      if (this.isPlausibleRepoPath(filePath) && (filePath.includes('/') || /\.(?:json|yaml|yml|lock)$/.test(filePath)) && !filePaths.includes(filePath)) {
         filePaths.push(filePath)
       }
     }
@@ -2778,7 +2816,7 @@ export class Buddy {
     const filePathRegex = /(?:^|\s)([\w-]+(?:\/[\w.-]+)*\/[\w.-]+\.(?:json|yaml|yml|lock))(?:\s|$)/gm
     while ((match = filePathRegex.exec(prBody)) !== null) {
       const filePath = match[1].trim()
-      if (filePath && !filePaths.includes(filePath)) {
+      if (this.isPlausibleRepoPath(filePath) && !filePaths.includes(filePath)) {
         filePaths.push(filePath)
       }
     }
@@ -3008,12 +3046,18 @@ export class Buddy {
           strategy: 'all',
         },
       }
-      const scanBuddy = new Buddy(scanConfig)
+      const scanBuddy = new Buddy(scanConfig, this.projectPath)
       const currentScanResult = await scanBuddy.scanForUpdates()
       const currentUpdatesMap = new Map<string, PackageUpdate>()
       for (const update of currentScanResult.updates) {
         currentUpdatesMap.set(update.name, update)
       }
+
+      // Positive evidence for packages the scan no longer lists: what the
+      // manifest itself declares. A fully satisfied PR consists entirely of
+      // packages absent from an outdated-scan, so without this the closer
+      // could never close one.
+      const declaredVersions = this.readDeclaredNpmVersions()
 
       // Safety: if the scan returned 0 updates, something may be wrong
       // (bun outdated failure, missing node_modules, rate limiting, etc.).
@@ -3059,10 +3103,23 @@ export class Buddy {
               // Package not in current scan.  This could mean:
               //   a) Already at the target version (genuinely satisfied)
               //   b) Scan missed it (strategy filtering, API failure, etc.)
-              // We can't distinguish these cases, so we count it as unverifiable.
-              // The PR will only be closed if we have ZERO unverifiable packages
-              // (i.e., every package was positively confirmed as satisfied).
-              this.logger.debug(`PR #${pr.number}: ${prUpdate.name} not in current scan (unverifiable)`)
+              // The manifest distinguishes them: a declared version at or
+              // beyond the target is positive confirmation of (a).
+              const declaredVersion = declaredVersions.get(prUpdate.name)
+              if (declaredVersion) {
+                const declaredComparison = this.compareVersionsSafe(declaredVersion, prUpdate.newVersion)
+                if (declaredComparison === 'at-or-beyond') {
+                  this.logger.debug(`PR #${pr.number}: ${prUpdate.name} declared at ${declaredVersion}, at or beyond ${prUpdate.newVersion}`)
+                  verifiedSatisfied++
+                  continue
+                }
+                if (declaredComparison === 'behind') {
+                  this.logger.debug(`PR #${pr.number}: ${prUpdate.name} declared at ${declaredVersion}, still behind ${prUpdate.newVersion} — the scan missed it`)
+                  verifiedStillNeeded++
+                  continue
+                }
+              }
+              this.logger.debug(`PR #${pr.number}: ${prUpdate.name} not in current scan and not declared (unverifiable)`)
               unverifiable++
               continue
             }
@@ -3114,9 +3171,10 @@ export class Buddy {
                 // All packages were verified as satisfied (no unverifiable ones)
                 const packagesAlreadyUpdated = prUpdates.filter((u) => {
                   const current = currentUpdatesMap.get(u.name)
-                  if (!current)
+                  const version = current?.currentVersion ?? declaredVersions.get(u.name)
+                  if (!version)
                     return false
-                  return this.compareVersionsSafe(current.currentVersion, u.newVersion) === 'at-or-beyond'
+                  return this.compareVersionsSafe(version, u.newVersion) === 'at-or-beyond'
                 })
 
                 let closeComment = `🤖 **Auto-closing satisfied PR**\n\n`

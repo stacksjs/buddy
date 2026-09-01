@@ -364,6 +364,46 @@ describe('buddy orchestration', () => {
       expect(provider.deleteBranch).toHaveBeenCalledWith('buddy/update-lodash')
     })
 
+    it('success case - closes a fully satisfied PR by consulting the manifest when its packages left the scan', async () => {
+      // The scan lists only what is still outdated, so a fully satisfied PR
+      // has no packages in it at all — the manifest is the positive evidence.
+      const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'buddy-close-'))
+      fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify({
+        devDependencies: { typescript: '^7.0.2' },
+      }))
+      restorers.push(() => fs.rmSync(projectDir, { recursive: true, force: true }))
+
+      stubScan([makeUpdate({ name: 'react', currentVersion: '18.0.0', newVersion: '18.2.0' })])
+      const provider = makeCloseProvider([makePR({
+        number: 125,
+        head: 'buddy/update-typescript',
+        body: `updates${serializeManifest([makeUpdate({ name: 'typescript', currentVersion: '6.0.3', newVersion: '7.0.2' })])}`,
+      })])
+      const buddy = new Buddy(baseConfig(), projectDir)
+
+      await buddy.checkAndCloseSatisfiedPRs(provider, false)
+
+      expect(provider.closePullRequest).toHaveBeenCalledWith(125)
+      const [, comment] = provider.createComment.mock.calls[0]
+      expect(comment).toContain('typescript')
+    })
+
+    it('failure case - keeps the PR when the manifest declares a version still behind the target', async () => {
+      const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'buddy-close-'))
+      fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify({
+        dependencies: { lodash: '^4.17.20' },
+      }))
+      restorers.push(() => fs.rmSync(projectDir, { recursive: true, force: true }))
+
+      stubScan([makeUpdate({ name: 'react', currentVersion: '18.0.0', newVersion: '18.2.0' })])
+      const provider = makeCloseProvider([lodashPR()])
+      const buddy = new Buddy(baseConfig(), projectDir)
+
+      await buddy.checkAndCloseSatisfiedPRs(provider, false)
+
+      expect(provider.closePullRequest).not.toHaveBeenCalled()
+    })
+
     it('failure case - never closes on an empty scan (mass-closure guard)', async () => {
       // A scan returning nothing may mean bun outdated failed or the registry
       // rate-limited — closing every PR on that evidence would wipe them out.
@@ -427,6 +467,31 @@ describe('buddy orchestration', () => {
 
       expect(provider.createComment).not.toHaveBeenCalled()
       expect(provider.closePullRequest).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('extractFilePathsFromPRBody', () => {
+    it('failure case - renovate-era badge tables yield no phantom paths', () => {
+      const buddy = new Buddy(baseConfig()) as any
+      const body = [
+        '| Package | Change | Age | Adoption | Passing | Confidence |',
+        '|---|---|---|---|---|---|',
+        '| [typescript](https://github.com/microsoft/TypeScript/tree/master) | [`6.0.3` -> `7.0.2`](https://renovatebot.com/diffs/npm/typescript/6.0.3/7.0.2) | [![age](https://developer.mend.io/api/mc/badges/age/npm/typescript/7.0.2?slim=true)](https://docs.renovatebot.com/merge-confidence/) | [![adoption](https://developer.mend.io/api/mc/badges/adoption/npm/typescript/7.0.2?slim=true)](https://docs.renovatebot.com/merge-confidence/) | ok | ok |',
+      ].join('\n')
+
+      expect(buddy.extractFilePathsFromPRBody(body)).toEqual([])
+    })
+
+    it('success case - real file cells and bold paths still extract', () => {
+      const buddy = new Buddy(baseConfig()) as any
+      const body = [
+        '| [lodash](https://npmjs.com/lodash) | ^4.17.20 → ^4.17.21 | **package.json** | ✅ |',
+        'Also touches **.github/workflows/ci.yml** along the way.',
+      ].join('\n')
+
+      const paths = buddy.extractFilePathsFromPRBody(body)
+      expect(paths).toContain('package.json')
+      expect(paths).toContain('.github/workflows/ci.yml')
     })
   })
 
