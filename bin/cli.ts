@@ -204,7 +204,7 @@ async function collectPackageContext(
   }
 }
 
-const cli = new CLI('buddy')
+const cli: CLI = new CLI('buddy')
 
 cli.usage(`[command] [options]
 
@@ -3517,4 +3517,10 @@ cli.command('help', 'Show this help text').action(() => {
 cli.option('--config <path>', 'Path to a buddy config file')
 cli.version(version)
 cli.help()
-cli.parse()
+
+// Exported for the in-process wiring tests: importing this module must not
+// parse argv or run a command — only direct execution does.
+export { cli }
+
+if (import.meta.main)
+  cli.parse()
