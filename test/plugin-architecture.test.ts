@@ -247,7 +247,33 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
         const slackPlugins = plugins.filter(p => p.name === 'slack-integration')
         expect(slackPlugins).toHaveLength(1)
         expect(slackPlugins[0].name).toBe('slack-integration')
-        expect(slackPlugins[0].configuration.webhook_url).toBe('') // Environment variable is empty, but file exists so plugin is discovered
+
+        // The file is not just a discovery hint any more: the sender reads
+        // the webhook URL from it when the env var is absent.
+        for (const plugin of plugins)
+          await freshPluginManager.loadPlugin(plugin)
+        freshPluginManager.setContext({
+          step: 'setup_complete',
+          progress: {},
+          config: {},
+          repository: { owner: 'acme', name: 'widgets' },
+          analysis: {},
+          plugins: [],
+        } as any)
+
+        const fetchBefore = globalThis.fetch
+        const posted: string[] = []
+        globalThis.fetch = (async (input: unknown) => {
+          posted.push(String(input))
+          return new Response('{}', { status: 200 })
+        }) as unknown as typeof fetch
+        try {
+          await freshPluginManager.executePluginHooks({ event: 'setup_complete' })
+          expect(posted).toEqual(['https://hooks.slack.com/services/test'])
+        }
+        finally {
+          globalThis.fetch = fetchBefore
+        }
       })
 
       it('should load custom plugins from .buddy/plugins directory', async () => {
@@ -301,9 +327,9 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       expect(slackPlugins[0].name).toBe('slack-integration')
       expect(slackPlugins[0].version).toBe('1.0.0')
       expect(slackPlugins[0].enabled).toBe(true)
-      expect(slackPlugins[0].triggers).toHaveLength(2)
+      expect(slackPlugins[0].triggers).toEqual([{ event: 'setup_complete' }])
       expect(slackPlugins[0].hooks).toHaveLength(1)
-      expect(slackPlugins[0].configuration.webhook_url).toBe('https://hooks.slack.com/test')
+      expect(slackPlugins[0].configuration).toEqual({})
     })
 
     it('should discover Discord plugin when webhook URL is configured', async () => {
@@ -333,8 +359,8 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       expect(jiraPlugins[0].version).toBe('1.0.0')
       expect(jiraPlugins[0].triggers).toHaveLength(1)
       expect(jiraPlugins[0].triggers[0].event).toBe('setup_complete')
-      expect(jiraPlugins[0].configuration.api_token).toBe('test-token')
-      expect(jiraPlugins[0].configuration.base_url).toBe('https://test.atlassian.net')
+      // Credentials are resolved at send time, not stored on the plugin.
+      expect(jiraPlugins[0].configuration).toEqual({})
     })
 
     it('should discover multiple plugins when multiple integrations are configured', async () => {
@@ -656,15 +682,13 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       const slackPlugin = plugins.find(p => p.name === 'slack-integration')
 
       expect(slackPlugin).toBeDefined()
-      expect(slackPlugin!.triggers).toEqual([
-        { event: 'setup_complete' },
-        { event: 'validation_error' },
-      ])
+      // validation_error is retired: nothing ever emitted it, so the Slack
+      // plugin's second trigger promised error notifications that never came.
+      expect(slackPlugin!.triggers).toEqual([{ event: 'setup_complete' }])
       expect(slackPlugin!.hooks).toHaveLength(1)
       expect(slackPlugin!.hooks[0].name).toBe('notify-slack')
       expect(slackPlugin!.hooks[0].priority).toBe(10)
-      expect(slackPlugin!.configuration.webhook_url).toBe('https://hooks.slack.com/test')
-      expect(slackPlugin!.configuration.channel).toBe('#buddy')
+      expect(slackPlugin!.configuration).toEqual({})
     })
 
     it('should create Discord plugin with correct configuration', async () => {
@@ -678,7 +702,7 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       expect(discordPlugin!.hooks).toHaveLength(1)
       expect(discordPlugin!.hooks[0].name).toBe('notify-discord')
       expect(discordPlugin!.hooks[0].priority).toBe(8)
-      expect(discordPlugin!.configuration.webhook_url).toBe('https://discord.com/api/webhooks/test')
+      expect(discordPlugin!.configuration).toEqual({})
     })
 
     it('should create Jira plugin with correct configuration', async () => {
@@ -694,19 +718,40 @@ describe('Integration Ecosystem & Plugin Architecture', () => {
       expect(jiraPlugin!.hooks).toHaveLength(1)
       expect(jiraPlugin!.hooks[0].name).toBe('create-jira-ticket')
       expect(jiraPlugin!.hooks[0].priority).toBe(5)
-      expect(jiraPlugin!.configuration.api_token).toBe('test-token')
-      expect(jiraPlugin!.configuration.base_url).toBe('https://test.atlassian.net')
-      expect(jiraPlugin!.configuration.project_key).toBe('TEST')
+      expect(jiraPlugin!.configuration).toEqual({})
     })
 
     it('should use default project key when not specified', async () => {
       process.env.JIRA_API_TOKEN = 'test-token'
       process.env.JIRA_BASE_URL = 'https://test.atlassian.net'
+      delete process.env.JIRA_PROJECT_KEY
 
       const plugins = await pluginManager.discoverPlugins()
-      const jiraPlugin = plugins.find(p => p.name === 'jira-integration')
+      for (const plugin of plugins)
+        await pluginManager.loadPlugin(plugin)
+      pluginManager.setContext({
+        step: 'setup_complete',
+        progress: {},
+        config: {},
+        repository: { owner: 'acme', name: 'widgets' },
+        analysis: {},
+        plugins: [],
+      } as any)
 
-      expect(jiraPlugin!.configuration.project_key).toBe('BUDDY')
+      // The default key is observable on the wire, not on a config block.
+      const fetchBefore = globalThis.fetch
+      const bodies: any[] = []
+      globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body ?? '{}')))
+        return new Response('{}', { status: 200 })
+      }) as unknown as typeof fetch
+      try {
+        await pluginManager.executePluginHooks({ event: 'setup_complete' })
+        expect(bodies[0]?.fields?.project?.key).toBe('BUDDY')
+      }
+      finally {
+        globalThis.fetch = fetchBefore
+      }
     })
   })
 })

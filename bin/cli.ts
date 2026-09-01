@@ -404,7 +404,12 @@ cli
         }
       }
       else if (availablePlugins.length > 0 && options.nonInteractive) {
-        console.log(`\n🔌 Found ${availablePlugins.length} integration(s), skipping in non-interactive mode`)
+        // The docs promise setup-completion notifications; silently skipping
+        // them made that a lie in exactly the mode CI uses.
+        console.log(`\n🔌 Found ${availablePlugins.length} integration(s) — enabled for setup notifications`)
+        for (const plugin of availablePlugins) {
+          await pluginManager.loadPlugin(plugin)
+        }
       }
 
       // Pre-flight checks

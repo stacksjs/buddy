@@ -55,7 +55,7 @@ The setup wizard provides a comprehensive configuration experience with advanced
 - **⚙️ Workflow Validation** - Real-time YAML syntax and security validation
 - **🚀 Recovery Capabilities** - Detailed error reporting and setup resumption support
 - **📋 Configuration Migration** - Seamless import from Renovate and Dependabot configurations
-- **🔌 Integration Ecosystem** - Extensible plugin system with Slack, Discord, and Jira integrations
+- **🔌 Integration Ecosystem** - Setup-completion notifications through Slack, Discord, Jira, and custom webhook plugins
 
 ## Setup Flow
 
