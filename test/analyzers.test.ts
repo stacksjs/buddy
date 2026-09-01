@@ -374,3 +374,75 @@ describe('analysis configuration', () => {
     expect(validateConfig({ analysis: { tools: { shellcheck: 'off' as never } } })).toHaveLength(1)
   })
 })
+
+/**
+ * The workflow-audit analyzer had 0% function coverage: the six security
+ * rules it wraps are tested directly, but the wrapper — severity mapping,
+ * changed-file filtering, the empty-input short-circuit — was not, and the
+ * wrapper is what review actually calls.
+ */
+describe('workflow-audit analyzer', () => {
+  const cleanups: Array<() => void> = []
+
+  afterEach(() => {
+    while (cleanups.length > 0)
+      cleanups.pop()?.()
+  })
+
+  const RISKY = `name: CI
+on: push
+permissions: write-all
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: bun test
+`
+
+  async function repoRoot(): Promise<string> {
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+
+    const dir = mkdtempSync(join(tmpdir(), 'buddy-wf-audit-'))
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }))
+    mkdirSync(join(dir, '.github', 'workflows'), { recursive: true })
+    writeFileSync(join(dir, '.github', 'workflows', 'touched.yml'), RISKY)
+    writeFileSync(join(dir, '.github', 'workflows', 'untouched.yml'), RISKY)
+    return dir
+  }
+
+  it('success case - findings land as review findings with mapped severities', async () => {
+    const { githubActionsAnalyzer } = await import('../src/analysis/analyzers/github-actions')
+    const root = await repoRoot()
+
+    const findings = await githubActionsAnalyzer.run(['.github/workflows/touched.yml'], root)
+
+    expect(findings.length).toBeGreaterThan(0)
+    for (const finding of findings) {
+      expect(finding.tool).toBe('workflow-audit')
+      expect(finding.path).toBe('.github/workflows/touched.yml')
+      expect(['critical', 'major', 'minor', 'nit']).toContain(finding.severity)
+    }
+    // `permissions: write-all` is an error-level rule; errors map to major.
+    expect(findings.some(finding => finding.severity === 'major')).toBe(true)
+  })
+
+  it('success case - only the changed workflows are reported', async () => {
+    // The auditor scans the whole repository; a review must not comment on
+    // files the pull request never touched.
+    const { githubActionsAnalyzer } = await import('../src/analysis/analyzers/github-actions')
+    const root = await repoRoot()
+
+    const findings = await githubActionsAnalyzer.run(['.github/workflows/touched.yml'], root)
+
+    expect(findings.every(finding => finding.path !== '.github/workflows/untouched.yml')).toBe(true)
+  })
+
+  it('edge case - no changed workflows means no audit at all', async () => {
+    const { githubActionsAnalyzer } = await import('../src/analysis/analyzers/github-actions')
+
+    expect(await githubActionsAnalyzer.run([], '/nonexistent-root')).toEqual([])
+  })
+})
+

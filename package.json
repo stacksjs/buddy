@@ -59,6 +59,7 @@
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "prepublishOnly": "bun run build",
     "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
     "format": "bunx --bun pickier . --format",
