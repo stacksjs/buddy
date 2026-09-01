@@ -110,6 +110,37 @@ jobs:
       - name: Check docs against source
         run: bun run check:docs
 
+  # Dogfood smoke: the PR's own code runs its own review, with a read-only
+  # token and no API key. Catches a broken command surface before merge
+  # without putting PR-modified code near secrets.
+  buddy-smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the branch review diffs against origin/main
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2.2.0
+
+      - name: Use cached node_modules
+        uses: actions/cache@v5.0.4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Review this branch with its own code
+        run: bun ./bin/cli.ts review --branch --base origin/main --light --format github
+
   publish-commit:
     needs: [lint, typecheck, test, check-docs]
     runs-on: ubuntu-latest

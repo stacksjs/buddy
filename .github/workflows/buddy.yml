@@ -1,5 +1,8 @@
 name: Buddy
 
+# Dogfood: every job runs the checked-out source (bun ./bin/cli.ts), never the
+# published package — merged changes are exercised by the next scheduled run.
+
 on:
   # Rebase checkbox: fires instantly when a PR body is edited (e.g. checkbox ticked).
   # No polling needed — this replaces the old every-minute cron for rebase detection.
@@ -155,6 +158,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0 # Fetch full history for rebasing
+          # Pinned: this job also runs on pull_request:edited, where the default
+          # checkout is the PR merge commit — never run PR-modified code in a
+          # job whose environment holds BUDDY_TOKEN.
+          ref: main
           persist-credentials: true
 
       - name: Setup Bun
@@ -193,6 +200,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          # Pinned: this job also runs on pull_request:edited, where the default
+          # checkout is the PR merge commit — never run PR-modified code in a
+          # job whose environment holds BUDDY_TOKEN.
+          ref: main
           persist-credentials: true
 
       - name: Setup Bun
@@ -233,10 +244,10 @@ jobs:
 
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             echo "📋 Running in DRY RUN mode..."
-            bunx @buddysh/buddy update-check --dry-run --verbose
+            bun ./bin/cli.ts update-check --dry-run --verbose
           else
             echo "🔄 Running in LIVE mode..."
-            bunx @buddysh/buddy update-check --verbose
+            bun ./bin/cli.ts update-check --verbose
           fi
 
         env:
@@ -326,15 +337,15 @@ jobs:
 
           if [ "$PACKAGES" != "" ]; then
             if [ "$VERBOSE" = "true" ]; then
-              bunx @buddysh/buddy update --packages "$PACKAGES" --verbose
+              bun ./bin/cli.ts update --packages "$PACKAGES" --verbose
             else
-              bunx @buddysh/buddy update --packages "$PACKAGES"
+              bun ./bin/cli.ts update --packages "$PACKAGES"
             fi
           else
             if [ "$VERBOSE" = "true" ]; then
-              bunx @buddysh/buddy update --strategy "$STRATEGY" --verbose
+              bun ./bin/cli.ts update --strategy "$STRATEGY" --verbose
             else
-              bunx @buddysh/buddy update --strategy "$STRATEGY"
+              bun ./bin/cli.ts update --strategy "$STRATEGY"
             fi
           fi
 
@@ -447,7 +458,7 @@ jobs:
           set -e  # Exit on any error
 
           # Build the command
-          COMMAND="bunx @buddysh/buddy dashboard"
+          COMMAND="bun ./bin/cli.ts dashboard"
 
           if [ "$TITLE" != "" ]; then
             COMMAND="$COMMAND --title \"$TITLE\""
@@ -470,9 +481,9 @@ jobs:
             # Run scan to show what would be included
             echo "🔍 Scanning for dependencies that would be included:"
             if [ "$VERBOSE" = "true" ]; then
-              bunx @buddysh/buddy scan --verbose
+              bun ./bin/cli.ts scan --verbose
             else
-              bunx @buddysh/buddy scan
+              bun ./bin/cli.ts scan
             fi
           else
             echo "🚀 Executing dashboard update:"
