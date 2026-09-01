@@ -488,6 +488,26 @@ interface NotificationSettings {
 Credentials are referenced by environment variable name, never inlined, so a
 destination can be committed without committing its credential.
 
+Every event can be named in an `events` filter, and every one of them fires:
+
+| Event | Fired when |
+|-------|-----------|
+| `scan.completed` | a dependency scan finishes, with update counts |
+| `pr.created` | buddy opens a pull request |
+| `pr.updated` | buddy updates or reopens an existing pull request |
+| `pr.closed` | buddy auto-closes a pull request (satisfied, obsolete, or no longer produced by the configuration) |
+| `pr.merged` | buddy auto-merges an eligible pull request |
+| `security.advisories` | a scan flags dependencies with known advisories |
+| `dashboard.updated` | the dependency dashboard issue is created or refreshed |
+| `review.completed` | a pull request review finishes, with the finding count |
+| `gate.failed` | merge gates conclude with a blocking failure |
+| `fixci.completed` | a fix-ci run completes its diagnosis or repair |
+| `run.failed` | a runtime command (scan, update, update-check, dashboard, review, fix-ci) fails |
+
+Webhook consumers receive `{ version, event, payload, sentAt }` JSON. When
+`secretEnv` is set, each request carries an `x-buddy-signature: sha256=<hmac>`
+header signing the raw body.
+
 ## Pull Requests
 
 ```typescript

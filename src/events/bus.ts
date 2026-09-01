@@ -106,6 +106,30 @@ export function describeEvent<K extends keyof BuddyEvents>(event: K, payload: Bu
       const advisories = payload as BuddyEvents['security.advisories']
       return `${advisories.packages.length} dependency/dependencies with known advisories`
     }
+    case 'pr.updated': {
+      const pr = payload as BuddyEvents['pr.updated']
+      return `Updated #${pr.number}: ${pr.title}`
+    }
+    case 'pr.closed': {
+      const pr = payload as BuddyEvents['pr.closed']
+      return `Closed #${pr.number} (${pr.reason}): ${pr.title}`
+    }
+    case 'dashboard.updated': {
+      const dashboard = payload as BuddyEvents['dashboard.updated']
+      return `Dashboard refreshed: #${dashboard.number}`
+    }
+    case 'review.completed': {
+      const review = payload as BuddyEvents['review.completed']
+      return `Reviewed #${review.number}: ${review.findings} finding(s)`
+    }
+    case 'fixci.completed': {
+      const fix = payload as BuddyEvents['fixci.completed']
+      return `fix-ci ${fix.action}${fix.fixed ? ' (fixed)' : ''}${fix.number ? ` on #${fix.number}` : ''}`
+    }
+    case 'gate.failed': {
+      const gates = payload as BuddyEvents['gate.failed']
+      return `Gates failed on #${gates.number}: ${gates.checks.join(', ')}`
+    }
     case 'run.failed': {
       const failure = payload as BuddyEvents['run.failed']
       return `\`${failure.command}\` failed: ${failure.error}`

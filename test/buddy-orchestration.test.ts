@@ -353,8 +353,13 @@ describe('buddy orchestration', () => {
       stubScan([makeUpdate({ name: 'lodash', currentVersion: '4.17.21', newVersion: '4.17.22' })])
       const provider = makeCloseProvider([lodashPR()])
       const buddy = new Buddy(baseConfig())
+      const emitted: Array<[string, unknown]> = []
+      ;(buddy as any).eventBus = { emit: async (event: string, payload: unknown) => { emitted.push([event, payload]) } }
 
       await buddy.checkAndCloseSatisfiedPRs(provider, false)
+
+      const closedEvent = emitted.find(([event]) => event === 'pr.closed')
+      expect(closedEvent?.[1]).toMatchObject({ number: 123, reason: expect.stringContaining('satisfied') })
 
       expect(provider.createComment).toHaveBeenCalledTimes(1)
       const [prNumber, comment] = provider.createComment.mock.calls[0]
@@ -547,9 +552,13 @@ describe('buddy orchestration', () => {
       })
 
       const buddy = new Buddy(dashboardConfig(), projectDir)
+      const emitted: Array<[string, unknown]> = []
+      ;(buddy as any).eventBus = { emit: async (event: string, payload: unknown) => { emitted.push([event, payload]) } }
       const issue = await buddy.createOrUpdateDashboard()
 
       expect(issue.number).toBe(42)
+      const dashboardEvent = emitted.find(([event]) => event === 'dashboard.updated')
+      expect(dashboardEvent?.[1]).toMatchObject({ number: 42 })
 
       const post = fetchCalls.find(call => call.method === 'POST' && call.url.endsWith('/issues'))
       expect(post).toBeDefined()

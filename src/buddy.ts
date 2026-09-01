@@ -568,10 +568,22 @@ export class Buddy {
 
     try {
       const service = new SecurityAdvisoryService(this.logger)
-      return await service.annotateUpdates(
+      const annotated = await service.annotateUpdates(
         updates,
         this.config.security?.minimumSeverity ?? 'low',
       )
+
+      const flagged = annotated.filter(update => update.securityAdvisories?.length)
+      if (flagged.length > 0) {
+        await this.events.emit('security.advisories', {
+          packages: flagged.map(update => ({
+            name: update.name,
+            severity: update.securityAdvisories?.[0]?.severity ?? 'unknown',
+          })),
+        })
+      }
+
+      return annotated
     }
     catch (error) {
       this.logger.warn('Security advisory lookup failed, continuing without it:', error)
@@ -752,6 +764,7 @@ export class Buddy {
                 }
 
                 await gitProvider.closePullRequest(existingPR.number)
+                await this.events.emit('pr.closed', { number: existingPR.number, title: existingPR.title, reason: 'no longer produced by the current configuration' })
                 // The pull request is closed either way; a branch that would
                 // not delete is worth a warning, not a failed run.
                 try {
@@ -860,6 +873,7 @@ export class Buddy {
                 assignees: this.config.pullRequest?.assignees,
               })
 
+              await this.events.emit('pr.updated', { number: existingPR.number, title: prTitle, url: existingPR.url })
               this.logger.success(`✅ Updated existing PR #${existingPR.number}: ${prTitle}`)
               this.logger.info(`🔗 ${existingPR.url}`)
               continue
@@ -904,6 +918,7 @@ export class Buddy {
                 assignees: this.config.pullRequest?.assignees,
               })
 
+              await this.events.emit('pr.updated', { number: existingPRForBranch.number, title: prTitle, url: existingPRForBranch.url })
               this.logger.success(`✅ Updated existing PR #${existingPRForBranch.number}: ${prTitle}`)
               this.logger.info(`🔗 ${existingPRForBranch.url}`)
               continue
@@ -950,6 +965,7 @@ export class Buddy {
                   assignees: this.config.pullRequest?.assignees,
                 })
 
+                await this.events.emit('pr.updated', { number: recentlyClosed.number, title: prTitle, url: recentlyClosed.url })
                 this.logger.success(`✅ Reopened and updated PR #${recentlyClosed.number}: ${prTitle}`)
                 this.logger.info(`🔗 ${recentlyClosed.url}`)
                 reopened = true
@@ -1021,6 +1037,7 @@ export class Buddy {
                 assignees: this.config.pullRequest?.assignees,
               })
 
+              await this.events.emit('pr.updated', { number: recentlyClosed.number, title: prTitle, url: recentlyClosed.url })
               this.logger.success(`✅ Reopened and updated PR #${recentlyClosed.number}: ${prTitle}`)
               this.logger.info(`🔗 ${recentlyClosed.url}`)
               reopenedFromClosed = true
@@ -2966,6 +2983,7 @@ export class Buddy {
                 }
 
                 await gitProvider.closePullRequest(pr.number)
+                await this.events.emit('pr.closed', { number: pr.number, title: pr.title, reason: 'obsolete — its dependency files no longer exist' })
 
                 // Try to delete the branch if it's a buddy branch
                 if (pr.head.startsWith('buddy/')) {
@@ -3197,6 +3215,7 @@ export class Buddy {
                 }
 
                 await gitProvider.closePullRequest(pr.number)
+                await this.events.emit('pr.closed', { number: pr.number, title: pr.title, reason: 'satisfied — every package already at or beyond target' })
 
                 // Try to delete the branch if it's a buddy branch
                 if (pr.head.startsWith('buddy/')) {
@@ -3384,6 +3403,7 @@ export class Buddy {
       }
 
       this.logger.success(`✅ Dashboard updated: ${issue.url}`)
+      await this.events.emit('dashboard.updated', { number: issue.number, url: issue.url })
       return issue
     }
     catch (error) {
