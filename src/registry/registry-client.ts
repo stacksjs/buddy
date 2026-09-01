@@ -932,21 +932,6 @@ export class RegistryClient {
   }
 
   /**
-   * Extract major version number from a version string
-   */
-  private getMajorVersion(version: string): string {
-    return version.replace(/^[v^~>=<]+/, '').split('.')[0] || '0'
-  }
-
-  /**
-   * Extract minor version number from a version string
-   */
-  private getMinorVersion(version: string): string {
-    const parts = version.replace(/^[v^~>=<]+/, '').split('.')
-    return parts[1] || '0'
-  }
-
-  /**
    * Get outdated Composer packages
    */
   async getComposerOutdatedPackages(): Promise<PackageUpdate[]> {
@@ -1110,74 +1095,6 @@ export class RegistryClient {
       this.logger.warn('Failed to check for outdated Composer packages:', error)
       return []
     }
-  }
-
-  /**
-   * Find the best patch, minor, and major updates for a package
-   */
-  private async findBestUpdates(currentVersion: string, availableVersions: string[], _constraint: string): Promise<{ version: string, type: 'patch' | 'minor' | 'major' }[]> {
-    const { getUpdateType } = await import('../utils/helpers')
-    const candidates: { version: string, type: 'patch' | 'minor' | 'major' }[] = []
-
-    // Parse current version
-    const currentParts = this.parseVersion(currentVersion)
-    if (!currentParts) {
-      return []
-    }
-
-    let bestPatch: string | null = null
-    let bestMinor: string | null = null
-    let bestMajor: string | null = null
-
-    for (const version of availableVersions) {
-      // Skip dev/alpha/beta versions for now (could be enhanced later)
-      if (version.includes('dev') || version.includes('alpha') || version.includes('beta') || version.includes('RC')) {
-        continue
-      }
-
-      const versionParts = this.parseVersion(version)
-      if (!versionParts) {
-        continue
-      }
-
-      // Skip versions that are not newer
-      const comparison = this.compareVersions(version, currentVersion)
-      if (comparison <= 0) {
-        continue
-      }
-
-      const updateType = getUpdateType(currentVersion, version)
-
-      // Find best update for each type
-      if (updateType === 'patch' && versionParts.major === currentParts.major && versionParts.minor === currentParts.minor) {
-        if (!bestPatch || this.compareVersions(version, bestPatch) > 0) {
-          bestPatch = version
-        }
-      }
-      else if (updateType === 'minor' && versionParts.major === currentParts.major) {
-        if (!bestMinor || this.compareVersions(version, bestMinor) > 0) {
-          bestMinor = version
-        }
-      }
-      else if (updateType === 'major') {
-        if (!bestMajor || this.compareVersions(version, bestMajor) > 0) {
-          bestMajor = version
-        }
-      }
-    }
-
-    // Add the best candidates
-    if (bestPatch) {
-      candidates.push({ version: bestPatch, type: 'patch' })
-    }
-    if (bestMinor) {
-      candidates.push({ version: bestMinor, type: 'minor' })
-    }
-    if (bestMajor) {
-      candidates.push({ version: bestMajor, type: 'major' })
-    }
-
-    return candidates
   }
 
   /**
