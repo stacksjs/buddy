@@ -6,6 +6,7 @@
  * log, diagnose, report, count the attempt — and a second copy would drift
  * from the first the way the two review paths did.
  */
+import { emitEvent } from '../events'
 import type { PullRequest } from '../types'
 import type { BuddyConfig } from '../types'
 import type { GitProvider } from '../git/provider'
@@ -171,6 +172,12 @@ export async function runFixCi(options: RunFixCiOptions): Promise<string> {
       }
     }
   }
+
+  await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'fixci.completed', {
+    ...(options.prNumber ? { number: options.prNumber } : {}),
+    action: outcome.action,
+    fixed: outcome.fixed,
+  })
 
   return `${outcome.action}${outcome.fixed ? ' (fixed)' : ''}`
 }

@@ -379,7 +379,7 @@ const result = await migrator.migrateFromRenovate('renovate.json')
 
 ## Integration Ecosystem
 
-Buddy includes an extensible plugin system that enables integrations with popular collaboration and project management tools.
+Buddy includes a setup-time plugin system that notifies your collaboration tools when `buddy setup` completes. (Runtime events — scans, pull requests, merges — go through the `notifications` key in `buddy.config.ts` instead; that is the system a new integration should hook into.)
 
 ### Built-in Integrations
 
@@ -397,8 +397,7 @@ echo "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" > .buddy/slack-webhoo
 
 - Rich setup completion notifications
 - Repository and project details
-- Error notifications for setup failures
-- Configurable channel and username
+- Reads the webhook from the env var, or from the `.buddy/slack-webhook` file
 
 #### Discord Integration
 
@@ -444,8 +443,7 @@ Create custom integrations by defining plugins in `.buddy/plugins/`:
   "version": "1.0.0",
   "enabled": true,
   "triggers": [
-    { "event": "setup_complete" },
-    { "event": "validation_error" }
+    { "event": "setup_complete" }
   ],
   "hooks": [
     {
@@ -470,13 +468,14 @@ hooks run, and the plugin file chooses the URL.
 
 ### Plugin Events
 
-| Event | Description | Context |
-|-------|-------------|---------|
-| `pre_setup` | Before setup begins | Initial configuration |
-| `post_setup` | After setup completes | Full setup context |
-| `step_complete` | After each setup step | Step-specific progress |
-| `validation_error` | When validation fails | Error details and recovery |
-| `setup_complete` | Final setup completion | Complete project context |
+Setup fires exactly one event: **`setup_complete`**, once, when setup finishes
+— in interactive and non-interactive runs alike. Triggers naming anything else
+still load (files written against the retired `pre_setup` / `post_setup` /
+`step_complete` / `validation_error` vocabulary are tolerated) but never fire.
+
+For runtime notifications — scans, pull requests, merges — use the
+`notifications` key in `buddy.config.ts`: an exported webhook env var alone
+does nothing at runtime.
 
 ### Programmatic Usage
 

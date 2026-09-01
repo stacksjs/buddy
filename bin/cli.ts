@@ -18,6 +18,7 @@ import {
   parseDashboardActions,
   uncheckDashboardActions,
 } from '../src/dashboard/dashboard-actions'
+import { emitEvent } from '../src/events'
 import { manifestUpdates, parseManifest } from '../src/pr/pr-manifest'
 import {
   analyzeProject,
@@ -404,7 +405,12 @@ cli
         }
       }
       else if (availablePlugins.length > 0 && options.nonInteractive) {
-        console.log(`\n🔌 Found ${availablePlugins.length} integration(s), skipping in non-interactive mode`)
+        // The docs promise setup-completion notifications; silently skipping
+        // them made that a lie in exactly the mode CI uses.
+        console.log(`\n🔌 Found ${availablePlugins.length} integration(s) — enabled for setup notifications`)
+        for (const plugin of availablePlugins) {
+          await pluginManager.loadPlugin(plugin)
+        }
       }
 
       // Pre-flight checks
@@ -780,6 +786,7 @@ cli
     }
     catch (error) {
       logger.error('Scan failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'scan', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -840,6 +847,7 @@ cli
     }
     catch (error) {
       logger.error('Dashboard creation failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'dashboard', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -924,6 +932,7 @@ cli
     }
     catch (error) {
       logger.error('Update failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'update', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -1329,6 +1338,7 @@ cli
     }
     catch (error) {
       logger.error('update-check failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'update-check', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -1400,6 +1410,7 @@ cli
     }
     catch (error) {
       logger.error('fix-ci failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'fix-ci', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -1656,6 +1667,10 @@ cli
         })
 
         logger.success(`✅ ${status}`)
+        await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'review.completed', {
+          number: Number.parseInt(prNumber, 10),
+          findings: result?.findings.length ?? 0,
+        })
 
         // `--format` and `--fail-on` were accepted on this path and applied
         // only on the local one, so a pull request review could not be
@@ -1759,6 +1774,7 @@ cli
     }
     catch (error) {
       logger.error('Review failed:', error)
+      await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'run.failed', { command: 'review', error: error instanceof Error ? error.message : String(error) })
       process.exit(1)
     }
   })
@@ -3164,6 +3180,12 @@ cli
         logger.info(`${gateIcon(result)} ${result.name}: ${result.summary}`)
 
       const blocking = summary.conclusion === 'failure'
+      if (blocking) {
+        await emitEvent(config.notifications as Parameters<typeof emitEvent>[0], 'gate.failed', {
+          number,
+          checks: results.filter(result => !result.passed).map(result => result.name),
+        })
+      }
 
       if (options.dryRun || !supports(provider, 'checkRuns', 'createCheckRun')) {
         logger.info(summary.summary)

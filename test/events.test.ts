@@ -1,6 +1,7 @@
 import type { EventSink } from '../src/events/bus'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import process from 'node:process'
+import { emitEvent } from '../src/events'
 import { describeEvent, EventBus } from '../src/events/bus'
 import { createSinks, createWebhookSink, sign, WEBHOOK_PAYLOAD_VERSION } from '../src/events/sinks'
 import { Logger } from '../src/utils/logger'
@@ -94,6 +95,40 @@ describe('event descriptions', () => {
     expect(describeEvent('pr.created', { number: 7, title: 'bump react', url: '', packages: [] })).toContain('#7')
     expect(describeEvent('pr.merged', { number: 7, title: 'bump react', strategy: 'squash' })).toContain('Merged #7')
     expect(describeEvent('run.failed', { command: 'scan', error: 'boom' })).toContain('boom')
+    expect(describeEvent('pr.updated', { number: 8, title: 'bump react', url: '' })).toContain('Updated #8')
+    expect(describeEvent('pr.closed', { number: 9, title: 'bump react', reason: 'satisfied' })).toContain('satisfied')
+    expect(describeEvent('dashboard.updated', { number: 3, url: '' })).toContain('#3')
+    expect(describeEvent('review.completed', { number: 4, findings: 2 })).toContain('2 finding(s)')
+    expect(describeEvent('fixci.completed', { number: 5, action: 'lockfile', fixed: true })).toContain('(fixed)')
+    expect(describeEvent('gate.failed', { number: 6, checks: ['title-format'] })).toContain('title-format')
+  })
+})
+
+describe('emitEvent', () => {
+  it('success case - builds sinks from the config and delivers the event', async () => {
+    const bodies: any[] = []
+    globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body ?? '{}')))
+      return new Response('{}', { status: 200 })
+    }) as unknown as typeof fetch
+
+    await emitEvent(
+      { webhooks: [{ url: 'https://example.test/hook' }] },
+      'gate.failed',
+      { number: 12, checks: ['description'] },
+    )
+
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].event).toBe('gate.failed')
+    expect(bodies[0].payload.checks).toEqual(['description'])
+  })
+
+  it('edge case - no configuration means no sinks and no network', async () => {
+    globalThis.fetch = (async () => {
+      throw new Error('unexpected network call')
+    }) as unknown as typeof fetch
+
+    await expect(emitEvent(undefined, 'run.failed', { command: 'scan', error: 'x' })).resolves.toBeUndefined()
   })
 })
 

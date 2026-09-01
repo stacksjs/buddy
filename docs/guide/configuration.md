@@ -276,6 +276,11 @@ Settings mapped:
 
 ## Integration Settings
 
+These integrations fire once, when `buddy setup` completes. For runtime
+notifications — scans, pull requests, merges — configure the `notifications`
+key in `buddy.config.ts`; an exported webhook env var alone does nothing at
+runtime.
+
 ### Slack
 
 ```bash
@@ -312,8 +317,7 @@ Create custom integrations in `.buddy/plugins/`:
   "version": "1.0.0",
   "enabled": true,
   "triggers": [
-    { "event": "setup_complete" },
-    { "event": "validation_error" }
+    { "event": "setup_complete" }
   ],
   "hooks": [
     {

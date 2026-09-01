@@ -104,8 +104,14 @@ export interface SetupPlugin {
 }
 
 export interface SetupTrigger {
-  event: 'pre_setup' | 'post_setup' | 'step_complete' | 'validation_error' | 'setup_complete'
-  condition?: string
+  /**
+   * Which setup event this trigger matches. Buddy fires exactly one:
+   * `setup_complete`, once, when setup finishes. Unknown names are tolerated
+   * so plugin files written against the retired five-event vocabulary
+   * (`pre_setup`, `post_setup`, `step_complete`, `validation_error`) still
+   * load — their hooks simply never run.
+   */
+  event: string
 }
 
 export interface SetupHook {
@@ -152,19 +158,6 @@ export interface SetupContext {
   repository: RepositoryInfo
   analysis: ProjectAnalysis
   plugins: SetupPlugin[]
-}
-
-export interface IntegrationPoint {
-  tool: string
-  endpoint: string
-  authentication: AuthConfig
-  dataMapping: Record<string, string>
-  enabled: boolean
-}
-
-export interface AuthConfig {
-  type: 'token' | 'oauth' | 'webhook' | 'api_key'
-  credentials: Record<string, string>
 }
 
 // Configuration Migration Implementation
@@ -645,7 +638,6 @@ export class PluginManager {
       enabled: true,
       triggers: [
         { event: 'setup_complete' },
-        { event: 'validation_error' },
       ],
       hooks: [
         {
@@ -657,11 +649,9 @@ export class PluginManager {
           },
         },
       ],
-      configuration: {
-        webhook_url: process.env.SLACK_WEBHOOK_URL || '',
-        channel: '#buddy',
-        username: 'Buddy',
-      },
+      // Nothing reads per-plugin configuration; credentials are resolved
+      // from the env var or the .buddy/ file at send time.
+      configuration: {},
     }
   }
 
@@ -683,11 +673,7 @@ export class PluginManager {
           },
         },
       ],
-      configuration: {
-        api_token: process.env.JIRA_API_TOKEN || '',
-        base_url: process.env.JIRA_BASE_URL || '',
-        project_key: process.env.JIRA_PROJECT_KEY || 'BUDDY',
-      },
+      configuration: {},
     }
   }
 
@@ -709,9 +695,7 @@ export class PluginManager {
           },
         },
       ],
-      configuration: {
-        webhook_url: process.env.DISCORD_WEBHOOK_URL || '',
-      },
+      configuration: {},
     }
   }
 
@@ -744,8 +728,39 @@ export class PluginManager {
     return plugins
   }
 
+  /**
+   * The docs offer `.buddy/slack-webhook`-style files as an alternative to
+   * env vars. Discovery honoured them but the senders read env exclusively,
+   * so a file-only setup produced a plugin that fired and sent nothing.
+   */
+  private readIntegrationFile(filePath: string): string | null {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8').trim()
+      return content || null
+    }
+    catch {
+      return null
+    }
+  }
+
+  private readJiraConfigFile(filePath: string): { apiToken?: string, baseUrl?: string, projectKey?: string } {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as Record<string, string | undefined>
+      if (!parsed || typeof parsed !== 'object')
+        return {}
+      return {
+        apiToken: parsed.api_token ?? parsed.apiToken,
+        baseUrl: parsed.base_url ?? parsed.baseUrl,
+        projectKey: parsed.project_key ?? parsed.projectKey,
+      }
+    }
+    catch {
+      return {}
+    }
+  }
+
   private async sendSlackNotification(context: SetupContext): Promise<void> {
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL || this.readIntegrationFile('.buddy/slack-webhook')
     if (!webhookUrl)
       return
 
@@ -782,7 +797,7 @@ export class PluginManager {
   }
 
   private async sendDiscordNotification(context: SetupContext): Promise<void> {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL || this.readIntegrationFile('.buddy/discord-webhook')
     if (!webhookUrl)
       return
 
@@ -821,9 +836,10 @@ export class PluginManager {
   }
 
   private async createJiraTicket(context: SetupContext): Promise<void> {
-    const apiToken = process.env.JIRA_API_TOKEN
-    const baseUrl = process.env.JIRA_BASE_URL
-    const projectKey = process.env.JIRA_PROJECT_KEY || 'BUDDY'
+    const fileConfig = this.readJiraConfigFile('.buddy/jira-config.json')
+    const apiToken = process.env.JIRA_API_TOKEN || fileConfig.apiToken
+    const baseUrl = process.env.JIRA_BASE_URL || fileConfig.baseUrl
+    const projectKey = process.env.JIRA_PROJECT_KEY || fileConfig.projectKey || 'BUDDY'
 
     if (!apiToken || !baseUrl)
       return
