@@ -2187,15 +2187,16 @@ export class Buddy {
           }
         }
 
-        if (groupUpdates.length > 0) {
-          // Apply group-specific strategy if defined
-          let filteredUpdates = groupUpdates
-          if (groupConfig.strategy) {
-            filteredUpdates = this.filterUpdatesByStrategy(groupUpdates, groupConfig.strategy)
-          }
+        // Apply group-specific strategy if defined
+        let filteredUpdates = groupUpdates
+        if (groupConfig.strategy) {
+          filteredUpdates = this.filterUpdatesByStrategy(groupUpdates, groupConfig.strategy)
+        }
 
-          // Note: Minimum release age filtering is already applied globally before grouping,
-          // so we don't need to apply it again here
+        // Note: minimum release age filtering is already applied globally before
+        // grouping. Push only when something survives the group's strategy filter —
+        // an empty group would otherwise reach the PR loop as a no-op entry.
+        if (filteredUpdates.length > 0) {
 
           groups.push({
             name: groupConfig.name,
