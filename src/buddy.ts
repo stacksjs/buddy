@@ -3685,8 +3685,21 @@ export class Buddy {
       return null
     }
     catch (error) {
-      this.logger.warn(`Failed to search for existing dashboard: ${error}`)
-      return null
+      // "Found nothing" and "the lookup failed" must not collapse to the same
+      // value. The caller treats null as "no dashboard exists" and creates one,
+      // so a transient 5xx, timeout or secondary rate-limit on getIssues() would
+      // open a duplicate dashboard and still exit 0 - permanent damage from a
+      // momentary failure.
+      //
+      // Both call sites reach this: the initial lookup and the pre-create race
+      // check. The race check in particular was no protection at all while it
+      // failed open, because whatever broke the first lookup is usually still
+      // broken a moment later.
+      //
+      // A failed run is recoverable - the next scheduled run retries. A duplicate
+      // dashboard is not: someone has to notice it and close it by hand.
+      this.logger.error(`Failed to search for existing dashboard: ${error}`)
+      throw error
     }
   }
 }
