@@ -670,10 +670,32 @@ describe('buddy orchestration', () => {
       expect(await findDashboard(provider)).toBeNull()
     })
 
-    it('failure case - a getIssues failure degrades to null instead of throwing', async () => {
+    // Absence and failure must stay distinguishable. The caller reads null as
+    // "no dashboard exists" and creates one, so degrading a transient failure to
+    // null turned a momentary 5xx into a permanent duplicate dashboard while the
+    // run still exited 0. Failing the run is recoverable - the next scheduled run
+    // retries; a duplicate dashboard has to be closed by hand.
+    it('failure case - a getIssues failure rejects instead of reporting absence', async () => {
       const provider = { getIssues: mock(() => Promise.reject(new Error('api down'))) }
 
-      expect(await findDashboard(provider)).toBeNull()
+      await expect(findDashboard(provider)).rejects.toThrow('api down')
+    })
+
+    it('failure case - the pre-create race check rejects on the same failure', async () => {
+      // The race check calls this same helper, so while it failed open it was no
+      // protection at all: whatever broke the first lookup is usually still
+      // broken a moment later.
+      const provider = { getIssues: mock(() => Promise.reject(new Error('secondary rate limit'))) }
+
+      await expect(findDashboard(provider)).rejects.toThrow('secondary rate limit')
+    })
+
+    it('failure case - a configured issueNumber lookup rejects rather than reporting it missing', async () => {
+      // This path calls getIssues too, so it failed open in the same way - and
+      // "configured dashboard is missing" is exactly what triggers a create.
+      const provider = { getIssues: mock(() => Promise.reject(new Error('api down'))) }
+
+      await expect(findDashboard(provider, 1911)).rejects.toThrow('api down')
     })
 
     it('success case - honors an explicit issueNumber even without marker or labels', async () => {
