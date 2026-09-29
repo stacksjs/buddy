@@ -1,5 +1,111 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy-bot/compare/v0.11.1...v0.11.2)
+
+## 💥 Breaking Changes
+
+- fix!: make strategies and labels behave as documented (#1399) ([be0a5bd](https://github.com/stacksjs/buddy-bot/commit/be0a5bd)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1399](https://github.com/stacksjs/buddy-bot/issues/1399), [#1399](https://github.com/stacksjs/buddy-bot/issues/1399))
+
+## ✨ Features
+
+- **events**: one notification story — fire every declared event, trim setup to its real job (#1449) ([4d3d670](https://github.com/stacksjs/buddy-bot/commit/4d3d670)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1449](https://github.com/stacksjs/buddy-bot/issues/1449), [#1449](https://github.com/stacksjs/buddy-bot/issues/1449))
+- **setup**: make the presets deliver their descriptions, and delete the mode nothing could reach (#1440) ([aecc9c7](https://github.com/stacksjs/buddy-bot/commit/aecc9c7)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1440](https://github.com/stacksjs/buddy-bot/issues/1440), [#1440](https://github.com/stacksjs/buddy-bot/issues/1440), [#1412](https://github.com/stacksjs/buddy-bot/issues/1412), [#1412](https://github.com/stacksjs/buddy-bot/issues/1412))
+- **engines**: propose runtime bumps, which were resolved and never proposed (#1428) ([12a063d](https://github.com/stacksjs/buddy-bot/commit/12a063d)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1428](https://github.com/stacksjs/buddy-bot/issues/1428), [#1428](https://github.com/stacksjs/buddy-bot/issues/1428))
+- **touch**: post the checkboxes the finishing-touch flow waits on (#1424) ([41d8258](https://github.com/stacksjs/buddy-bot/commit/41d8258)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1424](https://github.com/stacksjs/buddy-bot/issues/1424), [#1424](https://github.com/stacksjs/buddy-bot/issues/1424), [#1418](https://github.com/stacksjs/buddy-bot/issues/1418))
+- **review**: implement @buddy resolve, which was advertised and absent (#1417) ([d731e6f](https://github.com/stacksjs/buddy-bot/commit/d731e6f)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1417](https://github.com/stacksjs/buddy-bot/issues/1417), [#1417](https://github.com/stacksjs/buddy-bot/issues/1417))
+- **ci**: let @buddy fix-ci find the run a comment cannot name (#1413) ([126ea7d](https://github.com/stacksjs/buddy-bot/commit/126ea7d)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1413](https://github.com/stacksjs/buddy-bot/issues/1413), [#1413](https://github.com/stacksjs/buddy-bot/issues/1413), [#1410](https://github.com/stacksjs/buddy-bot/issues/1410))
+- **setup**: make the preset you pick the preset you get (#1412) ([ed0f542](https://github.com/stacksjs/buddy-bot/commit/ed0f542)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1412](https://github.com/stacksjs/buddy-bot/issues/1412), [#1412](https://github.com/stacksjs/buddy-bot/issues/1412))
+- **setup**: make the preset you pick the preset you get ([85dfaae](https://github.com/stacksjs/buddy-bot/commit/85dfaae)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- **ci**: let buddy see whose failure it is, and retry the ones worth retrying (#1410) ([f3d2cda](https://github.com/stacksjs/buddy-bot/commit/f3d2cda)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1410](https://github.com/stacksjs/buddy-bot/issues/1410), [#1410](https://github.com/stacksjs/buddy-bot/issues/1410), [#1407](https://github.com/stacksjs/buddy-bot/issues/1407))
+- **cli**: restore the affordances the docs promised (#1402) ([f7e6a82](https://github.com/stacksjs/buddy-bot/commit/f7e6a82)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1402](https://github.com/stacksjs/buddy-bot/issues/1402), [#1402](https://github.com/stacksjs/buddy-bot/issues/1402))
+- **ci**: check the docs against the source they describe (#1403) ([c9203a2](https://github.com/stacksjs/buddy-bot/commit/c9203a2)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1403](https://github.com/stacksjs/buddy-bot/issues/1403), [#1403](https://github.com/stacksjs/buddy-bot/issues/1403))
+- **docs**: consolidate the nav behind one Docs link ([c5e6d8a](https://github.com/stacksjs/buddy-bot/commit/c5e6d8a)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: give the site a design of its own ([cb6ea56](https://github.com/stacksjs/buddy-bot/commit/cb6ea56)) _(by Chris <chris@stacksjs.com>)_
+- **brand**: give Buddy its own mark ([5286ad9](https://github.com/stacksjs/buddy-bot/commit/5286ad9)) _(by Chris <chris@stacksjs.com>)_ ([#0](https://github.com/stacksjs/buddy-bot/issues/0))
+- **docs**: add a Compare strip to the site footer ([ba61914](https://github.com/stacksjs/buddy-bot/commit/ba61914)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: add a comparison page per competitor ([0a8c2a0](https://github.com/stacksjs/buddy-bot/commit/0a8c2a0)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: put a Use Cases mega menu in the top nav ([9cf1358](https://github.com/stacksjs/buddy-bot/commit/9cf1358)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: add a landing page for each use case ([3b9ae7c](https://github.com/stacksjs/buddy-bot/commit/3b9ae7c)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: put a Features mega menu in the top nav ([6af7d6a](https://github.com/stacksjs/buddy-bot/commit/6af7d6a)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: add a landing page for each feature ([6c77c40](https://github.com/stacksjs/buddy-bot/commit/6c77c40)) _(by Chris <chris@stacksjs.com>)_
+
+## 🐛 Bug Fixes
+
+- **deps-file**: anchor the dependency regex to a key, and rewrite each match from its own captures ([c561953](https://github.com/stacksjs/buddy-bot/commit/c561953)) _(by glennmichael123 <gtorregosa@gmail.com>)_ ([#1453](https://github.com/stacksjs/buddy-bot/issues/1453), [#1168](https://github.com/stacksjs/buddy-bot/issues/1168))
+- **docs**: publish the directory bunpress writes, and stop the secrets scan reading test fixtures ([9094be7](https://github.com/stacksjs/buddy-bot/commit/9094be7)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- **dashboard**: fail closed when the dashboard lookup errors (#1452) ([bc95959](https://github.com/stacksjs/buddy-bot/commit/bc95959)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1452](https://github.com/stacksjs/buddy-bot/issues/1452), [#1452](https://github.com/stacksjs/buddy-bot/issues/1452), [#1451](https://github.com/stacksjs/buddy-bot/issues/1451))
+- let the satisfied-PR closer consult the manifest, and reject phantom paths from PR bodies (#1447) ([44f0314](https://github.com/stacksjs/buddy-bot/commit/44f0314)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1447](https://github.com/stacksjs/buddy-bot/issues/1447), [#1447](https://github.com/stacksjs/buddy-bot/issues/1447), [#1364](https://github.com/stacksjs/buddy-bot/issues/1364))
+- read composer.json from the project path, and drop groups the strategy filter emptied (#1444) ([83fc2b6](https://github.com/stacksjs/buddy-bot/commit/83fc2b6)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1444](https://github.com/stacksjs/buddy-bot/issues/1444), [#1444](https://github.com/stacksjs/buddy-bot/issues/1444), [#1443](https://github.com/stacksjs/buddy-bot/issues/1443))
+- **cli**: let packages.strategy reach its flags, and sync CLAUDE.md's embedded README (#1441) ([dd005e7](https://github.com/stacksjs/buddy-bot/commit/dd005e7)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1441](https://github.com/stacksjs/buddy-bot/issues/1441), [#1441](https://github.com/stacksjs/buddy-bot/issues/1441))
+- **test**: defuse the suite's landmines, and cover the dossier's untested modules (#1436) ([b9d8492](https://github.com/stacksjs/buddy-bot/commit/b9d8492)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1436](https://github.com/stacksjs/buddy-bot/issues/1436), [#1436](https://github.com/stacksjs/buddy-bot/issues/1436), [#1434](https://github.com/stacksjs/buddy-bot/issues/1434))
+- **review**: read what publishing reported, honour reviewSuggestions, and un-strand two flags (#1435) ([dadac73](https://github.com/stacksjs/buddy-bot/commit/dadac73)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1435](https://github.com/stacksjs/buddy-bot/issues/1435), [#1435](https://github.com/stacksjs/buddy-bot/issues/1435))
+- keep the low-tier promises — bulk-update label, event-name validation, workflow personalisation (#1434) ([f0bb121](https://github.com/stacksjs/buddy-bot/commit/f0bb121)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1434](https://github.com/stacksjs/buddy-bot/issues/1434), [#1434](https://github.com/stacksjs/buddy-bot/issues/1434))
+- report skipped gates as skipped, and honour ai.majorUpgrades.maxAttempts (#1433) ([8999c1e](https://github.com/stacksjs/buddy-bot/commit/8999c1e)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1433](https://github.com/stacksjs/buddy-bot/issues/1433), [#1433](https://github.com/stacksjs/buddy-bot/issues/1433))
+- give GitLab/Bitbucket pipelines the review job, and stop cleanup lying (#1432) ([8ee2d8c](https://github.com/stacksjs/buddy-bot/commit/8ee2d8c)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1432](https://github.com/stacksjs/buddy-bot/issues/1432), [#1432](https://github.com/stacksjs/buddy-bot/issues/1432))
+- **cli**: apply the review and scan flags that were accepted and ignored (#1431) ([8e6262f](https://github.com/stacksjs/buddy-bot/commit/8e6262f)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1431](https://github.com/stacksjs/buddy-bot/issues/1431), [#1431](https://github.com/stacksjs/buddy-bot/issues/1431))
+- **dashboard**: read the include toggles and the enabled switch (#1430) ([496463a](https://github.com/stacksjs/buddy-bot/commit/496463a)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1430](https://github.com/stacksjs/buddy-bot/issues/1430), [#1430](https://github.com/stacksjs/buddy-bot/issues/1430), [#1406](https://github.com/stacksjs/buddy-bot/issues/1406))
+- **reports**: honour reports.enabled and reports.period, drop the key nothing could read (#1429) ([f5adb6d](https://github.com/stacksjs/buddy-bot/commit/f5adb6d)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1429](https://github.com/stacksjs/buddy-bot/issues/1429), [#1429](https://github.com/stacksjs/buddy-bot/issues/1429))
+- **docker**: keep the digest on a pinned base image, and stop eating the file (#1427) ([3483bcf](https://github.com/stacksjs/buddy-bot/commit/3483bcf)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1427](https://github.com/stacksjs/buddy-bot/issues/1427), [#1427](https://github.com/stacksjs/buddy-bot/issues/1427))
+- **ecosystems**: regenerate the lockfiles the adapters were written to update (#1426) ([e278808](https://github.com/stacksjs/buddy-bot/commit/e278808)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1426](https://github.com/stacksjs/buddy-bot/issues/1426), [#1426](https://github.com/stacksjs/buddy-bot/issues/1426))
+- **gates**: actually refresh the dashboard instead of reporting that it did (#1425) ([41cf336](https://github.com/stacksjs/buddy-bot/commit/41cf336)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1425](https://github.com/stacksjs/buddy-bot/issues/1425), [#1425](https://github.com/stacksjs/buddy-bot/issues/1425))
+- **rules**: apply a rule's autoMigrate, closing the rule-effects family (#1423) ([53a449f](https://github.com/stacksjs/buddy-bot/commit/53a449f)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1423](https://github.com/stacksjs/buddy-bot/issues/1423), [#1423](https://github.com/stacksjs/buddy-bot/issues/1423), [#1419](https://github.com/stacksjs/buddy-bot/issues/1419), [#1422](https://github.com/stacksjs/buddy-bot/issues/1422))
+- **rules**: consult a rule's autoMerge when deciding to merge (#1422) ([6da9591](https://github.com/stacksjs/buddy-bot/commit/6da9591)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1422](https://github.com/stacksjs/buddy-bot/issues/1422), [#1422](https://github.com/stacksjs/buddy-bot/issues/1422), [#1419](https://github.com/stacksjs/buddy-bot/issues/1419))
+- **gitlab**: read a job trace as text, so ciLogs is not a lie (#1421) ([4bce13b](https://github.com/stacksjs/buddy-bot/commit/4bce13b)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1421](https://github.com/stacksjs/buddy-bot/issues/1421), [#1421](https://github.com/stacksjs/buddy-bot/issues/1421))
+- **rules**: apply the per-rule minimum release age, which nothing read (#1419) ([d04a9aa](https://github.com/stacksjs/buddy-bot/commit/d04a9aa)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1419](https://github.com/stacksjs/buddy-bot/issues/1419), [#1419](https://github.com/stacksjs/buddy-bot/issues/1419))
+- **setup**: let the generated workflow's jobs actually start (#1418) ([a57b732](https://github.com/stacksjs/buddy-bot/commit/a57b732)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1418](https://github.com/stacksjs/buddy-bot/issues/1418), [#1418](https://github.com/stacksjs/buddy-bot/issues/1418), [#1412](https://github.com/stacksjs/buddy-bot/issues/1412))
+- **setup**: make custom plugins able to run at all (#1416) ([d639991](https://github.com/stacksjs/buddy-bot/commit/d639991)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1416](https://github.com/stacksjs/buddy-bot/issues/1416), [#1416](https://github.com/stacksjs/buddy-bot/issues/1416))
+- **review**: give pull request reviews the analyzers and learnings they skipped (#1415) ([84f7a14](https://github.com/stacksjs/buddy-bot/commit/84f7a14)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1415](https://github.com/stacksjs/buddy-bot/issues/1415), [#1415](https://github.com/stacksjs/buddy-bot/issues/1415), [#1413](https://github.com/stacksjs/buddy-bot/issues/1413))
+- **agent**: stop handing an agent text a stranger wrote as its instructions (#1414) ([46aa68c](https://github.com/stacksjs/buddy-bot/commit/46aa68c)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1414](https://github.com/stacksjs/buddy-bot/issues/1414), [#1414](https://github.com/stacksjs/buddy-bot/issues/1414))
+- **pr**: apply the security label so security-only can fire (#1409) ([31c73ac](https://github.com/stacksjs/buddy-bot/commit/31c73ac)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1409](https://github.com/stacksjs/buddy-bot/issues/1409), [#1409](https://github.com/stacksjs/buddy-bot/issues/1409))
+- **ci**: land the lock-file repair instead of describing it (#1408) ([b8a8b8c](https://github.com/stacksjs/buddy-bot/commit/b8a8b8c)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1408](https://github.com/stacksjs/buddy-bot/issues/1408), [#1408](https://github.com/stacksjs/buddy-bot/issues/1408))
+- **review**: honour the ai.review settings that nothing read (#1406) ([4c52ea0](https://github.com/stacksjs/buddy-bot/commit/4c52ea0)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1406](https://github.com/stacksjs/buddy-bot/issues/1406), [#1406](https://github.com/stacksjs/buddy-bot/issues/1406))
+- **ci**: give the repair loop the guard it already had (#1407) ([6f5418e](https://github.com/stacksjs/buddy-bot/commit/6f5418e)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1407](https://github.com/stacksjs/buddy-bot/issues/1407), [#1407](https://github.com/stacksjs/buddy-bot/issues/1407))
+- **review**: persist review state where it is read back (#1405) ([789e8c7](https://github.com/stacksjs/buddy-bot/commit/789e8c7)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1405](https://github.com/stacksjs/buddy-bot/issues/1405), [#1405](https://github.com/stacksjs/buddy-bot/issues/1405))
+- **docs**: rewrite the migration sign-off, and say what actually migrates ([12b85e7](https://github.com/stacksjs/buddy-bot/commit/12b85e7)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: cap the hero code panel so it cannot outgrow the copy ([0df83da](https://github.com/stacksjs/buddy-bot/commit/0df83da)) _(by Chris <chris@stacksjs.com>)_
+- **docs**: render the code groups, and dress them as terminals ([b68a5fa](https://github.com/stacksjs/buddy-bot/commit/b68a5fa)) _(by Chris <chris@stacksjs.com>)_
+
+## ♻️ Code Refactoring
+
+- one update-type classifier, with the edge cases decided instead of accidental (#1439) ([bde8047](https://github.com/stacksjs/buddy-bot/commit/bde8047)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1439](https://github.com/stacksjs/buddy-bot/issues/1439), [#1439](https://github.com/stacksjs/buddy-bot/issues/1439))
+
+## 📝 Documentation
+
+- replace the claims the source does not support (#1400) ([2673d93](https://github.com/stacksjs/buddy-bot/commit/2673d93)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1400](https://github.com/stacksjs/buddy-bot/issues/1400), [#1400](https://github.com/stacksjs/buddy-bot/issues/1400))
+- **use-cases**: drop the trailing question mark pickier flags ([cc576f7](https://github.com/stacksjs/buddy-bot/commit/cc576f7)) _(by Chris <chris@stacksjs.com>)_
+- **index**: point the home page at the new sections ([087f23a](https://github.com/stacksjs/buddy-bot/commit/087f23a)) _(by Chris <chris@stacksjs.com>)_
+
+## ✅ Tests
+
+- **pr-body**: set the APP_ENV this file needs instead of inheriting it from another ([900b725](https://github.com/stacksjs/buddy-bot/commit/900b725)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- import the CLI without parsing, and pin its wiring in-process (#1448) ([683f4e7](https://github.com/stacksjs/buddy-bot/commit/683f4e7)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1448](https://github.com/stacksjs/buddy-bot/issues/1448), [#1448](https://github.com/stacksjs/buddy-bot/issues/1448), [#1441](https://github.com/stacksjs/buddy-bot/issues/1441))
+- cover the untested halves of the big integration files (#1443) ([1deec83](https://github.com/stacksjs/buddy-bot/commit/1deec83)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1443](https://github.com/stacksjs/buddy-bot/issues/1443), [#1443](https://github.com/stacksjs/buddy-bot/issues/1443), [#1359](https://github.com/stacksjs/buddy-bot/issues/1359))
+- measure coverage, and call the three files nothing called (#1442) ([282a900](https://github.com/stacksjs/buddy-bot/commit/282a900)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1442](https://github.com/stacksjs/buddy-bot/issues/1442), [#1442](https://github.com/stacksjs/buddy-bot/issues/1442))
+- give the exported VersionResolver its first tests (#1438) ([3aef468](https://github.com/stacksjs/buddy-bot/commit/3aef468)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1438](https://github.com/stacksjs/buddy-bot/issues/1438), [#1438](https://github.com/stacksjs/buddy-bot/issues/1438))
+
+## 💚 Continuous Integration
+
+- dogfood the checked-out source, and smoke the PR's own CLI without secrets (#1445) ([5469fea](https://github.com/stacksjs/buddy-bot/commit/5469fea)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1445](https://github.com/stacksjs/buddy-bot/issues/1445), [#1445](https://github.com/stacksjs/buddy-bot/issues/1445))
+- **release**: keep binaries on recent releases, not only the newest ([c80dcf1](https://github.com/stacksjs/buddy-bot/commit/c80dcf1)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.2 ([b8f7197](https://github.com/stacksjs/buddy-bot/commit/b8f7197)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- **deps**: update all non-major dependencies (updated) ([551c59d](https://github.com/stacksjs/buddy-bot/commit/551c59d)) _(by [github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>](https://github.com/github-actions[bot]))_
+- **deps**: update stacks packages and the anthropic sdk, aligning the peer range (#1446) ([a5909b0](https://github.com/stacksjs/buddy-bot/commit/a5909b0)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1446](https://github.com/stacksjs/buddy-bot/issues/1446), [#1446](https://github.com/stacksjs/buddy-bot/issues/1446), [#1398](https://github.com/stacksjs/buddy-bot/issues/1398))
+- retire Renovate — this repository's dependency bot is buddy (#1437) ([0f070bb](https://github.com/stacksjs/buddy-bot/commit/0f070bb)) _(by Glenn Michael Torregosa <gtorregosa@gmail.com>)_ ([#1437](https://github.com/stacksjs/buddy-bot/issues/1437), [#1437](https://github.com/stacksjs/buddy-bot/issues/1437), [#1352](https://github.com/stacksjs/buddy-bot/issues/1352), [#1362](https://github.com/stacksjs/buddy-bot/issues/1362), [#1363](https://github.com/stacksjs/buddy-bot/issues/1363))
+- ignore .claude, alongside the other editor directories ([1bdc835](https://github.com/stacksjs/buddy-bot/commit/1bdc835)) _(by Chris <chris@stacksjs.com>)_
+
+## 🎉 Miscellaneous
+
+- Revert "feat(setup): make the preset you pick the preset you get" ([b45b0ec](https://github.com/stacksjs/buddy-bot/commit/b45b0ec)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+- _Glenn Michael Torregosa <gtorregosa@gmail.com>_
+- _glennmichael123 <gtorregosa@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.0...v0.11.1)
 
 ## ✅ Tests
