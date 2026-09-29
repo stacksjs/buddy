@@ -1,9 +1,33 @@
 import type { UpdateGroup } from '../src/types'
-import { describe, expect, it } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { PullRequestGenerator } from '../src/pr/pr-generator'
 
 describe('PR Body Generation for Major Updates', () => {
   const generator = new PullRequestGenerator()
+
+  // `ReleaseNotesFetcher.fetchPackageInfo` returns fixed metadata when
+  // `APP_ENV` is `test`, which is how the assertions below get a github.com
+  // repository URL for stripe without touching the network.
+  //
+  // This file never set it. It passed only when one of the five other test
+  // files that assign `process.env.APP_ENV` happened to run first and leave it
+  // set in the shared process, so the result depended on file order: green
+  // locally, red in CI, where the run reached the wire and the preload's
+  // network guard blocked it. Set the precondition here, and restore it so
+  // this file does not do the leaking in turn.
+  let previousAppEnv: string | undefined
+
+  beforeAll(() => {
+    previousAppEnv = process.env.APP_ENV
+    process.env.APP_ENV = 'test'
+  })
+
+  afterAll(() => {
+    if (previousAppEnv === undefined)
+      delete process.env.APP_ENV
+    else
+      process.env.APP_ENV = previousAppEnv
+  })
 
   describe('single major update issue reproduction', () => {
     it('should generate complete PR body for major stripe update (original issue)', async () => {
