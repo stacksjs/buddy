@@ -192,6 +192,140 @@ dependencies:
     })
   })
 
+  describe('comment and multi-occurrence corruption (stacksjs/buddy#1453)', () => {
+    const mk = (name: string, currentVersion: string, newVersion: string): PackageUpdate => ({
+      name,
+      currentVersion,
+      newVersion,
+      updateType: 'minor',
+      dependencyType: 'dependencies',
+      file: 'deps.yaml',
+      metadata: undefined,
+    })
+
+    it('should not take its replacement text from a package name inside a comment', async () => {
+      // Verbatim from the PR that produced a deps.yaml which no longer parsed:
+      // the comment mentions `sqlite: latest`, and because the old regex was
+      // unanchored that prose was the FIRST match, so its captures drove the
+      // replacement for the real key - and its greedy leading `\s*` swallowed
+      // the newline, collapsing `sqlite` onto the `postgres` line.
+      const content = `# That is not hypothetical: \`sqlite: latest\` was fine only because the SDK did
+# not support sqlite.org and skipped it with a warning.
+dependencies:
+  bun: ^1.3.14
+  mysql: ^8.0.45
+  postgres: ^18.0.0
+  sqlite: ^3.52.0
+`
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('postgres', '^18.0.0', '18.6'),
+        mk('sqlite', '^3.52.0', '3.53.4'),
+      ])
+
+      // The whole point: the file still parses.
+      expect(() => Bun.YAML.parse(result)).not.toThrow()
+
+      // Both keys survive, on their own lines, with their own versions.
+      expect(result).toMatch(/^ {2}postgres: \^18\.6$/m)
+      expect(result).toMatch(/^ {2}sqlite: \^3\.53\.4$/m)
+
+      // The comment is prose and must come out byte-identical.
+      expect(result).toContain('# That is not hypothetical: `sqlite: latest` was fine only because the SDK did')
+    })
+
+    it('should rewrite each occurrence from its own captures, not the first match', async () => {
+      // A `g` regex was used with a single replacement string built from the
+      // first match, so the first occurrence's rendered text was written over
+      // every other occurrence. Two occurrences with DIFFERENT prefixes are
+      // what exposes it: with the same prefix the wrong answer and the right
+      // answer are identical.
+      const content = `dependencies:
+  typescript: ^5.0.0
+
+devDependencies:
+  typescript: ~4.9.0
+`
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('typescript', '^5.0.0', '5.6.2'),
+      ])
+
+      expect(() => Bun.YAML.parse(result)).not.toThrow()
+      // Each line keeps the prefix it was written with.
+      expect(result).toMatch(/^ {2}typescript: \^5\.6\.2$/m)
+      expect(result).toMatch(/^ {2}typescript: ~5\.6\.2$/m)
+    })
+
+    it('should leave a commented-out dependency alone', async () => {
+      const content = `dependencies:
+  # redis: ^7.4.1 # disabled for now
+  sqlite3: ^3.50.3
+`
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('redis', '^7.4.1', '7.5.0'),
+      ])
+
+      expect(result).toContain('# redis: ^7.4.1 # disabled for now')
+      expect(result).not.toContain('7.5.0')
+    })
+
+    it('should respect a dynamic version even when it is quoted', async () => {
+      // `"*"` captured with its quotes missed the `['latest', '*', ...]` test,
+      // so the guard never fired and the prefix logic produced `"*"3.13.5`.
+      const content = `dependencies:
+  python.org: "*"
+  node: "latest"
+`
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('python.org', '*', '3.13.5'),
+        mk('node', 'latest', '22.17.1'),
+      ])
+
+      expect(() => Bun.YAML.parse(result)).not.toThrow()
+      expect(result).toContain('python.org: "*"')
+      expect(result).toContain('node: "latest"')
+      expect(result).not.toContain('3.13.5')
+      expect(result).not.toContain('22.17.1')
+    })
+
+    it('should preserve the quoting style of a version it does update', async () => {
+      const content = `dependencies:
+  typescript: "^5.0.0"
+  node: '^22.12.0'
+`
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('typescript', '^5.0.0', '5.6.2'),
+        mk('node', '^22.12.0', '22.17.1'),
+      ])
+
+      expect(() => Bun.YAML.parse(result)).not.toThrow()
+      expect(result).toContain('typescript: "^5.6.2"')
+      expect(result).toContain('node: \'^22.17.1\'')
+    })
+
+    it('should still update a file that did not parse as YAML to begin with', async () => {
+      // The parse guard exists to stop THIS function corrupting a file. A file
+      // that was already broken is not its business, and bailing there would
+      // silently stop updating it.
+      const content = `dependencies:
+  bun: ^1.3.14
+   : this line is not valid yaml
+`
+
+      expect(() => Bun.YAML.parse(content)).toThrow()
+
+      const result = await updateDependencyFile('deps.yaml', content, [
+        mk('bun', '^1.3.14', '1.4.2'),
+      ])
+
+      expect(result).toContain('bun: ^1.4.2')
+    })
+  })
+
   describe('YAML comment preservation', () => {
     it('should preserve inline comments when updating dependencies', async () => {
       const content = `dependencies:
