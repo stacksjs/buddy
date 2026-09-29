@@ -1,0 +1,29 @@
+# Netlify was configured entirely in the UI, which left two problems invisible
+# to anyone reading this repository. Both are fixed here so the deploy is
+# described by the branch it builds.
+
+[build]
+  # Unchanged from the UI setting, recorded here so this file is self-contained.
+  command = "bun run build:docs"
+
+  # The UI pointed at `docs/.vitepress/dist`, left over from VitePress. That
+  # directory does not exist: the docs are built by bunpress, whose `outDir` in
+  # `bunpress.config.ts` is `./docs/dist` (73 pages, 87 files).
+  publish = "docs/dist"
+
+[build.environment]
+  # Secrets scanning reads repository files as well as build output, and four
+  # test files carry deliberately realistic-looking tokens:
+  #
+  #   test/ai-provider.test.ts        asserts redactDeep() masks an `sk-ant-` key
+  #   test/analysis-engine.test.ts    asserts the analyzer flags a `ghp_` token
+  #   test/github-provider-api.test.ts asserts an error message does NOT leak one
+  #   test/review-parity.test.ts      asserts a review finds one in a diff
+  #
+  # Every value is synthetic (`abcdefghij…`, `0123456789…`) and none is a real
+  # credential, but they have to look like the real thing or the tests stop
+  # testing anything. So the fixtures stay and the scan skips them.
+  #
+  # Deliberately scoped to `test/`, rather than disabling smart detection: the
+  # published output and the rest of the repository are still scanned.
+  SECRETS_SCAN_OMIT_PATHS = "test/**"
