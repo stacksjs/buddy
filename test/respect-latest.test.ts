@@ -126,13 +126,20 @@ devDependencies:
     // Pass the content directly to avoid file system corruption
     const updatedContent = await updateDependencyFile(depsPath, depsYaml, updates)
 
-    // python.org should not be updated because it uses "*"
-    expect(updatedContent).toContain('python.org: "*"')
-    expect(updatedContent).not.toContain('python.org: "3.13.5"')
+    // The result has to be YAML before any of the assertions below mean
+    // anything. Without this, `toContain('python.org: "*"')` was satisfied by
+    // the corrupt line `python.org: "*"3.13.5`, so this test passed for months
+    // against output that `Bun.YAML.parse` rejects (stacksjs/buddy#1453).
+    expect(() => Bun.YAML.parse(updatedContent)).not.toThrow()
 
-    // typescript should be updated because it uses a specific version
-    expect(updatedContent).toContain('typescript: ^5.1.0')
-    expect(updatedContent).not.toContain('typescript: ^5.0.0')
+    // python.org should not be updated because it uses "*", quoted or not
+    expect(updatedContent).toContain('python.org: "*"')
+    expect(updatedContent).not.toContain('3.13.5')
+
+    // typescript should be updated because it uses a specific version, and the
+    // author's quoting survives the rewrite
+    expect(updatedContent).toContain('typescript: "^5.1.0"')
+    expect(updatedContent).not.toContain('5.0.0')
   })
 
   it('should test CLI respectLatest flag override', async () => {
