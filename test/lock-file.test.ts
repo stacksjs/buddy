@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -9,6 +9,7 @@ import {
   hasLockFile,
   lockFileFor,
   missingLockFiles,
+  nestedLockProjects,
   regenerateLockFile,
 } from '../src/utils/lock-file'
 
@@ -157,6 +158,38 @@ describe('lock-file', () => {
       const dir = project('bun.lockb')
       expect(lockFileFor('bun', dir)).toBe('bun.lockb')
       expect(missingLockFiles(['package.json'], dir)).toEqual(['bun.lockb'])
+    })
+  })
+
+  // A package.json beside its own lock file is a separate install: buddy bumped
+  // stacksjs/stacks' bench/routing/package.json, regenerated only the root
+  // lock, and CI's frozen install of bench/routing failed.
+  describe('nestedLockProjects', () => {
+    function repo(): string {
+      const dir = tempDir()
+      writeFileSync(join(dir, 'bun.lock'), '')
+      mkdirSync(join(dir, 'bench/routing'), { recursive: true })
+      writeFileSync(join(dir, 'bench/routing/bun.lock'), '')
+      mkdirSync(join(dir, 'packages/core'), { recursive: true })
+      return dir
+    }
+
+    it('finds a manifest that has a lock file of its own', () => {
+      expect(nestedLockProjects(['bench/routing/package.json', 'packages/core/package.json', 'package.json'], repo())).toEqual([
+        { dir: 'bench/routing', manager: 'bun', lockFile: 'bench/routing/bun.lock' },
+      ])
+    })
+
+    it('expects that lock file in the pull request', () => {
+      const dir = repo()
+      expect(missingLockFiles(['bench/routing/package.json'], dir)).toEqual(['bench/routing/bun.lock'])
+      expect(missingLockFiles(['bench/routing/package.json', 'bench/routing/bun.lock'], dir)).toEqual([])
+    })
+
+    it('leaves workspace members to the root lock file', () => {
+      const dir = repo()
+      expect(nestedLockProjects(['packages/core/package.json'], dir)).toEqual([])
+      expect(missingLockFiles(['packages/core/package.json'], dir)).toEqual(['bun.lock'])
     })
   })
 

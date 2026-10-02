@@ -8,7 +8,7 @@ import { getGitHubApiUrl } from '../utils/endpoints'
 import { formatError, GitHubApiError } from '../utils/errors'
 import { assertUpdateTargetsExist, FileChangeValidationError, normalizeRepositoryPath } from '../utils/file-changes'
 import { fetchWithTimeout } from '../utils/http'
-import { detectRequiredPackageManagers, getAllLockFilePaths, regenerateLockFile } from '../utils/lock-file'
+import { detectRequiredPackageManagers, getAllLockFilePaths, nestedLockProjects, regenerateLockFile } from '../utils/lock-file'
 import { getDefaultLogger } from '../utils/logger'
 import { isBuddyBranch } from '../utils/branches'
 
@@ -454,6 +454,21 @@ export class GitHubProvider implements GitProvider {
             }
             catch (lockError) {
               failures.push(`${manager}: ${lockError instanceof Error ? lockError.message : String(lockError)}`)
+            }
+          }
+
+          // Projects with a lock file of their own beside a changed manifest
+          // are separate installs; the root install does not touch them.
+          for (const project of nestedLockProjects(updatedPaths, cwd)) {
+            try {
+              const result = await regenerateLockFile(project.manager, `${cwd}/${project.dir}`)
+              if (result.success)
+                await this.runCommand('git', ['add', project.lockFile])
+              else
+                failures.push(`${project.dir} (${project.manager}): ${result.message}`)
+            }
+            catch (lockError) {
+              failures.push(`${project.dir} (${project.manager}): ${lockError instanceof Error ? lockError.message : String(lockError)}`)
             }
           }
 

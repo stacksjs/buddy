@@ -190,6 +190,48 @@ export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: s
   return Array.from(managers)
 }
 
+/** A project nested inside the repository with a lock file of its own. */
+export interface NestedLockProject {
+  /** Directory relative to the repository root, e.g. `bench/routing` */
+  dir: string
+  /** JS package manager that owns the lock file there */
+  manager: PackageManagerType
+  /** Lock file path relative to the repository root */
+  lockFile: string
+}
+
+/**
+ * Projects whose own lock file a manifest change requires regenerating.
+ *
+ * Workspace members share the root lock file, so they need nothing here. A
+ * package.json that sits beside its OWN lock file (a benchmark, an example
+ * app, a docs site) is a separate install: regenerating only the root left its
+ * lock behind, and a frozen install of that directory failed CI
+ * (stacksjs/stacks bench/routing).
+ *
+ * @param updatedFilePaths - Paths a change touches, relative to the root
+ * @param cwd - Repository root
+ */
+export function nestedLockProjects(updatedFilePaths: string[], cwd: string = process.cwd()): NestedLockProject[] {
+  const projects = new Map<string, NestedLockProject>()
+  for (const filePath of updatedFilePaths) {
+    const clean = filePath.replace(/^\.\//, '')
+    if (!clean.endsWith('package.json') || !clean.includes('/'))
+      continue
+    const dir = clean.slice(0, clean.lastIndexOf('/'))
+    if (projects.has(dir))
+      continue
+    const absolute = `${cwd}/${dir}`
+    const manager = (['bun', 'pnpm', 'yarn', 'npm'] as const).find(candidate => hasLockFile(candidate, absolute))
+    if (!manager)
+      continue
+    const lockFile = lockFileFor(manager, absolute)
+    if (lockFile)
+      projects.set(dir, { dir, manager, lockFile: `${dir}/${lockFile}` })
+  }
+  return [...projects.values()]
+}
+
 /**
  * The lock file a manager writes in this project, or null when it has none.
  */
@@ -218,8 +260,13 @@ export function lockFileFor(packageManager: PackageManagerType, cwd: string): st
  */
 export function missingLockFiles(changedPaths: string[], cwd: string = process.cwd()): string[] {
   const changed = new Set(changedPaths.map(path => path.replace(/^\.\//, '')))
-  return detectRequiredPackageManagers(changedPaths, cwd)
+  const nestedDirs = new Set(nestedLockProjects(changedPaths, cwd).map(project => project.dir))
+  // A manifest inside a nested project needs only that project's lock file.
+  const rootPaths = changedPaths.filter(path => !nestedDirs.has(path.replace(/^\.\//, '').replace(/\/package\.json$/, '')))
+  const rootLocks = detectRequiredPackageManagers(rootPaths, cwd)
     .map(manager => lockFileFor(manager, cwd))
+  const nestedLocks = nestedLockProjects(changedPaths, cwd).map(project => project.lockFile)
+  return [...rootLocks, ...nestedLocks]
     .filter((lockFile): lockFile is string => lockFile !== null && !changed.has(lockFile))
 }
 
