@@ -52,13 +52,22 @@ export async function parseGitHubActionsFile(filePath: string, content: string):
           }
 
           // Clean version by removing comments and extra whitespace
-          const version = versionRaw.split('#')[0].trim()
+          const [versionPart, ...commentParts] = versionRaw.split('#')
+          const version = versionPart.trim()
 
-          const actionDep = {
+          const actionDep: Dependency = {
             name: actionName.trim(),
             currentVersion: version,
             type: 'github-actions' as const,
             file: filePath,
+          }
+
+          // A SHA pin's version lives in its comment (`@<sha> # v1.2.3`). Kept
+          // so the update check compares versions rather than a SHA against a
+          // tag, which never match and would rewrite the pin to a mutable tag.
+          if (isCommitSha(version)) {
+            const pinnedVersion = commentParts.join('#').trim().split(/\s+/)[0]
+            actionDep.metadata = pinnedVersion ? { pinnedSha: version, pinnedVersion } : { pinnedSha: version }
           }
 
           // Only add if we don't already have this action@version combination for this file
@@ -89,6 +98,16 @@ export async function parseGitHubActionsFile(filePath: string, content: string):
   }
 }
 
+/** A full 40-character commit SHA, the only immutable way to pin an action. */
+export function isCommitSha(ref: string): boolean {
+  return /^[0-9a-f]{40}$/i.test(ref)
+}
+
+/** `v1.2.3` and `1.2.3` name the same release. */
+export function sameActionVersion(a: string, b: string): boolean {
+  return a.replace(/^v/i, '') === b.replace(/^v/i, '')
+}
+
 /**
  * Update action versions in a GitHub Actions workflow file
  */
@@ -107,6 +126,19 @@ export async function updateGitHubActionsFile(
     for (const update of updates) {
       // Clean action name (remove any extra info)
       const cleanActionName = update.name.replace(/\s*\(.*\)$/, '')
+
+      const escapedName = cleanActionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      // A SHA pin moves to the commit the new tag names, and its comment to
+      // the tag, so the reference stays immutable.
+      if (update.resolved?.sha) {
+        const pinPattern = new RegExp(
+          `((?:^\\s*-\\s*)?uses:\\s*["\']?)(${escapedName})@(${update.currentVersion})(["\']?)([ \\t]*#[^\\n]*)?`,
+          'gm',
+        )
+        updatedContent = updatedContent.replace(pinPattern, `$1$2@${update.resolved.sha}$4 # ${update.newVersion}`)
+        continue
+      }
 
       // Create regex to match the action usage
       // Matches: uses: action-name@old-version (with optional quotes and dash)
@@ -170,6 +202,36 @@ export async function generateGitHubActionsUpdates(updates: PackageUpdate[]): Pr
   }
 
   return fileUpdates
+}
+
+/**
+ * The commit a tag of an action's repository points at, so a SHA pin can move
+ * to a newer release without becoming a mutable tag reference. Annotated tags
+ * are peeled by the commits endpoint. Null when the tag cannot be resolved.
+ */
+export async function fetchActionTagCommit(actionName: string, tag: string): Promise<string | null> {
+  const [owner, repo] = actionName.split('/')
+  if (!owner || !repo)
+    return null
+
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'buddy',
+  }
+  const token = process.env.BUDDY_TOKEN || process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+  if (token)
+    headers.Authorization = `Bearer ${token}`
+
+  try {
+    const response = await fetchWithTimeout(`${getGitHubApiUrl()}/repos/${owner}/${repo}/commits/${encodeURIComponent(tag)}`, { headers })
+    if (!response.ok)
+      return null
+    const commit = await response.json() as { sha?: string }
+    return commit.sha && isCommitSha(commit.sha) ? commit.sha : null
+  }
+  catch {
+    return null
+  }
 }
 
 /**

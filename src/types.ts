@@ -590,6 +590,11 @@ export interface PackageUpdate {
     hash?: string
     /** pnpm catalog the entry belongs to */
     catalog?: string
+    /**
+     * Commit a SHA-pinned GitHub Action moves to: the commit `newVersion`
+     * tags. The pin stays a SHA; only its `# vX.Y.Z` comment names the tag.
+     */
+    sha?: string
   }
   /** Release notes URL */
   releaseNotesUrl?: string
