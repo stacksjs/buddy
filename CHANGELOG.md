@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.10...v0.11.11)
+
+## 🐛 Bug Fixes
+
+- **lockfile**: regenerate the lock file of a nested project too ([cc0aecf](https://github.com/stacksjs/buddy/commit/cc0aecf)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🔧 Chores
+
+- release v0.11.11 ([0abe441](https://github.com/stacksjs/buddy/commit/0abe441)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.9...v0.11.10)
 
 ## 🐛 Bug Fixes
