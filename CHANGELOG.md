@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.5...v0.11.6)
+
+## 🐛 Bug Fixes
+
+- **pr**: stop failing runs on refused workflow pushes, and refresh stale PRs ([4fa72de](https://github.com/stacksjs/buddy/commit/4fa72de)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#2848](https://github.com/stacksjs/buddy/issues/2848), [#1359](https://github.com/stacksjs/buddy/issues/1359))
+- **actions**: compare a SHA pin by its version comment, and keep it pinned ([00953f3](https://github.com/stacksjs/buddy/commit/00953f3)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#1458](https://github.com/stacksjs/buddy/issues/1458))
+
+## 🔧 Chores
+
+- release v0.11.6 ([4bb4a6c](https://github.com/stacksjs/buddy/commit/4bb4a6c)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.4...v0.11.5)
 
 ## 🐛 Bug Fixes
