@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.6...v0.11.7)
+
+## 🐛 Bug Fixes
+
+- **git**: push with BUDDY_TOKEN for real, so refreshed PRs re-run CI ([17486c6](https://github.com/stacksjs/buddy/commit/17486c6)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#2848](https://github.com/stacksjs/buddy/issues/2848))
+
+## 🔧 Chores
+
+- release v0.11.7 ([77c2bd1](https://github.com/stacksjs/buddy/commit/77c2bd1)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.5...v0.11.6)
 
 ## 🐛 Bug Fixes
