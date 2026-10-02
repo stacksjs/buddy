@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.3...v0.11.4)
+
+## 🐛 Bug Fixes
+
+- **config**: still read config files named for buddy-bot ([abf0092](https://github.com/stacksjs/buddy/commit/abf0092)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#1457](https://github.com/stacksjs/buddy/issues/1457))
+
+## 🔧 Chores
+
+- release v0.11.4 ([c649297](https://github.com/stacksjs/buddy/commit/c649297)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.2...v0.11.3)
 
 ## 🐛 Bug Fixes
