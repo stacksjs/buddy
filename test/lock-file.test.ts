@@ -7,6 +7,8 @@ import {
   detectRequiredPackageManagers,
   getAllLockFilePaths,
   hasLockFile,
+  lockFileFor,
+  missingLockFiles,
   regenerateLockFile,
 } from '../src/utils/lock-file'
 
@@ -122,6 +124,39 @@ describe('lock-file', () => {
     it('edge case - pantry runs last even when composer is also needed', () => {
       const managers = detectRequiredPackageManagers(['composer.json', 'package.json'], project('bun.lock', 'pantry.lock'))
       expect(managers.at(-1)).toBe('pantry')
+    })
+  })
+
+  // A pull request whose updates still match was skipped even when it had
+  // never regenerated a lock file its manifests require, so it stayed red on
+  // every run (stacksjs/stacks#2848: four open PRs without pantry.lock).
+  describe('missingLockFiles', () => {
+    function project(...lockfiles: string[]): string {
+      const dir = tempDir()
+      for (const lockfile of lockfiles)
+        writeFileSync(join(dir, lockfile), '')
+      return dir
+    }
+
+    it('names the pantry.lock a package.json bump left behind', () => {
+      const dir = project('bun.lock', 'pantry.lock')
+      expect(missingLockFiles(['package.json', 'bun.lock'], dir)).toEqual(['pantry.lock'])
+    })
+
+    it('is satisfied when every required lock file changed', () => {
+      const dir = project('bun.lock', 'pantry.lock')
+      expect(missingLockFiles(['packages/a/package.json', 'bun.lock', 'pantry.lock'], dir)).toEqual([])
+    })
+
+    it('expects only the lock files the project has', () => {
+      expect(missingLockFiles(['package.json', 'bun.lock'], project('bun.lock'))).toEqual([])
+      expect(missingLockFiles(['README.md'], project('bun.lock', 'pantry.lock'))).toEqual([])
+    })
+
+    it('finds the binary bun lock too', () => {
+      const dir = project('bun.lockb')
+      expect(lockFileFor('bun', dir)).toBe('bun.lockb')
+      expect(missingLockFiles(['package.json'], dir)).toEqual(['bun.lockb'])
     })
   })
 

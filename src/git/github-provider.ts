@@ -87,6 +87,25 @@ class LockfileRegenerationError extends Error {
   }
 }
 
+/**
+ * Thrown when GitHub refuses a push because the token may not touch
+ * `.github/workflows/` - a GitHub App without the Workflows permission, or a
+ * PAT without the `workflow` scope. The API path is refused for the same
+ * reason, so falling back to it only turns a permission gap into a failed run.
+ */
+export class WorkflowPermissionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'WorkflowPermissionError'
+  }
+}
+
+/** Whether a push was refused for touching workflow files without permission. */
+export function isWorkflowPermissionRefusal(error: unknown): boolean {
+  const text = `${formatError(error)} ${(error as { message?: string })?.message ?? ''}`
+  return /refusing to allow (?:a GitHub App|an OAuth App|a Personal Access Token)[^\n]*workflow/i.test(text)
+}
+
 
 /**
  * Whether GitHub refused to open a pull request because the token is not
@@ -235,6 +254,22 @@ export class GitHubProvider implements GitProvider {
       // a PR with an updated manifest and stale lockfile. Bubble the error up.
       if (gitError instanceof LockfileRegenerationError || gitError instanceof FileChangeValidationError)
         throw gitError
+
+      // The token cannot write workflow files. Commit what it can write, or
+      // report the gap; the API path would be refused too.
+      if (isWorkflowPermissionRefusal(gitError)) {
+        const nonWorkflowFiles = files.filter(f => !f.path.includes('.github/workflows/'))
+        const workflowCount = files.length - nonWorkflowFiles.length
+        if (nonWorkflowFiles.length === 0) {
+          throw new WorkflowPermissionError(
+            `The token may not update workflow files (${workflowCount} in this change). `
+            + 'Grant the GitHub App the Workflows permission, or use a PAT with the workflow scope as BUDDY_TOKEN.',
+          )
+        }
+        this.logger.warn(`⚠️ The token may not update workflow files; committing the ${nonWorkflowFiles.length} other file(s) without the ${workflowCount} workflow file(s)`)
+        await this.commitChangesWithGit(branchName, message, nonWorkflowFiles, baseBranch)
+        return
+      }
 
       this.logger.warn(`⚠️ Git CLI commit failed, falling back to GitHub API: ${gitError}`)
       await this.commitChangesWithAPI(branchName, message, files, baseBranch)
@@ -855,6 +890,18 @@ export class GitHubProvider implements GitProvider {
         reject(error)
       })
     })
+  }
+
+  async getPullRequestFiles(number: number): Promise<string[]> {
+    const paths: string[] = []
+    // 100 per page, and GitHub caps the list at 3000 files.
+    for (let page = 1; page <= 30; page++) {
+      const files = await this.apiRequestWithRetry(`GET /repos/${this.owner}/${this.repo}/pulls/${number}/files?per_page=100&page=${page}`) as Array<{ filename: string }>
+      paths.push(...files.map(file => file.filename))
+      if (files.length < 100)
+        break
+    }
+    return paths
   }
 
   async getPullRequests(state: 'open' | 'closed' | 'all' = 'open'): Promise<PullRequest[]> {

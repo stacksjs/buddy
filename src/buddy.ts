@@ -789,11 +789,27 @@ export class Buddy {
             // Check if the updates are the same by comparing package lists
             const existingUpdatesMatch = this.checkIfUpdatesMatch(existingPR.body, group.updates)
 
-            if (existingUpdatesMatch) {
+            // Matching updates are not enough: a pull request whose manifests
+            // changed without the lock files they require (opened before
+            // pantry.lock was regenerated, say) fails CI until refreshed.
+            let missing: string[] = []
+            if (existingUpdatesMatch && gitProvider.getPullRequestFiles) {
+              try {
+                const { missingLockFiles } = await import('./utils/lock-file')
+                missing = missingLockFiles(await gitProvider.getPullRequestFiles(existingPR.number))
+              }
+              catch (error) {
+                this.logger.warn(`⚠️ Could not list the files of PR #${existingPR.number}; trusting it: ${formatError(error)}`)
+              }
+            }
+
+            if (existingUpdatesMatch && missing.length === 0) {
               this.logger.info(`✅ Existing PR has the same updates, skipping creation`)
               continue
             }
             else {
+              if (missing.length > 0)
+                this.logger.info(`🔒 PR #${existingPR.number} has the same updates but does not regenerate ${missing.join(', ')}; refreshing it`)
               this.logger.info(`🔄 Updates differ, will update existing PR with new content`)
 
               // Get the existing branch name from the PR
@@ -1164,6 +1180,14 @@ export class Buddy {
           this.logger.info(`⏱️  Total group processing took ${groupDuration}ms`)
         }
         catch (error) {
+          // The same gap as a workflow-only group with no BUDDY_TOKEN (#1359),
+          // discovered at push time: the token exists but may not write
+          // workflows. Skipped with the remedy, like that case, rather than
+          // failing every scheduled run until someone changes a permission.
+          if (error instanceof Error && error.name === 'WorkflowPermissionError') {
+            this.logger.warn(`⚠️ Skipping group ${group.name}: ${error.message}`)
+            continue
+          }
           this.logger.error(`❌ Failed to create PR for group ${group.name}:`, error)
           failedGroups.push({ name: group.name, error })
         }
@@ -1360,8 +1384,7 @@ export class Buddy {
   }
 
   private async checkGitHubActionsForUpdates(packageFiles: PackageFile[]): Promise<PackageUpdate[]> {
-    const { isGitHubActionsFile } = await import('./utils/github-actions-parser')
-    const { fetchLatestActionVersion } = await import('./utils/github-actions-parser')
+    const { fetchActionTagCommit, fetchLatestActionVersion, isGitHubActionsFile, sameActionVersion } = await import('./utils/github-actions-parser')
 
     const updates: PackageUpdate[] = []
 
@@ -1386,6 +1409,41 @@ export class Buddy {
 
         // Fetch latest version for this action
         const latestVersion = await fetchLatestActionVersion(dep.name)
+
+        if (latestVersion && dep.metadata?.pinnedSha) {
+          // A SHA pin is compared through its `# vX.Y.Z` comment: a SHA never
+          // equals a tag, so comparing them directly proposed an "update" on
+          // every run and would have replaced the immutable pin with a tag.
+          const pinnedVersion = dep.metadata.pinnedVersion
+          if (!pinnedVersion) {
+            this.logger.info(`Skipping ${dep.name}@${dep.currentVersion}: a SHA pin without a version comment cannot be compared`)
+            return null
+          }
+          if (sameActionVersion(pinnedVersion, latestVersion)) {
+            this.logger.info(`No update needed for ${dep.name}: already pinned to ${latestVersion}`)
+            return null
+          }
+          const sha = await fetchActionTagCommit(dep.name, latestVersion)
+          if (!sha) {
+            this.logger.warn(`Could not resolve ${dep.name}@${latestVersion} to a commit; leaving the SHA pin alone`)
+            return null
+          }
+          const updateType = getUpdateType(pinnedVersion, latestVersion)
+          this.logger.info(`Update available: ${dep.name} ${pinnedVersion} → ${latestVersion} (${updateType}, pinned)`)
+          return {
+            name: dep.name,
+            currentVersion: dep.currentVersion,
+            newVersion: latestVersion,
+            updateType,
+            dependencyType: 'github-actions' as const,
+            file: file.path,
+            metadata: undefined,
+            resolved: { sha },
+            releaseNotesUrl: `${getGitHubServerUrl(this.config)}/${dep.name}/releases`,
+            changelogUrl: undefined,
+            homepage: `${getGitHubServerUrl(this.config)}/${dep.name}`,
+          }
+        }
 
         if (latestVersion) {
           this.logger.info(`Latest version for ${dep.name}: ${latestVersion}`)

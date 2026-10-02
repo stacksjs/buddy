@@ -191,6 +191,39 @@ export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: s
 }
 
 /**
+ * The lock file a manager writes in this project, or null when it has none.
+ */
+export function lockFileFor(packageManager: PackageManagerType, cwd: string): string | null {
+  const candidates: Record<PackageManagerType, string[]> = {
+    bun: ['bun.lock', 'bun.lockb'],
+    npm: ['package-lock.json'],
+    yarn: ['yarn.lock'],
+    pnpm: ['pnpm-lock.yaml'],
+    composer: ['composer.lock'],
+    pantry: ['pantry.lock'],
+  }
+  return candidates[packageManager].find(name => existsSync(`${cwd}/${name}`)) ?? null
+}
+
+/**
+ * Lock files a pull request should have regenerated but does not change.
+ *
+ * A pull request opened by an older release, or by a run whose regeneration
+ * was skipped, carries manifests its lock files do not match. Its updates
+ * still "match", so it was left alone and stayed red; this is the evidence
+ * that it needs refreshing. Only lock files the project has are expected.
+ *
+ * @param changedPaths - Paths the pull request changes
+ * @param cwd - Project root whose lock files decide what is expected
+ */
+export function missingLockFiles(changedPaths: string[], cwd: string = process.cwd()): string[] {
+  const changed = new Set(changedPaths.map(path => path.replace(/^\.\//, '')))
+  return detectRequiredPackageManagers(changedPaths, cwd)
+    .map(manager => lockFileFor(manager, cwd))
+    .filter((lockFile): lockFile is string => lockFile !== null && !changed.has(lockFile))
+}
+
+/**
  * Check if a lock file exists for a given package manager in the working directory
  */
 export function hasLockFile(packageManager: PackageManagerType, cwd: string): boolean {

@@ -232,6 +232,12 @@ export interface GitProvider {
   /** File content at a ref, or null when the path does not exist there */
   getFileContent: (path: string, ref: string) => Promise<string | null>
 
+  /**
+   * Paths a pull request changes. Optional: a provider without it cannot tell
+   * whether an existing pull request is missing a lockfile, so it is trusted.
+   */
+  getPullRequestFiles?: (number: number) => Promise<string[]>
+
   // -- Pull requests -------------------------------------------------------
 
   createPullRequest: (options: PullRequestOptions) => Promise<PullRequest>
