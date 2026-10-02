@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.9...v0.11.10)
+
+## 🐛 Bug Fixes
+
+- **pr**: keep the rebase checkbox when a long body is truncated ([06b3f12](https://github.com/stacksjs/buddy/commit/06b3f12)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🔧 Chores
+
+- release v0.11.10 ([2dca667](https://github.com/stacksjs/buddy/commit/2dca667)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.8...v0.11.9)
 
 ## 🐛 Bug Fixes
