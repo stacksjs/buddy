@@ -88,6 +88,19 @@ class LockfileRegenerationError extends Error {
 }
 
 /**
+ * `git -c` arguments that make git authenticate as `token` against `serverUrl`.
+ *
+ * actions/checkout persists its token as `http.<server>/.extraheader`, which
+ * git sends on every request. Header values accumulate, so the empty value
+ * resets the list before the replacement is added.
+ */
+export function gitAuthConfigArgs(serverUrl: string, token: string): string[] {
+  const key = `http.${serverUrl.replace(/\/+$/, '')}/.extraheader`
+  const basic = Buffer.from(`x-access-token:${token}`).toString('base64')
+  return ['-c', `${key}=`, '-c', `${key}=AUTHORIZATION: basic ${basic}`]
+}
+
+/**
  * Thrown when GitHub refuses a push because the token may not touch
  * `.github/workflows/` - a GitHub App without the Workflows permission, or a
  * PAT without the `workflow` scope. The API path is refused for the same
@@ -461,10 +474,11 @@ export class GitHubProvider implements GitProvider {
         // Force-push is required because we recreated the branch from base (Renovate-style).
         // Use --force-with-lease for safety — it will fail if someone else pushed to the
         // branch concurrently, preventing accidental overwrites.
-        // Use workflow token for push if workflow files are included (needs elevated permissions).
-        const pushToken = (workflowFiles.length > 0 && this.hasWorkflowPermissions)
-          ? this.getEffectiveToken(true)
-          : undefined
+        // Push with BUDDY_TOKEN whenever there is one, not only for workflow
+        // files: GitHub runs no workflows for a push made with GITHUB_TOKEN, so
+        // a branch buddy refreshed with it never had its CI re-run and kept
+        // the old result, or none at all.
+        const pushToken = this.workflowToken || undefined
         await this.runCommand('git', ['push', 'origin', branchName, '--force-with-lease'], pushToken)
 
         this.logger.info(`✅ Successfully recreated ${branchName} with fresh changes from ${baseBranch}: ${message}`)
@@ -843,6 +857,13 @@ export class GitHubProvider implements GitProvider {
    * Uses the workflow token (PAT) for operations that need elevated permissions,
    * and the primary token (GITHUB_TOKEN) for everything else.
    */
+  /** The web origin git talks to: github.com, or a GitHub Enterprise host. */
+  private gitServerUrl(): string {
+    return this.apiUrl === 'https://api.github.com'
+      ? 'https://github.com'
+      : this.apiUrl.replace(/\/api\/v3$/, '')
+  }
+
   private getEffectiveToken(requireWorkflowPermissions = false): string {
     if (requireWorkflowPermissions && this.workflowToken)
       return this.workflowToken
@@ -854,6 +875,12 @@ export class GitHubProvider implements GitProvider {
    */
   async runCommand(command: string, args: string[], tokenOverride?: string): Promise<string> {
     const effectiveToken = tokenOverride || this.token
+    // git authenticates with the header actions/checkout persisted, not with
+    // GITHUB_TOKEN in its environment, so an override only reaches git as its
+    // own extraheader. Without this, every "push with the workflow token" went
+    // out as GITHUB_TOKEN.
+    if (command === 'git' && tokenOverride)
+      args = [...gitAuthConfigArgs(this.gitServerUrl(), tokenOverride), ...args]
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, {
         stdio: 'pipe',

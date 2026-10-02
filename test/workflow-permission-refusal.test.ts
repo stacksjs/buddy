@@ -1,6 +1,11 @@
 import type { FileChange } from '../src/types'
 import { describe, expect, it, spyOn } from 'bun:test'
-import { GitHubProvider, isWorkflowPermissionRefusal, WorkflowPermissionError } from '../src/git/github-provider'
+import { Buffer } from 'node:buffer'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import process from 'node:process'
+import { gitAuthConfigArgs, GitHubProvider, isWorkflowPermissionRefusal, WorkflowPermissionError } from '../src/git/github-provider'
 
 /**
  * A token can exist and still be refused for `.github/workflows/`: a GitHub
@@ -50,5 +55,52 @@ describe('a push refused for workflow files', () => {
 
     expect(gitCalls).toHaveLength(2)
     expect(gitCalls[1]).toEqual([manifest])
+  })
+})
+
+/**
+ * Setting GITHUB_TOKEN in git's environment changes nothing: git sends the
+ * header actions/checkout persisted. So "push with the workflow token" went
+ * out as GITHUB_TOKEN, whose pushes trigger no workflows, and a refreshed PR
+ * never re-ran CI.
+ */
+describe('git authentication for an override token', () => {
+  it('resets the persisted header before adding its own', () => {
+    const args = gitAuthConfigArgs('https://github.com', 'tok')
+    expect(args).toEqual([
+      '-c',
+      'http.https://github.com/.extraheader=',
+      '-c',
+      `http.https://github.com/.extraheader=AUTHORIZATION: basic ${Buffer.from('x-access-token:tok').toString('base64')}`,
+    ])
+  })
+
+  it('targets a GitHub Enterprise host when that is the server', () => {
+    expect(gitAuthConfigArgs('https://git.example.com/', 'tok')[1]).toBe('http.https://git.example.com/.extraheader=')
+  })
+
+  it('pushes with BUDDY_TOKEN when there is one, so the push triggers CI', async () => {
+    spyOn(console, 'log').mockImplementation(() => {})
+    // commitChangesWithGit writes the changed files into the working tree, so
+    // it runs in a scratch directory rather than over this repository.
+    const cwd = process.cwd()
+    const dir = mkdtempSync(join(tmpdir(), 'buddy-push-token-'))
+    process.chdir(dir)
+    try {
+      const github = new GitHubProvider('github-token', 'acme', 'app', true, 'buddy-token') as any
+      const calls: Array<{ args: string[], token?: string }> = []
+      github.runCommand = async (_command: string, args: string[], token?: string) => {
+        calls.push({ args, token })
+        return args[0] === 'status' ? ' M package.json\n' : ''
+      }
+      await github.commitChangesWithGit('buddy/update', 'chore', [manifest], 'main').catch(() => {})
+
+      const push = calls.find(call => call.args[0] === 'push')
+      expect(push?.token).toBe('buddy-token')
+    }
+    finally {
+      process.chdir(cwd)
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
