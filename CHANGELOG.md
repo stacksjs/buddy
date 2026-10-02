@@ -1,5 +1,23 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.4...v0.11.5)
+
+## 🐛 Bug Fixes
+
+- **lockfile**: regenerate pantry.lock alongside the JS lockfile ([25c9f51](https://github.com/stacksjs/buddy/commit/25c9f51)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#2848](https://github.com/stacksjs/buddy/issues/2848))
+
+## ✅ Tests
+
+- **config**: isolate the legacy-name lookup from GITHUB_REPOSITORY ([c449557](https://github.com/stacksjs/buddy/commit/c449557)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#1457](https://github.com/stacksjs/buddy/issues/1457))
+
+## 🔧 Chores
+
+- release v0.11.5 ([ce830bd](https://github.com/stacksjs/buddy/commit/ce830bd)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.3...v0.11.4)
 
 ## 🐛 Bug Fixes
