@@ -4,7 +4,7 @@ import process from 'node:process'
 import { detectPackageManager } from './helpers'
 import { getDefaultLogger } from './logger'
 
-export type PackageManagerType = 'bun' | 'npm' | 'yarn' | 'pnpm' | 'composer'
+export type PackageManagerType = 'bun' | 'npm' | 'yarn' | 'pnpm' | 'composer' | 'pantry'
 
 export interface LockFileResult {
   success: boolean
@@ -42,6 +42,10 @@ function getInstallCommand(packageManager: PackageManagerType): { command: strin
       return { command: 'pnpm', args: ['install'] }
     case 'composer':
       return { command: 'composer', args: ['update', '--lock'] }
+    case 'pantry':
+      // Scripts are skipped because a project's postinstall is not lockfile
+      // work: in a Stacks app it seeds the local database.
+      return { command: 'pantry', args: ['install', '--ignore-scripts', '--quiet'] }
   }
 }
 
@@ -142,27 +146,46 @@ export async function regenerateLockFile(
 }
 
 /**
+ * Pantry's own manifests. A change to one of these only reaches `pantry.lock`.
+ */
+const PANTRY_MANIFESTS = new Set(['deps.yaml', 'deps.yml', 'pantry.jsonc', 'pantry.json', 'pantry.toml'])
+
+/**
  * Examine which manifest files were updated to determine which package managers
  * need lock file regeneration.
+ *
+ * `pantry.lock` records npm resolutions alongside system packages, so a
+ * `package.json` bump leaves it describing the old version just as surely as
+ * `bun.lock`. Pantry is therefore required whenever the project has a
+ * `pantry.lock` and any manifest it reads changed, and it is ordered last:
+ * it reconciles against the JS lockfile, which has to be regenerated first.
+ *
  * @param updatedFilePaths - List of file paths that were updated
+ * @param cwd - Project root whose lock files decide the managers
  */
-export function detectRequiredPackageManagers(updatedFilePaths: string[]): PackageManagerType[] {
+export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: string = process.cwd()): PackageManagerType[] {
   const managers: Set<PackageManagerType> = new Set()
+  let pantryInputChanged = false
 
   for (const filePath of updatedFilePaths) {
     const fileName = filePath.split('/').pop() || ''
 
     if (fileName === 'package.json') {
       // Detect the JS package manager from lock files on disk
-      const cwd = process.cwd()
-      const jsManager = detectPackageManager(cwd)
-      managers.add(jsManager)
+      managers.add(detectPackageManager(cwd))
+      pantryInputChanged = true
     }
 
     if (fileName === 'composer.json') {
       managers.add('composer')
     }
+
+    if (PANTRY_MANIFESTS.has(fileName))
+      pantryInputChanged = true
   }
+
+  if (pantryInputChanged && hasLockFile('pantry', cwd))
+    managers.add('pantry')
 
   return Array.from(managers)
 }
@@ -184,5 +207,7 @@ export function hasLockFile(packageManager: PackageManagerType, cwd: string): bo
       return existsSync(path.join(cwd, 'pnpm-lock.yaml'))
     case 'composer':
       return existsSync(path.join(cwd, 'composer.lock'))
+    case 'pantry':
+      return existsSync(path.join(cwd, 'pantry.lock'))
   }
 }

@@ -190,12 +190,14 @@ export async function runFixCi(options: RunFixCiOptions): Promise<string> {
  * @returns What was rewritten, and whether it reached the branch
  */
 async function regenerateLockfile(workspace: string, logger: Logger): Promise<{ regenerated: boolean, pushed: boolean }> {
-  const { regenerateLockFile, detectRequiredPackageManagers, getAllLockFilePaths } = await import('../utils/lock-file')
+  const { regenerateLockFile, detectRequiredPackageManagers, getAllLockFilePaths, hasLockFile } = await import('../utils/lock-file')
   const { commitAndPush } = await import('../utils/git')
 
   // Detection keys off the manifests a lock file is derived from, so a
-  // repository with several ecosystems regenerates each of them.
-  const managers = detectRequiredPackageManagers(['package.json', 'composer.json'])
+  // repository with several ecosystems regenerates each of them. Only a
+  // manager whose lock file the workspace actually has is repairable here.
+  const managers = detectRequiredPackageManagers(['package.json', 'composer.json'], workspace)
+    .filter(manager => hasLockFile(manager, workspace))
   let regenerated = false
 
   for (const manager of managers) {

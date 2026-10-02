@@ -37,7 +37,7 @@ describe('lock-file', () => {
       // The staging step after regeneration adds exactly these; a manager
       // whose lock file is missing here gets regenerated and then not
       // committed, which looks like the update never ran.
-      for (const expected of ['bun.lock', 'bun.lockb', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'composer.lock'])
+      for (const expected of ['bun.lock', 'bun.lockb', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'composer.lock', 'pantry.lock'])
         expect(paths).toContain(expected)
     })
   })
@@ -47,9 +47,11 @@ describe('lock-file', () => {
       const dir = tempDir()
       writeFileSync(join(dir, 'yarn.lock'), '')
       writeFileSync(join(dir, 'composer.lock'), '{}')
+      writeFileSync(join(dir, 'pantry.lock'), '{}')
 
       expect(hasLockFile('yarn', dir)).toBe(true)
       expect(hasLockFile('composer', dir)).toBe(true)
+      expect(hasLockFile('pantry', dir)).toBe(true)
       expect(hasLockFile('npm', dir)).toBe(false)
       expect(hasLockFile('pnpm', dir)).toBe(false)
     })
@@ -68,15 +70,22 @@ describe('lock-file', () => {
   })
 
   describe('detectRequiredPackageManagers', () => {
-    // These run from the repository root, whose bun.lock makes the JS
-    // manager detection deterministic.
+    /** A project root holding exactly these lock files. */
+    function project(...lockfiles: string[]): string {
+      const dir = tempDir()
+      for (const lockfile of lockfiles)
+        writeFileSync(join(dir, lockfile), '')
+      return dir
+    }
+
     it('success case - a package.json update needs the JS manager', () => {
-      expect(detectRequiredPackageManagers(['package.json'])).toEqual(['bun'])
-      expect(detectRequiredPackageManagers(['packages/app/package.json'])).toEqual(['bun'])
+      const dir = project('bun.lock')
+      expect(detectRequiredPackageManagers(['package.json'], dir)).toEqual(['bun'])
+      expect(detectRequiredPackageManagers(['packages/app/package.json'], dir)).toEqual(['bun'])
     })
 
     it('success case - a composer.json update needs composer', () => {
-      expect(detectRequiredPackageManagers(['composer.json'])).toEqual(['composer'])
+      expect(detectRequiredPackageManagers(['composer.json'], project('bun.lock'))).toEqual(['composer'])
     })
 
     it('success case - mixed updates need both, once each', () => {
@@ -84,13 +93,35 @@ describe('lock-file', () => {
         'package.json',
         'composer.json',
         'sub/package.json',
-      ])
+      ], project('bun.lock'))
 
       expect(managers.sort()).toEqual(['bun', 'composer'])
     })
 
     it('edge case - unrelated files need nothing', () => {
-      expect(detectRequiredPackageManagers(['deps.yaml', 'README.md', 'Dockerfile'])).toEqual([])
+      expect(detectRequiredPackageManagers(['deps.yaml', 'README.md', 'Dockerfile'], project('bun.lock'))).toEqual([])
+    })
+
+    // stacksjs/stacks#2848: pantry.lock records npm resolutions too, so a
+    // package.json bump that regenerated only bun.lock failed the workspace's
+    // "install must not change the lockfiles" check on every dependency PR.
+    it('success case - a package.json update in a pantry project also regenerates pantry.lock, after the JS lockfile', () => {
+      expect(detectRequiredPackageManagers(['package.json'], project('bun.lock', 'pantry.lock'))).toEqual(['bun', 'pantry'])
+    })
+
+    it('success case - a pantry manifest update regenerates pantry.lock alone', () => {
+      const dir = project('bun.lock', 'pantry.lock')
+      expect(detectRequiredPackageManagers(['deps.yaml'], dir)).toEqual(['pantry'])
+      expect(detectRequiredPackageManagers(['pantry.jsonc'], dir)).toEqual(['pantry'])
+    })
+
+    it('edge case - pantry is not required without a pantry.lock', () => {
+      expect(detectRequiredPackageManagers(['package.json', 'deps.yaml'], project('bun.lock'))).toEqual(['bun'])
+    })
+
+    it('edge case - pantry runs last even when composer is also needed', () => {
+      const managers = detectRequiredPackageManagers(['composer.json', 'package.json'], project('bun.lock', 'pantry.lock'))
+      expect(managers.at(-1)).toBe('pantry')
     })
   })
 
