@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.7...v0.11.8)
+
+## 🐛 Bug Fixes
+
+- recognise pre-rename buddy-bot/ branches as buddy's own ([3db1817](https://github.com/stacksjs/buddy/commit/3db1817)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#2848](https://github.com/stacksjs/buddy/issues/2848))
+
+## 🔧 Chores
+
+- release v0.11.8 ([a1fa507](https://github.com/stacksjs/buddy/commit/a1fa507)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.6...v0.11.7)
 
 ## 🐛 Bug Fixes
