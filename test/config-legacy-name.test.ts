@@ -13,6 +13,9 @@ import { getConfig, resetConfigCache } from '../src/config'
 describe('config lookup under the pre-rename name', () => {
   let dir: string
   let cwd: string
+  // In Actions GITHUB_REPOSITORY names the running repository and wins over
+  // the configured one, which would hide which file was read.
+  const ambient = process.env.GITHUB_REPOSITORY
 
   const write = (path: string, name: string) => {
     fs.mkdirSync(join(dir, 'config'), { recursive: true })
@@ -23,11 +26,14 @@ describe('config lookup under the pre-rename name', () => {
     dir = fs.mkdtempSync(join(tmpdir(), 'buddy-legacy-config-'))
     cwd = process.cwd()
     process.chdir(dir)
+    delete process.env.GITHUB_REPOSITORY
     resetConfigCache()
   })
 
   afterEach(() => {
     process.chdir(cwd)
+    if (ambient !== undefined)
+      process.env.GITHUB_REPOSITORY = ambient
     resetConfigCache()
     fs.rmSync(dir, { recursive: true, force: true })
   })
