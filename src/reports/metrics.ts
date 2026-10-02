@@ -1,4 +1,5 @@
 import type { PullRequest } from '../types'
+import { isBuddyBranch } from '../utils/branches'
 
 /** How far back a report looks. */
 export type ReportPeriod = '7d' | '30d' | '90d'
@@ -85,9 +86,7 @@ export interface MetricsInput {
  */
 export function computeMetrics(input: MetricsInput): ReportMetrics {
   const since = new Date(input.now.getTime() - PERIOD_DAYS[input.period] * 24 * 60 * 60 * 1000)
-  const prefix = input.branchPrefix ?? 'buddy/'
-
-  const ours = input.pullRequests.filter(pr => pr.head.startsWith(prefix))
+  const ours = input.pullRequests.filter(pr => input.branchPrefix ? pr.head.startsWith(input.branchPrefix) : isBuddyBranch(pr.head))
   const openedInPeriod = ours.filter(pr => pr.createdAt >= since)
   const mergedInPeriod = ours.filter(pr => pr.mergedAt !== undefined && pr.mergedAt >= since)
 

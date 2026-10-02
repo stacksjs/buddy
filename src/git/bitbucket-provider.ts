@@ -10,6 +10,7 @@ import type {
 import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
+import { isBuddyBranch } from '../utils/branches'
 
 /** Bitbucket's pull request, as much of it as buddy reads. */
 interface BitbucketPullRequest {
@@ -538,7 +539,7 @@ export class BitbucketProvider implements GitProvider {
     }>(`/repositories/${this.slug}/refs/branches?q=${encodeURIComponent('name ~ "buddy/"')}&pagelen=50`)
 
     return branches
-      .filter(branch => branch.name?.startsWith('buddy/'))
+      .filter(branch => isBuddyBranch(branch.name))
       .map(branch => ({
         name: branch.name!,
         sha: branch.target?.hash ?? '',

@@ -44,6 +44,7 @@ import {
 import { applySuggestion, REVIEW_FORMATS } from '../src/review/local'
 import { formatError } from '../src/utils/errors'
 import { Logger } from '../src/utils/logger'
+import { isBuddyBranch } from '../src/utils/branches'
 
 let _resolvedConfig: BuddyConfig | null = null
 
@@ -975,7 +976,7 @@ cli
         process.exit(1)
       }
 
-      if (!pr.head.startsWith('buddy/')) {
+      if (!isBuddyBranch(pr.head)) {
         logger.error(`❌ PR #${prNum} is not a buddy PR (branch: ${pr.head})`)
         process.exit(1)
       }
@@ -1182,7 +1183,7 @@ cli
         const openPRs = await gitProvider.getPullRequests('open')
 
         // Filter to buddy PRs (branches starting with buddy/)
-        const buddyPRs = openPRs.filter(pr => pr.head.startsWith('buddy/'))
+        const buddyPRs = openPRs.filter(pr => isBuddyBranch(pr.head))
 
         logger.info(`📋 Found ${buddyPRs.length} buddy PRs to check for rebase requests`)
 

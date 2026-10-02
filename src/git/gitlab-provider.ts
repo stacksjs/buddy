@@ -13,6 +13,7 @@ import type {
 import { formatError } from '../utils/errors'
 import { fetchWithTimeout } from '../utils/http'
 import { getDefaultLogger } from '../utils/logger'
+import { isBuddyBranch } from '../utils/branches'
 
 /** GitLab's merge request discussion, as much of it as buddy reads. */
 interface GitLabDiscussion {
@@ -795,7 +796,7 @@ export class GitLabProvider implements GitProvider {
     )
 
     return branches
-      .filter(branch => branch.name.startsWith('buddy/'))
+      .filter(branch => isBuddyBranch(branch.name))
       .map(branch => ({
         name: branch.name,
         sha: branch.commit?.id ?? '',

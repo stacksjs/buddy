@@ -1,9 +1,8 @@
 import type { BuddyConfig, PackageUpdate, PRManifest, PRManifestUpdate } from '../types'
 import { groupsToRules, resolveRuleEffects } from '../rules/engine'
 import { parseManifest } from './pr-manifest'
+import { isBuddyBranch } from '../utils/branches'
 
-/** Branch prefix every buddy pull request is opened from. */
-const BUDDY_BRANCH_PREFIX = 'buddy/'
 
 /** Label that suppresses auto-merge on an individual PR. */
 export const DEFAULT_OPT_OUT_LABEL = 'no-auto-merge'
@@ -97,7 +96,7 @@ export function evaluateAutoMerge(
   if (settings.conditions.length === 0)
     return { eligible: false, reason: 'no auto-merge conditions configured (set conditions to at least one of patch-only, minor-only, security-only, all)' }
 
-  if (!pr.head.startsWith(BUDDY_BRANCH_PREFIX))
+  if (!isBuddyBranch(pr.head))
     return { eligible: false, reason: `PR #${pr.number} is not a buddy PR (branch: ${pr.head})` }
 
   if (pr.draft)

@@ -38,6 +38,7 @@ import { GitHubApiError } from './utils/errors'
 import { getUpdateType, groupUpdates, sortUpdatesByPriority } from './utils/helpers'
 import { Logger, setDefaultLogger } from './utils/logger'
 import { resolveRepositoryConfig } from './utils/repository'
+import { isBuddyBranch } from './utils/branches'
 
 export class Buddy {
   private readonly logger: Logger
@@ -743,7 +744,7 @@ export class Buddy {
               // Quaternary match: similar titles (for grouped updates)
               || this.isSimilarPRTitle(pr.title, prTitle)
             )
-            && (pr.author === 'github-actions[bot]' || pr.author.includes('buddy') || pr.head.startsWith('buddy/'))
+            && (pr.author === 'github-actions[bot]' || pr.author.includes('buddy') || isBuddyBranch(pr.head))
             && !pr.head.includes('renovate/') // Exclude Renovate PRs
             && !pr.head.includes('dependabot/') // Exclude Dependabot PRs
             && !pr.author.toLowerCase().includes('renovate') // Exclude Renovate bot
@@ -1023,7 +1024,7 @@ export class Buddy {
               if (pr.head !== branchName && !this.isSimilarPRTitle(pr.title, prTitle))
                 return false
               // Must be a buddy PR
-              if (!pr.head.startsWith('buddy/') && pr.author !== 'github-actions[bot]')
+              if (!isBuddyBranch(pr.head) && pr.author !== 'github-actions[bot]')
                 return false
               // Must not have been merged
               if (pr.mergedAt)
@@ -2807,7 +2808,7 @@ export class Buddy {
     const merged: number[] = []
     const prs = await gitProvider.getPullRequests('open')
 
-    for (const pr of prs.filter(candidate => candidate.head.startsWith('buddy/'))) {
+    for (const pr of prs.filter(candidate => isBuddyBranch(candidate.head))) {
       const checks = settings.requireGreenCI && gitProvider.getPullRequestChecksState
         ? await gitProvider.getPullRequestChecksState(pr.number)
         : 'none'
@@ -3021,7 +3022,7 @@ export class Buddy {
 
       // Only check buddy PRs — never close PRs from other tools like Renovate or Dependabot
       const dependencyPRs = openPRs.filter(pr =>
-        pr.head.startsWith('buddy/')
+        isBuddyBranch(pr.head)
         || (pr.author === 'github-actions[bot]' && pr.labels.includes('dependencies')),
       )
 
@@ -3058,7 +3059,7 @@ export class Buddy {
                 await this.events.emit('pr.closed', { number: pr.number, title: pr.title, reason: 'obsolete — its dependency files no longer exist' })
 
                 // Try to delete the branch if it's a buddy branch
-                if (pr.head.startsWith('buddy/')) {
+                if (isBuddyBranch(pr.head)) {
                   try {
                     await gitProvider.deleteBranch(pr.head)
                     this.logger.success(`✅ Auto-closed PR #${pr.number} and deleted branch ${pr.head}`)
@@ -3110,7 +3111,7 @@ export class Buddy {
 
       // Only check buddy PRs — never close PRs from other tools
       const dependencyPRs = openPRs.filter(pr =>
-        pr.head.startsWith('buddy/')
+        isBuddyBranch(pr.head)
         || (pr.author === 'github-actions[bot]' && pr.labels.includes('dependencies')),
       )
 
@@ -3290,7 +3291,7 @@ export class Buddy {
                 await this.events.emit('pr.closed', { number: pr.number, title: pr.title, reason: 'satisfied — every package already at or beyond target' })
 
                 // Try to delete the branch if it's a buddy branch
-                if (pr.head.startsWith('buddy/')) {
+                if (isBuddyBranch(pr.head)) {
                   try {
                     await gitProvider.deleteBranch(pr.head)
                     this.logger.success(`✅ Closed PR #${pr.number} and deleted branch ${pr.head}`)
@@ -3508,6 +3509,7 @@ export class Buddy {
       || pr.head.includes('renovate/')
       || pr.head.includes('dependabot/')
       || pr.head.includes('buddy/')
+      || isBuddyBranch(pr.head)
       || pr.head.includes('update-')
       || pr.head.includes('bump-'),
     )

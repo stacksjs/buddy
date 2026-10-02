@@ -10,6 +10,7 @@ import { assertUpdateTargetsExist, FileChangeValidationError, normalizeRepositor
 import { fetchWithTimeout } from '../utils/http'
 import { detectRequiredPackageManagers, getAllLockFilePaths, regenerateLockFile } from '../utils/lock-file'
 import { getDefaultLogger } from '../utils/logger'
+import { isBuddyBranch } from '../utils/branches'
 
 // Match GitHub token formats (ghp_*, gho_*, ghs_*, ghu_*, ghr_*, github_pat_*)
 // plus any 40+ char alphanumeric blob that looks like a credential.
@@ -1770,7 +1771,7 @@ export class GitHubProvider implements GitProvider {
         const branchName = fullBranchName.replace(/^origin\//, '')
 
         // Only include buddy branches
-        if (!branchName.startsWith('buddy/'))
+        if (!isBuddyBranch(branchName))
           continue
 
         try {
@@ -1832,7 +1833,7 @@ export class GitHubProvider implements GitProvider {
       this.logger.info(`🔍 Found ${allBranches.length} total branches in repository`)
 
       // Filter for buddy branches
-      const buddyBranches = allBranches.filter((branch: any) => branch.name.startsWith('buddy/'))
+      const buddyBranches = allBranches.filter((branch: any) => isBuddyBranch(branch.name))
       this.logger.info(`🤖 Found ${buddyBranches.length} buddy branches`)
 
       // Get detailed info for each branch including last commit date
@@ -1909,7 +1910,7 @@ export class GitHubProvider implements GitProvider {
       const protectedBranches = new Set<string>(
         openPRs
           .map(pr => pr.head)
-          .filter(head => head.startsWith('buddy/')),
+          .filter(head => isBuddyBranch(head)),
       )
 
       this.logger.info(`🔍 GitHub API reports ${openPRs.length} open PR(s); ${protectedBranches.size} are buddy branches`)
