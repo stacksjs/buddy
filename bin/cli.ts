@@ -1012,7 +1012,16 @@ cli
           ),
         )
 
-        if (upToDate) {
+        // Matching versions say nothing about the branch itself: one cut from
+        // an older base can fail CI for reasons long since fixed there.
+        const baseBranch = config.repository.baseBranch || 'main'
+        const behind = upToDate && gitProvider.isBranchBehind
+          ? await gitProvider.isBranchBehind(pr.head, baseBranch).catch(() => false)
+          : false
+        if (behind)
+          logger.info(`🔄 ${pr.head} is behind ${baseBranch}; rebasing`)
+
+        if (upToDate && !behind) {
           logger.success('✅ PR is already up to date, no rebase needed')
           logger.info('💡 Use --force to rebase anyway')
           return
@@ -1203,9 +1212,12 @@ cli
               logger.info(`🔄 Rebasing PR #${pr.number} via rebase command...`)
 
               try {
-                // Use the existing rebase command logic
+                // Use the existing rebase command logic. --force because a
+                // person ticked "rebase/retry": the command's own up-to-date
+                // check would otherwise decline a branch whose updates still
+                // match, however far behind its base it is.
                 const { spawn } = await import('node:child_process')
-                const rebaseProcess = spawn('bunx', ['@buddysh/buddy', 'rebase', pr.number.toString()], {
+                const rebaseProcess = spawn('bunx', ['@buddysh/buddy', 'rebase', pr.number.toString(), '--force'], {
                   stdio: 'inherit',
                   cwd: process.cwd(),
                 })

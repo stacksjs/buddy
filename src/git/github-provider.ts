@@ -920,6 +920,13 @@ export class GitHubProvider implements GitProvider {
     })
   }
 
+  async isBranchBehind(branch: string, base: string): Promise<boolean> {
+    const comparison = await this.apiRequestWithRetry(
+      `GET /repos/${this.owner}/${this.repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(branch)}`,
+    ) as { behind_by?: number }
+    return (comparison.behind_by ?? 0) > 0
+  }
+
   async getPullRequestFiles(number: number): Promise<string[]> {
     const paths: string[] = []
     // 100 per page, and GitHub caps the list at 3000 files.

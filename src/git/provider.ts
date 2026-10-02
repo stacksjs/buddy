@@ -238,6 +238,9 @@ export interface GitProvider {
    */
   getPullRequestFiles?: (number: number) => Promise<string[]>
 
+  /** Whether `branch` lacks commits `base` has. Optional, like the above. */
+  isBranchBehind?: (branch: string, base: string) => Promise<boolean>
+
   // -- Pull requests -------------------------------------------------------
 
   createPullRequest: (options: PullRequestOptions) => Promise<PullRequest>

@@ -26,3 +26,22 @@ describe('isBuddyBranch', () => {
     expect(JSON.stringify(metrics)).toContain('"opened":2')
   })
 })
+
+// "PR is already up to date, no rebase needed" was decided from update
+// versions alone, so a branch cut from an older base was never rebased onto
+// the fixes that would turn its CI green.
+describe('isBranchBehind', () => {
+  it('reads behind_by from the compare endpoint', async () => {
+    const { GitHubProvider } = await import('../src/git/github-provider')
+    const github = new GitHubProvider('token', 'acme', 'app') as any
+    const requested: string[] = []
+    github.apiRequestWithRetry = async (endpoint: string) => {
+      requested.push(endpoint)
+      return { behind_by: endpoint.includes('stale') ? 3 : 0 }
+    }
+
+    expect(await github.isBranchBehind('buddy-bot/stale', 'main')).toBe(true)
+    expect(await github.isBranchBehind('buddy/fresh', 'main')).toBe(false)
+    expect(requested[0]).toBe('GET /repos/acme/app/compare/main...buddy-bot%2Fstale')
+  })
+})
