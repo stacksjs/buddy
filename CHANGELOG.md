@@ -1,5 +1,21 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.2...v0.11.3)
+
+## 🐛 Bug Fixes
+
+- fail the run when a pull request cannot be opened, and use the PAT to open it ([4fe0f36](https://github.com/stacksjs/buddy/commit/4fe0f36)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.3 ([77868d3](https://github.com/stacksjs/buddy/commit/77868d3)) _(by Chris <chris@stacksjs.com>)_
+- run @stacksjs/logsmith, not the unrelated npm 'logsmith' ([7185acc](https://github.com/stacksjs/buddy/commit/7185acc)) _(by Chris <chrisbreuer93@gmail.com>)_
+- release through @stacksjs/bumpx, not the unrelated npm 'bumpx' ([deabeed](https://github.com/stacksjs/buddy/commit/deabeed)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy-bot/compare/v0.11.1...v0.11.2)
 
 ## 💥 Breaking Changes
