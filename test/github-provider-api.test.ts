@@ -124,6 +124,46 @@ describe('gitHubProvider API surface', () => {
       expect(calls.filter(c => c.method === 'POST' && c.url.endsWith('/pulls'))).toHaveLength(1)
     })
 
+    describe('when the repository forbids GITHUB_TOKEN from opening pull requests', () => {
+      const forbidden = () => json({ message: 'GitHub Actions is not permitted to create or approve pull requests.', status: '403' }, 403)
+      const withPat = () => new GitHubProvider('token', 'owner', 'repo', true, 'pat', 'https://api.github.test', Logger.silent())
+
+      it('opens the PR with the PAT instead', async () => {
+        const prov = withPat()
+        ;(prov as any).runCommand = async () => {
+          throw new Error('pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests')
+        }
+        const calls = stubFetch(call => call.headers.Authorization === 'Bearer pat' ? json(prResponse(57), 201) : forbidden())
+
+        const pr = await prov.createPullRequest(options)
+
+        expect(pr.number).toBe(57)
+        const posts = calls.filter(c => c.method === 'POST' && c.url.endsWith('/pulls'))
+        expect(posts.map(c => c.headers.Authorization)).toEqual(['Bearer token', 'Bearer pat'])
+      })
+
+      it('says how to fix it when there is no PAT', async () => {
+        const prov = github()
+        ;(prov as any).runCommand = async () => {
+          throw new Error('gh: not found')
+        }
+        stubFetch(() => forbidden())
+
+        await expect(prov.createPullRequest(options)).rejects.toThrow(/BUDDY_TOKEN[\s\S]*Allow GitHub Actions to create and approve pull requests/)
+      })
+
+      it('leaves any other failure alone', async () => {
+        const prov = withPat()
+        ;(prov as any).runCommand = async () => {
+          throw new Error('gh: not found')
+        }
+        const calls = stubFetch(() => json({ message: 'Validation Failed' }, 422))
+
+        await expect(prov.createPullRequest(options)).rejects.toThrow(/422/)
+        expect(calls.filter(c => c.method === 'POST' && c.url.endsWith('/pulls'))).toHaveLength(1)
+      })
+    })
+
     it('failure case - falls back to the API when gh prints no PR URL', async () => {
       const prov = github()
       ;(prov as any).runCommand = async () => 'no url in this output\n'

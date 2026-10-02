@@ -21,6 +21,7 @@ const DASHBOARD_MARKER = 'This issue lists Buddy updates and detected dependenci
 const MANAGED_ENV_VARS = [
   'GITHUB_TOKEN',
   'BUDDY_TOKEN',
+  'BUDDY_BOT_TOKEN',
   'GH_TOKEN',
   'GITHUB_REPOSITORY',
   'GITHUB_API_URL',
@@ -131,7 +132,7 @@ function autoMergeConfig(overrides: Record<string, unknown> = {}): BuddyConfig {
 }
 
 /** Spy on the private logger without letting output reach the console. */
-function loggerSpy(buddy: Buddy, method: 'error' | 'warn'): any {
+function loggerSpy(buddy: Buddy, method: 'error' | 'warn' | 'info'): any {
   const spy = spyOn((buddy as any).logger, method).mockImplementation(() => {})
   restorers.push(() => spy.mockRestore())
   return spy
@@ -745,6 +746,44 @@ describe('buddy orchestration', () => {
 
       expect(errorSpy.mock.calls.some((call: unknown[]) =>
         String(call[0]).includes('GITHUB_TOKEN or BUDDY_TOKEN'))).toBe(true)
+    })
+
+    it('edge case - accepts the PAT under the older BUDDY_BOT_TOKEN name', async () => {
+      // Workflows generated before the rename still pass BUDDY_BOT_TOKEN.
+      process.env.BUDDY_BOT_TOKEN = 'pat'
+      const buddy = new Buddy(baseConfig())
+      const errorSpy = loggerSpy(buddy, 'error')
+      const infoSpy = loggerSpy(buddy, 'info')
+
+      await buddy.createPullRequests(makeScanResult([]))
+
+      expect(errorSpy.mock.calls.some((call: unknown[]) =>
+        String(call[0]).includes('GITHUB_TOKEN or BUDDY_TOKEN'))).toBe(false)
+      expect(infoSpy.mock.calls.some((call: unknown[]) =>
+        String(call[0]).includes('BUDDY_TOKEN detected'))).toBe(true)
+    })
+
+    it('failure case - fails the run when a group\'s pull request cannot be created', async () => {
+      // Every PR refused used to end in "Completed PR creation", a green run,
+      // and a repository silently out of date.
+      process.env.GITHUB_TOKEN = 'test-token'
+      const buddy = new Buddy(baseConfig())
+      spyOn(buddy as any, 'generateAllFileUpdates').mockResolvedValue([
+        { path: 'package.json', content: '{"changed":true}\n', type: 'update' },
+      ])
+      globalThis.fetch = (async (_input: string | URL, init?: RequestInit) => {
+        if ((init?.method ?? 'GET') === 'GET')
+          return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
+        return new Response(JSON.stringify({ message: 'GitHub Actions is not permitted to create or approve pull requests.' }), { status: 403, headers: { 'content-type': 'application/json' } })
+      }) as unknown as typeof fetch
+
+      const update = makeUpdate({ name: 'left-pad', currentVersion: '1.0.0', newVersion: '1.1.0', updateType: 'minor', file: 'package.json' })
+      const scanResult: UpdateScanResult = {
+        ...makeScanResult([update]),
+        groups: [{ name: 'Non-Major Updates', updates: [update], updateType: 'minor', title: 'chore(deps): update all non-major dependencies', body: 'x' }],
+      }
+
+      await expect(buddy.createPullRequests(scanResult)).rejects.toThrow(/Could not create pull requests for 1 of 1 group/)
     })
 
     it('edge case - skips a workflow-file-only group when BUDDY_TOKEN is absent (#1359)', async () => {

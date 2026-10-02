@@ -614,10 +614,12 @@ export class Buddy {
 
       // Use GITHUB_TOKEN for all operations — this ensures commits and PRs are
       // attributed to github-actions[bot] instead of polluting a personal account's
-      // contribution graph. BUDDY_TOKEN (a PAT) is only passed separately for
-      // workflow file updates that require elevated permissions.
+      // contribution graph. The PAT is only passed separately, for workflow
+      // file updates and for repositories that forbid GITHUB_TOKEN from opening
+      // pull requests. Workflows generated before the rename call it
+      // BUDDY_BOT_TOKEN, so that is read too.
       const token = process.env.GITHUB_TOKEN
-      const workflowToken = process.env.BUDDY_TOKEN
+      const workflowToken = process.env.BUDDY_TOKEN || process.env.BUDDY_BOT_TOKEN
       if (!token && !workflowToken) {
         this.logger.error('❌ GITHUB_TOKEN or BUDDY_TOKEN environment variable required for PR creation')
         return
@@ -655,6 +657,8 @@ export class Buddy {
       // Ordered before the cap, not after: a `prPriority` that only reordered
       // the PRs that already fit would not do the one thing it is for.
       const orderedGroups = this.orderGroupsByPriority(scanResult.groups)
+
+      const failedGroups: { name: string, error: unknown }[] = []
 
       // Process each group
       for (const group of orderedGroups) {
@@ -1161,10 +1165,20 @@ export class Buddy {
         }
         catch (error) {
           this.logger.error(`❌ Failed to create PR for group ${group.name}:`, error)
+          failedGroups.push({ name: group.name, error })
         }
       }
 
       const totalPRDuration = Date.now() - prStartTime
+
+      // One group failing should not stop the others, but it must not end in a
+      // success either: a run that reports "completed" while every PR was
+      // refused leaves a repository silently out of date for months.
+      if (failedGroups.length > 0) {
+        const reasons = failedGroups.map(failure => `${failure.name}: ${formatError(failure.error)}`).join('\n  ')
+        throw new Error(`Could not create pull requests for ${failedGroups.length} of ${orderedGroups.length} group(s):\n  ${reasons}`)
+      }
+
       this.logger.success(`✅ Completed PR creation for ${scanResult.groups.length} group(s) in ${totalPRDuration}ms`)
     }
     catch (error) {
@@ -1297,7 +1311,7 @@ export class Buddy {
       return []
     }
 
-    const token = process.env.GITHUB_TOKEN || process.env.BUDDY_TOKEN
+    const token = process.env.GITHUB_TOKEN || process.env.BUDDY_TOKEN || process.env.BUDDY_BOT_TOKEN
     const candidates = zigFiles.flatMap(file =>
       file.dependencies
         .filter(dep => dep.type === 'zig-dependencies')

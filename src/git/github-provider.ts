@@ -87,6 +87,17 @@ class LockfileRegenerationError extends Error {
   }
 }
 
+
+/**
+ * Whether GitHub refused to open a pull request because the token is not
+ * allowed to, as opposed to anything wrong with the pull request itself.
+ */
+function isPullRequestCreationForbidden(error: unknown): boolean {
+  const text = `${formatError(error)} ${(error as { message?: string })?.message ?? ''}`
+  return /not permitted to create or approve pull requests/i.test(text)
+    || ((error as { status?: number })?.status === 403 && /pull/i.test(text))
+}
+
 export class GitHubProvider implements GitProvider {
   /**
    * REST API base URL. Resolved once per instance from `GITHUB_API_URL` or an
@@ -577,7 +588,31 @@ export class GitHubProvider implements GitProvider {
     }
     catch (cliError) {
       this.logger.warn(`⚠️ GitHub CLI failed, falling back to API: ${cliError}`)
+    }
+
+    try {
       return await this.createPullRequestWithAPI(options)
+    }
+    catch (apiError) {
+      if (!isPullRequestCreationForbidden(apiError))
+        throw apiError
+
+      // A repository can forbid GITHUB_TOKEN from opening pull requests
+      // (Settings > Actions > General > "Allow GitHub Actions to create and
+      // approve pull requests", off by default). The branch is already pushed,
+      // so the PAT can open the PR instead, and a PR opened by a PAT also runs
+      // the repository's CI, which one opened by GITHUB_TOKEN never does.
+      if (this.workflowToken && this.workflowToken !== this.token) {
+        this.logger.info('🔑 GITHUB_TOKEN may not open pull requests in this repository, retrying with BUDDY_TOKEN')
+        return await this.createPullRequestWithAPI(options, this.workflowToken)
+      }
+
+      throw new Error(
+        'GitHub Actions may not open pull requests in this repository. Either set a BUDDY_TOKEN '
+        + 'repository secret (a token with contents, pull requests and workflows write access), or enable '
+        + 'Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".',
+        { cause: apiError },
+      )
     }
   }
 
@@ -680,7 +715,7 @@ export class GitHubProvider implements GitProvider {
   /**
    * Create pull request using GitHub API (fallback)
    */
-  private async createPullRequestWithAPI(options: PullRequestOptions): Promise<PullRequest> {
+  private async createPullRequestWithAPI(options: PullRequestOptions, tokenOverride?: string): Promise<PullRequest> {
     try {
       const response = await this.apiRequest(`POST /repos/${this.owner}/${this.repo}/pulls`, {
         title: options.title,
@@ -688,7 +723,7 @@ export class GitHubProvider implements GitProvider {
         head: options.head,
         base: options.base,
         draft: options.draft || false,
-      })
+      }, tokenOverride)
 
       // Add reviewers if specified
       if (options.reviewers && options.reviewers.length > 0) {

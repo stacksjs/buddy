@@ -1618,8 +1618,9 @@ ${renderScheduleTriggers(plan)}
 env:
   # Use the built-in GITHUB_TOKEN for commits and PRs — contributions are attributed
   # to github-actions[bot] instead of a personal account.
-  # BUDDY_TOKEN (a PAT with 'repo' and 'workflow' scopes) is only used when
-  # workflow file updates are needed. Create one at: https://github.com/settings/tokens
+  # BUDDY_TOKEN (a PAT with 'repo' and 'workflow' scopes) is used for
+  # workflow file updates, and to open the PR when the repository does not let
+  # GitHub Actions create pull requests. Create one at: https://github.com/settings/tokens
   GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
   BUDDY_TOKEN: \${{ secrets.BUDDY_TOKEN }}
 
