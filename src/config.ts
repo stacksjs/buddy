@@ -109,6 +109,11 @@ export async function getConfig(configPath?: string): Promise<BuddyConfig> {
   if (!_config) {
     const loaded = await loadConfig({
       name: 'buddy',
+      // The pre-rename name. Every repository set up before 0.11 has a
+      // `buddy-bot.config.ts` or `config/buddy-bot.ts`, and without this the
+      // rename silently ignores it: the run falls back to empty defaults and
+      // reports success. A `buddy` config still wins when both exist.
+      alias: 'buddy-bot',
       cwd: process.cwd(),
       defaultConfig,
     })
