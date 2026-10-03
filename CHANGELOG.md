@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.12...v0.11.13)
+
+## 🐛 Bug Fixes
+
+- **rebase**: refresh a PR from the group its manifest names ([1e618ac](https://github.com/stacksjs/buddy/commit/1e618ac)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#2817](https://github.com/stacksjs/buddy/issues/2817))
+
+## 🔧 Chores
+
+- release v0.11.13 ([38b8d59](https://github.com/stacksjs/buddy/commit/38b8d59)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.11...v0.11.12)
 
 ## 🐛 Bug Fixes
