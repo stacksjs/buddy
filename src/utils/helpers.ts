@@ -219,27 +219,47 @@ export function generateBranchName(updates: PackageUpdate[], prefix = 'buddy'): 
  * Deduplicate updates by package name and version, keeping the most relevant file
  */
 function deduplicateUpdates(updates: PackageUpdate[]): PackageUpdate[] {
-  const uniqueUpdates = new Map<string, PackageUpdate>()
-
+  const byKey = new Map<string, PackageUpdate[]>()
   for (const update of updates) {
     const key = `${update.name}:${update.currentVersion}:${update.newVersion}`
-    const existing = uniqueUpdates.get(key)
-
-    if (!existing) {
-      uniqueUpdates.set(key, update)
-    }
-    else {
-      // Keep the update with the most relevant file (prioritize package.json > composer.json > dependency files)
-      const currentPriority = getFilePriority(update.file)
-      const existingPriority = getFilePriority(existing.file)
-
-      if (currentPriority > existingPriority) {
-        uniqueUpdates.set(key, update)
-      }
-    }
+    byKey.set(key, [...(byKey.get(key) ?? []), update])
   }
 
-  return Array.from(uniqueUpdates.values())
+  const result: PackageUpdate[] = []
+  for (const candidates of byKey.values()) {
+    // Every manifest that declares the dependency is kept: each is a file the
+    // pull request has to rewrite. Collapsing them to one left the others on
+    // the old range, which for a major bump installs two copies side by side
+    // (stripe 23 in payments, 22 in orm, and types that no longer line up).
+    const manifests = candidates.filter(update => isManifestFile(update.file))
+    if (manifests.length > 0) {
+      const seen = new Set<string>()
+      for (const update of manifests) {
+        if (!seen.has(update.file)) {
+          seen.add(update.file)
+          result.push(update)
+        }
+      }
+      continue
+    }
+
+    // The same package seen through a dependency file or a workflow: keep the
+    // most relevant source.
+    let best = candidates[0]!
+    for (const update of candidates.slice(1)) {
+      if (getFilePriority(update.file) > getFilePriority(best.file))
+        best = update
+    }
+    result.push(best)
+  }
+
+  return result
+}
+
+/** A package manifest a version bump is written into. */
+function isManifestFile(filePath: string): boolean {
+  const name = filePath.split('/').pop() ?? ''
+  return name === 'package.json' || name === 'composer.json'
 }
 
 /**
@@ -338,15 +358,22 @@ export function groupUpdates(
     })
   }
 
-  // Create individual PRs for each major update (these come after non-major
-  // so the rate limiter doesn't starve the non-major group)
+  // One PR per major update (these come after non-major so the rate limiter
+  // doesn't starve the non-major group), covering every manifest that
+  // declares the package: a major bump has to move all of them together.
+  const majorsByPackage = new Map<string, PackageUpdate[]>()
   for (const majorUpdate of majorUpdates) {
+    const key = `${majorUpdate.name}@${majorUpdate.newVersion}`
+    majorsByPackage.set(key, [...(majorsByPackage.get(key) ?? []), majorUpdate])
+  }
+  for (const packageUpdates of majorsByPackage.values()) {
+    const majorUpdate = packageUpdates[0]!
     groups.push({
       name: `Major Update - ${majorUpdate.name}`,
-      updates: [majorUpdate],
+      updates: packageUpdates,
       updateType: 'major',
       title: `chore(deps): update dependency ${majorUpdate.name} to ${majorUpdate.newVersion}`,
-      body: formatPRBody([majorUpdate]),
+      body: formatPRBody(packageUpdates),
     })
   }
 
