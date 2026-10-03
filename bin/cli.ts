@@ -19,7 +19,7 @@ import {
   uncheckDashboardActions,
 } from '../src/dashboard/dashboard-actions'
 import { emitEvent } from '../src/events'
-import { manifestUpdates, parseManifest } from '../src/pr/pr-manifest'
+import { findGroupForPullRequest, manifestUpdates, parseManifest } from '../src/pr/pr-manifest'
 import {
   analyzeProject,
   ConfigurationMigrator,
@@ -1043,19 +1043,16 @@ cli
         return
       }
 
-      // Find the matching update group - must match exactly
-      const group = scanResult.groups.find(g =>
-        g.updates.length === packageUpdates.length
-        && g.updates.every(u => packageUpdates.some(pu => pu.name === u.name))
-        && packageUpdates.every(pu => g.updates.some(u => u.name === pu.name)),
-      )
+      const group = findGroupForPullRequest(scanResult.groups, pr.body, packageUpdates.map(p => p.name))
 
       if (!group) {
         logger.error('❌ Could not find matching update group. This likely means the package grouping has changed.')
         logger.info(`📋 PR packages: ${packageUpdates.map(p => p.name).join(', ')}`)
         logger.info(`📋 Available groups: ${scanResult.groups.map(g => `${g.name} (${g.updates.length} packages)`).join(', ')}`)
         logger.info(`💡 Close this PR manually and let buddy create new ones with correct grouping`)
-        return
+        // A rebase that changed nothing must not read as one that worked: the
+        // checkbox caller counted this as "Successfully rebased".
+        process.exit(1)
       }
 
       // Generate new file changes (package.json, dependency files, GitHub Actions)

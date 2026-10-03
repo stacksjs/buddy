@@ -225,3 +225,31 @@ function isManifestUpdate(value: unknown): value is PRManifestUpdate {
     && typeof candidate.current === 'string'
     && typeof candidate.target === 'string'
 }
+
+/**
+ * The update group a pull request should be refreshed from.
+ *
+ * The group named in the PR's manifest wins: its package set legitimately
+ * changes between runs (a new version appears, another lands on main), and
+ * matching on the exact set refused every non-major PR whose set had moved,
+ * so a rebase request did nothing. Without a manifest, a group with the same
+ * package names (counted once, however many manifests declare them) is used.
+ */
+export function findGroupForPullRequest<G extends { name: string, updates: Array<{ name: string }> }>(
+  groups: readonly G[],
+  body: string | null | undefined,
+  packageNames: readonly string[],
+): G | undefined {
+  const named = parseManifest(body)?.group
+  if (named) {
+    const byName = groups.find(group => group.name === named)
+    if (byName)
+      return byName
+  }
+
+  const wanted = new Set(packageNames)
+  return groups.find((group) => {
+    const names = new Set(group.updates.map(update => update.name))
+    return names.size === wanted.size && [...wanted].every(name => names.has(name))
+  })
+}
