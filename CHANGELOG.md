@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.11...v0.11.12)
+
+## 🐛 Bug Fixes
+
+- **groups**: bump every manifest that declares a dependency ([39982a4](https://github.com/stacksjs/buddy/commit/39982a4)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🔧 Chores
+
+- release v0.11.12 ([61de34c](https://github.com/stacksjs/buddy/commit/61de34c)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.10...v0.11.11)
 
 ## 🐛 Bug Fixes
