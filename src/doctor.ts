@@ -26,7 +26,7 @@ export interface DoctorReport {
 export interface DoctorEnvironment {
   env: Record<string, string | undefined>
   cwd: string
-  /** Whether a command exists; injected so tests need no real binaries */
+  /** Optional analyzer availability, injectable without installing those tools. */
   hasCommand: (command: string) => Promise<boolean>
 }
 
@@ -75,14 +75,27 @@ export async function diagnose(
 
   // -- Repository ----------------------------------------------------------
 
-  const isRepo = await Bun.file(`${cwd}/.git/HEAD`).exists()
+  // Let Git resolve linked worktrees and parent repositories. A .git/HEAD
+  // pathname exists only at the root of a conventional checkout.
+  let isRepo = false
+  let repositoryError: string | undefined
+  try {
+    const git = Bun.spawn(['git', 'rev-parse', '--is-inside-work-tree'], { cwd, stdout: 'pipe', stderr: 'ignore', timeout: 5000 })
+    const [code, output] = await Promise.all([git.exited, new Response(git.stdout).text()])
+    isRepo = code === 0 && output.trim() === 'true'
+  }
+  catch (error) {
+    repositoryError = error instanceof Error ? error.message : String(error)
+  }
   checks.push(isRepo
     ? { name: 'git repository', status: 'ok', detail: cwd }
     : {
         name: 'git repository',
         status: 'fail',
-        detail: `${cwd} is not a git repository`,
-        remediation: 'Run buddy from inside a repository, or run `git init`.',
+        detail: repositoryError ? `Git could not inspect ${cwd}: ${repositoryError}` : `${cwd} is not a git repository`,
+        remediation: repositoryError
+          ? 'Check that Git is installed and the working directory exists.'
+          : 'Run buddy from inside a repository, or run `git init`.',
       })
 
   // -- Configuration -------------------------------------------------------
