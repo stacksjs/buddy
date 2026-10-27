@@ -294,3 +294,7 @@ export default {
 - Reduce concurrent scans in large monorepos
 - Use more specific package patterns
 - Enable caching in CI environments
+
+## File ownership
+
+Discovery scans regular manifest files in real project directories. Symbolic links, including package-manager aliases into installed dependencies, are excluded. Real workspace and vendored manifests remain discoverable. Git update-target and write-boundary checks still apply before a dependency change is committed.

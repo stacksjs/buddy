@@ -1,7 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PackageScanner } from '../src/scanner/package-scanner'
+import { Logger } from '../src/utils/logger'
 
-// Mock workflow content
 const mockWorkflowContent = `
 name: CI
 on: [push, pull_request]
@@ -20,154 +23,63 @@ jobs:
 `
 
 describe('PackageScanner - GitHub Actions Integration', () => {
-  let logger: any
-  let readdirSpy: any
-  let statSpy: any
-  let readFileSpy: any
-
+  let root: string
+  let scanner: PackageScanner
+  const workflow = async (name: string, content = mockWorkflowContent): Promise<void> => {
+    await mkdir(join(root, '.github/workflows'), { recursive: true })
+    await writeFile(join(root, '.github/workflows', name), content)
+  }
   beforeEach(async () => {
-    logger = {
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      debug: () => {},
-      verbose: () => {},
-      success: () => {},
-    }
+    root = await mkdtemp(join(tmpdir(), 'buddy-workflow-discovery-'))
+    scanner = new PackageScanner(root, Logger.quiet())
+  })
+  afterEach(async () => { await rm(root, { recursive: true, force: true }) })
 
-    // Mock filesystem functions
-    readdirSpy = spyOn(await import('node:fs/promises'), 'readdir')
-    statSpy = spyOn(await import('node:fs/promises'), 'stat')
-    readFileSpy = spyOn(await import('node:fs/promises'), 'readFile')
+  it('finds owned GitHub Actions workflow files through project scanning', async () => {
+    await workflow('ci.yml'); await workflow('release.yaml'); await workflow('README.md', 'Workflow documentation')
+    const files = await scanner.scanProject()
+    expect(files.map(file => file.path).sort()).toEqual(['.github/workflows/ci.yml', '.github/workflows/release.yaml'])
   })
 
-  afterEach(() => {
-    readdirSpy?.mockRestore()
-    statSpy?.mockRestore()
-    readFileSpy?.mockRestore()
+  it('handles an absent workflow directory', async () => {
+    expect(await scanner.scanProject()).toEqual([])
   })
 
-  describe('findGitHubActionsFiles', () => {
-    it('should find GitHub Actions workflow files', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      // Mock successful directory check
-      statSpy.mockResolvedValueOnce({ isDirectory: () => true, isFile: () => false })
-
-      // Mock file listings for both .yaml and .yml searches
-      readdirSpy
-        .mockResolvedValueOnce(['ci.yml', 'release.yaml', 'README.md']) // *.yaml files
-        .mockResolvedValueOnce(['ci.yml', 'release.yaml', 'README.md']) // *.yml files
-
-      // Mock all stat calls for individual files
-      statSpy.mockResolvedValue({ isDirectory: () => false, isFile: () => true })
-
-      // Test the direct method
-      const githubFiles = await (scanner as any).findGitHubActionsFiles()
-      expect(githubFiles).toHaveLength(2)
-      expect(githubFiles).toContain('.github/workflows/ci.yml')
-      expect(githubFiles).toContain('.github/workflows/release.yaml')
-    })
-
-    it('should skip .github/workflows if directory does not exist', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      // Mock just the .github/workflows directory check to fail
-      statSpy.mockRejectedValueOnce(new Error('ENOENT: no such file or directory'))
-
-      // Call findGitHubActionsFiles directly to test this specific functionality
-      const result = await (scanner as any).findGitHubActionsFiles()
-
-      // Should return empty array when directory doesn't exist
-      expect(result).toHaveLength(0)
-    })
-
-    it('should handle various workflow file extensions', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      // Mock successful directory check
-      statSpy.mockResolvedValueOnce({ isDirectory: () => true, isFile: () => false })
-
-      // Mock file listing with various extensions
-      readdirSpy
-        .mockResolvedValueOnce(['ci.yml', 'release.yaml', 'test.json', 'build.txt']) // *.yaml files
-        .mockResolvedValueOnce(['ci.yml', 'release.yaml', 'test.json', 'build.txt']) // *.yml files
-
-      // Mock stat calls for all files
-      statSpy
-        .mockResolvedValue({ isDirectory: () => false, isFile: () => true })
-
-      const result = await (scanner as any).findGitHubActionsFiles()
-
-      // Should find 2 workflow files (ci.yml and release.yaml)
-      expect(result).toHaveLength(2)
-      expect(result).toContain('.github/workflows/ci.yml')
-      expect(result).toContain('.github/workflows/release.yaml')
-    })
+  it('admits YAML workflow extensions and excludes unrelated files', async () => {
+    await workflow('ci.yml'); await workflow('release.yaml'); await workflow('test.json', '{}'); await workflow('build.txt', 'notes')
+    const files = await scanner.scanProject()
+    expect(files.map(file => file.path).sort()).toEqual(['.github/workflows/ci.yml', '.github/workflows/release.yaml'])
   })
 
-  describe('parseGitHubActionsFile', () => {
-    it('should parse GitHub Actions workflow file correctly', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      readFileSpy.mockResolvedValue(mockWorkflowContent)
-
-      const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
-
-      expect(result).toBeTruthy()
-      expect(result!.path).toBe('.github/workflows/ci.yml')
-      expect(result!.dependencies).toHaveLength(3)
-
-      const actionNames = result!.dependencies.map(d => d.name)
-      expect(actionNames).toContain('actions/checkout')
-      expect(actionNames).toContain('oven-sh/setup-bun')
-      expect(actionNames).toContain('actions/cache')
-    })
-
-    it('should handle file read errors gracefully', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      readFileSpy.mockRejectedValue(new Error('File not readable'))
-
-      const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
-
-      expect(result).toBeNull()
-    })
-
-    it('should return null for invalid workflow files', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      readFileSpy.mockResolvedValue('invalid yaml content [}')
-
-      const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
-
-      expect(result).toBeTruthy() // Should still parse, just with no dependencies
-      expect(result!.dependencies).toHaveLength(0)
-    })
+  it('parses action names and versions from a real workflow', async () => {
+    await workflow('ci.yml')
+    const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
+    expect(result?.path).toBe('.github/workflows/ci.yml')
+    expect(result?.dependencies.map(dependency => [dependency.name, dependency.currentVersion])).toEqual([
+      ['actions/checkout', 'v4'], ['oven-sh/setup-bun', 'v2'], ['actions/cache', 'v4.1.0'],
+    ])
   })
 
-  describe('integration with existing scanProject', () => {
-    it('should parse GitHub Actions files correctly', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
+  it('returns null when a workflow cannot be read', async () => {
+    expect(await scanner.parseGitHubActionsFile('.github/workflows/missing.yml')).toBeNull()
+  })
 
-      // Test parseGitHubActionsFile directly with mock content
-      const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
+  it('reports no dependencies for unsupported workflow content', async () => {
+    await workflow('invalid.yml', 'invalid yaml content [}')
+    const result = await scanner.parseGitHubActionsFile('.github/workflows/invalid.yml')
+    expect(result).toBeTruthy()
+    expect(result?.dependencies).toEqual([])
+  })
 
-      // The file doesn't exist in the test environment, so this should return null
-      // But we can verify the method exists and handles errors gracefully
-      expect(result).toBeNull()
-    })
+  it('includes the actual action dependency inventory in a project scan', async () => {
+    await workflow('ci.yml')
+    const files = await scanner.scanProject()
+    expect(files).toHaveLength(1)
+    expect(files[0]?.dependencies.map(dependency => dependency.name)).toEqual(['actions/checkout', 'oven-sh/setup-bun', 'actions/cache'])
+  })
 
-    it('should handle file read errors gracefully', async () => {
-      const scanner = new PackageScanner('/test/project', logger)
-
-      // Mock readFile to throw an error
-      readFileSpy.mockRejectedValueOnce(new Error('Permission denied'))
-
-      const result = await scanner.parseGitHubActionsFile('.github/workflows/ci.yml')
-
-      // Should return null on error
-      expect(result).toBeNull()
-    })
+  it('handles a directory where a workflow file was expected', async () => {
+    await mkdir(join(root, '.github/workflows/not-a-file.yml'), { recursive: true })
+    expect(await scanner.parseGitHubActionsFile('.github/workflows/not-a-file.yml')).toBeNull()
   })
 })

@@ -1,6 +1,7 @@
 import type { PackageUpdate } from '../types'
 import type { Logger } from '../utils/logger'
 import type { CatalogEntry } from './workspace-catalog'
+import { lstat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getDefaultLogger } from '../utils/logger'
 import { applyCatalogUpdate, parseWorkspaceCatalogs } from './workspace-catalog'
@@ -45,11 +46,12 @@ export async function scanCatalogs(
   const ignore = new Set(options.ignore ?? [])
 
   for (const candidate of [WORKSPACE_FILE, WORKSPACE_FILE_ALT]) {
-    const file = Bun.file(join(dir, candidate))
-    if (!(await file.exists()))
+    const path = join(dir, candidate)
+    const entry = await lstat(path).catch(() => null)
+    if (!entry?.isFile())
       continue
 
-    const { entries, hasCatalogs } = parseWorkspaceCatalogs(await file.text())
+    const { entries, hasCatalogs } = parseWorkspaceCatalogs(await Bun.file(path).text())
     if (!hasCatalogs)
       return { updates: [], entries: [], file: candidate }
 

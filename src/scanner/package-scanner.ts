@@ -4,7 +4,7 @@ import type {
   PackageFile,
 } from '../types'
 import { Glob } from 'bun'
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { BuddyError } from '../types'
 import { isDependencyFile, parseDependencyFile as parseDepFile } from '../utils/dependency-file-parser'
@@ -280,9 +280,14 @@ export class PackageScanner {
     try {
       // Look for .github/workflows directory
       const githubDir = '.github'
+      // A generated link is not an owned source directory, even when its
+      // target contains otherwise valid manifests. Check both path components.
+      const githubStats = await lstat(join(this.projectPath, githubDir)).catch(() => null)
+      if (!githubStats?.isDirectory())
+        return workflowFiles
       const workflowsDir = join(this.projectPath, githubDir, 'workflows')
 
-      const stats = await stat(workflowsDir).catch(() => null)
+      const stats = await lstat(workflowsDir).catch(() => null)
       if (stats?.isDirectory()) {
         const allYamlFiles = await this.findFilesByPatternInDir('*.yaml', workflowsDir)
         const allYmlFiles = await this.findFilesByPatternInDir('*.yml', workflowsDir)
@@ -337,7 +342,7 @@ export class PackageScanner {
         const fullPath = join(dir, entry)
 
         try {
-          const stats = await stat(fullPath)
+          const stats = await lstat(fullPath)
 
           if (stats.isFile()) {
             if (matches(entry))
@@ -560,9 +565,11 @@ export class PackageScanner {
         const fullPath = join(dir, entry)
 
         try {
-          const stats = await stat(fullPath)
+          const stats = await lstat(fullPath)
 
           if (stats.isDirectory()) {
+            // lstat excludes file/directory aliases without following their targets.
+            // Real vendored or workspace directories remain eligible.
             // Skip node_modules and other common ignored directories
             if (!shouldSkipPackageDirectory(entry)) {
               const subFiles = await this.findFiles(fileName, fullPath)
@@ -616,7 +623,7 @@ export class PackageScanner {
 
       for (const entry of entries) {
         const fullPath = join(this.projectPath, entry)
-        const stats = await stat(fullPath)
+        const stats = await lstat(fullPath)
 
         if (stats.isFile() && entry.endsWith(`.${extension}`)) {
           // Convert absolute path to relative path from project root
@@ -650,7 +657,7 @@ export class PackageScanner {
 
       for (const entry of entries) {
         const fullPath = join(dir, entry)
-        const stats = await stat(fullPath)
+        const stats = await lstat(fullPath)
 
         if (stats.isFile() && entry.endsWith(`.${extension}`)) {
           // Convert absolute path to relative path from project root

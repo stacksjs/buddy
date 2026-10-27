@@ -55,6 +55,11 @@ export async function detectFiles(dir: string, patterns: string[], maxDepth = 4)
         continue
       }
 
+      // Aliases are not writable project manifests. Do not classify symbolic
+      // links, sockets or other non-regular entries as dependency files.
+      if (!entry.isFile())
+        continue
+
       const relativePath = relative(dir, path)
       if (globs.some(glob => glob.match(entry.name) || glob.match(relativePath)))
         found.push(relativePath)
