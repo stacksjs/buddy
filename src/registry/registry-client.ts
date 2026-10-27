@@ -1476,7 +1476,7 @@ export class RegistryClient {
         for (const entry of entries) {
           const fullPath = path.join(dir, entry)
           const relativePath = currentPath ? path.join(currentPath, entry) : entry
-          const stats = await fs.promises.stat(fullPath)
+          const stats = await fs.promises.lstat(fullPath)
 
           if (stats.isDirectory()) {
             // Skip node_modules and other common ignored directories
