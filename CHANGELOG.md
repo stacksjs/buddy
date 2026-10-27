@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.14...v0.11.15)
+
+## 🐛 Bug Fixes
+
+- isolate standalone runtime from consumer preloads ([bcf46e4](https://github.com/stacksjs/buddy/commit/bcf46e4)) _(by Chris <chris@stacksjs.com>)_ ([#1461](https://github.com/stacksjs/buddy/issues/1461))
+- restrict registry updates to owned manifests ([4ab9d05](https://github.com/stacksjs/buddy/commit/4ab9d05)) _(by Chris <chris@stacksjs.com>)_ ([#1459](https://github.com/stacksjs/buddy/issues/1459))
+
+## 🔧 Chores
+
+- release v0.11.15 ([87afbfb](https://github.com/stacksjs/buddy/commit/87afbfb)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.13...v0.11.14)
 
 ## 🐛 Bug Fixes
