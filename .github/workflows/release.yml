@@ -25,10 +25,8 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Publish
-        run: pantry publish --npm --access public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build SDK
+        run: bun run build
 
       # Standalone binaries for the platforms the release advertises. Cross
       # compilation downloads a runtime matching the compiler's version, so
@@ -36,6 +34,14 @@ jobs:
       # provides.
       - name: Build release binaries
         run: bun run build:binaries
+
+      - name: Verify standalone consumer behavior
+        run: bun run test:binaries
+
+      - name: Publish
+        run: pantry publish --npm --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Pantry attaches the binaries and extracts this tag's section from
       # CHANGELOG.md for the body. The previous action-releaser step passed no

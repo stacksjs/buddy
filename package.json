@@ -50,12 +50,13 @@
   },
   "files": [
     "README.md",
-    "bin",
+    "bin/cli.ts",
     "dist"
   ],
   "scripts": {
     "build": "bun build.ts",
     "build:binaries": "bun build-binaries.ts",
+    "test:binaries": "bun scripts/verify-standalone.ts",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "prepublishOnly": "bun run build",
     "test": "bun test",

@@ -64,6 +64,9 @@ async function buildTarget(target: Target): Promise<string | null> {
     'build',
     './bin/cli.ts',
     '--compile',
+    // A standalone tool owns its runtime. Consumer Bunfig preloads belong
+    // to that application and must not run before Buddy's entrypoint.
+    '--no-compile-autoload-bunfig',
     `--target=${target.target}`,
     '--outfile',
     binaryPath,
