@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.13...v0.11.14)
+
+## 🐛 Bug Fixes
+
+- recognize actual git working trees in doctor ([bc2e8ac](https://github.com/stacksjs/buddy/commit/bc2e8ac)) _(by Chris <chris@stacksjs.com>)_ ([#1460](https://github.com/stacksjs/buddy/issues/1460))
+- exclude linked manifests from dependency discovery ([cd08af4](https://github.com/stacksjs/buddy/commit/cd08af4)) _(by Chris <chris@stacksjs.com>)_ ([#1459](https://github.com/stacksjs/buddy/issues/1459))
+
+## 🔧 Chores
+
+- release v0.11.14 ([d203811](https://github.com/stacksjs/buddy/commit/d203811)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.12...v0.11.13)
 
 ## 🐛 Bug Fixes
