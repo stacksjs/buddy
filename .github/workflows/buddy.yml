@@ -1,4 +1,4 @@
-name: Buddy on Linux-xarm92
+name: Buddy
 
 # Dogfood: every job runs the checked-out source (bun ./bin/cli.ts), never the
 # published package — merged changes are exercised by the next scheduled run.
@@ -7,13 +7,13 @@ on:
   # Rebase checkbox: fires instantly when a PR body is edited (e.g. checkbox ticked).
   # No polling needed — this replaces the old every-minute cron for rebase detection.
   pull_request:
-    types: [edited, assigned, labeled, opened]
+    types: [edited]
 
   schedule:
+    # Update dependencies every 2 hours
+    - cron: '0 */2 * * *'
     # Update dashboard 15 minutes after dependency updates (ensures updates are reflected)
     - cron: '15 */2 * * *'
-    # Update dashboard every 2 hours before 5 minutes cron: dependency updates (ensures updates are reflected)
-    - cron: '10 */2 * * *'
     # Daily cleanup at 4am UTC — runs the check job for orphan-branch cleanup
     # and obsolete-PR detection. The PR-edited trigger handles rebase requests
     # in real time, but cleanup needs a scheduled tick or stale branches pile up.
@@ -23,7 +23,7 @@ on:
     inputs:
       job:
         description: Which job to run
-        required: true
+        required: false
         default: all
         type: choice
         options:
@@ -34,7 +34,7 @@ on:
       # Update job inputs
       strategy:
         description: Update strategy
-        required: true
+        required: false
         default: patch
         type: choice
         options:
@@ -44,27 +44,27 @@ on:
           - patch
       packages:
         description: Specific packages (comma-separated)
-        required: true
+        required: false
         type: string
       # Dashboard job inputs
       title:
         description: Custom dashboard title
-        required: true
+        required: false
         type: string
       issue_number:
         description: Specific issue number to update
-        required: true
+        required: false
         type: string
       # Common inputs
       dry_run:
         description: Dry run (preview only)
-        required: true
-        default: true
+        required: false
+        default: false
         type: boolean
       verbose:
         description: Enable verbose logging
-        required: true
-        default: false
+        required: false
+        default: true
         type: boolean
 
 env:
@@ -94,8 +94,8 @@ concurrency:
 jobs:
   # Job to determine which jobs should run based on trigger
   determine-jobs:
-    runs-on: linux-xarm92
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       run_check: ${{ steps.determine.outputs.run_check }}
       run_update: ${{ steps.determine.outputs.run_update }}
@@ -149,13 +149,13 @@ jobs:
 
   # Shared setup job for common dependencies
   setup:
-    runs-on: linux-xarm92
-    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: determine-jobs
     if: ${{ needs.determine-jobs.outputs.run_check == 'true' || needs.determine-jobs.outputs.run_update == 'true' || needs.determine-jobs.outputs.run_dashboard == 'true' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0 # Fetch full history for rebasing
@@ -163,16 +163,16 @@ jobs:
           # checkout is the PR merge commit — never run PR-modified code in a
           # job whose environment holds BUDDY_TOKEN.
           ref: main
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v3
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup PHP and Composer (if needed)
         if: ${{ hashFiles('composer.json') != '' }}
-        uses: shivammathur/setup-php@v6
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.6'
+          php-version: '8.4'
           tools: composer
           coverage: none
 
@@ -208,7 +208,7 @@ jobs:
           persist-credentials: true
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v3
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install
@@ -276,8 +276,8 @@ jobs:
 
   # Dependency update job
   dependency-update:
-    runs-on: linux-xarm92
-    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [determine-jobs, setup]
     if: ${{ needs.determine-jobs.outputs.run_update == 'true' }}
 
@@ -287,16 +287,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v4
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup PHP and Composer (if needed)
         if: ${{ hashFiles('composer.json') != '' }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.7'
+          php-version: '8.4'
           tools: composer
           coverage: none
 
@@ -386,19 +386,19 @@ jobs:
 
   # Dashboard update job
   dashboard-update:
-    runs-on: linux-xarm92
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [determine-jobs, setup, dependency-update]
     if: ${{ needs.determine-jobs.outputs.run_dashboard == 'true' && always() }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v3
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install
