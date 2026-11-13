@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.15...v0.11.16)
+
+## 🐛 Bug Fixes
+
+- leave workspace, file and git ranges alone when a package is also published ([88dfc4a](https://github.com/stacksjs/buddy/commit/88dfc4a)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.16 ([bce69a7](https://github.com/stacksjs/buddy/commit/bce69a7)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.14...v0.11.15)
 
 ## 🐛 Bug Fixes
