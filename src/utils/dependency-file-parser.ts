@@ -209,6 +209,12 @@ export async function updateDependencyFile(filePath: string, content: string, up
             return fullMatch
           }
 
+          // A workspace, file, link or git range names a place, not a
+          // version: writing a version after it (`workspace:*0.1.7`) breaks
+          // the install.
+          if (isLocationRange(currentVersionInFile))
+            return fullMatch
+
           // Extract the original version prefix (^, ~, >=, etc.) or lack thereof
           const originalPrefix = currentVersionInFile.match(/^(\D*)/)?.[1] ?? ''
 
@@ -292,4 +298,13 @@ export async function generateDependencyFileUpdates(updates: PackageUpdate[]): P
   }
 
   return fileUpdates
+}
+
+/**
+ * True when a dependency range points at a place rather than a registry
+ * version: `workspace:*`, `file:../pkg`, `link:`, `portal:`, a git or http
+ * URL, or a `github:` shorthand. Such a range is never rewritten to a version.
+ */
+export function isLocationRange(range: string): boolean {
+  return /^(?:workspace|file|link|portal|git|github|gitlab|bitbucket|https?|git\+[a-z]+):/i.test(range.trim())
 }

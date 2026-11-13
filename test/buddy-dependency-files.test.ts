@@ -128,6 +128,22 @@ describe('Buddy - Dependency Files Integration', () => {
       expect(mockGenerateDependencyFileUpdates).not.toHaveBeenCalled()
     })
 
+    it('leaves a workspace range alone when the package is also published', async () => {
+      readFileSpy.mockReturnValue(JSON.stringify({
+        name: 'test-project',
+        dependencies: { '@acme/kit': 'workspace:*', 'cac': '6.7.13' },
+      }, null, 2))
+
+      const result = await buddy.generateAllFileUpdates([
+        { name: '@acme/kit', currentVersion: '0.1.5', newVersion: '0.1.7', updateType: 'patch', dependencyType: 'dependencies', file: 'package.json' },
+        packageJsonUpdates[0],
+      ])
+
+      const content = result.find((u: any) => u.path === 'package.json')?.content
+      expect(content).toContain('"@acme/kit": "workspace:*"')
+      expect(content).toContain('"cac": "6.7.14"')
+    })
+
     it('should only process dependency files when no package.json updates', async () => {
       existsSyncSpy.mockReturnValue(true)
       readFileSpy.mockReturnValue('dependencies:\n  lodash: ^4.17.21')

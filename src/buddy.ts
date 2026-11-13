@@ -39,6 +39,7 @@ import { getUpdateType, groupUpdates, sortUpdatesByPriority } from './utils/help
 import { Logger, setDefaultLogger } from './utils/logger'
 import { resolveRepositoryConfig } from './utils/repository'
 import { isBuddyBranch } from './utils/branches'
+import { isLocationRange } from './utils/dependency-file-parser'
 
 export class Buddy {
   private readonly logger: Logger
@@ -1818,6 +1819,12 @@ export class Buddy {
           for (const section of dependencySections) {
             if (packageJson[section] && packageJson[section][cleanPackageName]) {
               const currentVersionInFile = packageJson[section][cleanPackageName]
+
+              // A workspace, file, link or git range is left as it is.
+              if (typeof currentVersionInFile !== 'string' || isLocationRange(currentVersionInFile)) {
+                packageFound = true
+                break
+              }
 
               // Extract the original version prefix (^, ~, >=, etc.) or lack thereof
               const versionPrefixMatch = currentVersionInFile.match(/^(\D*)/)
