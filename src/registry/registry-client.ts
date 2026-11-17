@@ -457,6 +457,24 @@ export class RegistryClient {
   }
 
   /**
+   * Published versions eligible under the same release policy as updates.
+   * Full metadata deliberately retains historical releases. Those must not
+   * become dashboard update targets when `latest` moved to a lower version
+   * line, or when prereleases are excluded by configuration.
+   */
+  async getReleaseVersions(packageName: string): Promise<string[]> {
+    const latest = await this.getLatestVersion(packageName)
+    if (!latest)
+      return []
+
+    const packument = await this.fetchPackument(packageName)
+    const includePrerelease = this.config?.packages?.includePrerelease ?? false
+    return Object.keys(packument?.versions ?? {}).filter(version =>
+      (includePrerelease || !this.isPrerelease(version))
+      && Bun.semver.order(version, latest) <= 0)
+  }
+
+  /**
    * Get latest version from the npm registry, respecting prerelease settings.
    *
    * Prefers the `latest` dist-tag, which is what a bare `install` resolves to,

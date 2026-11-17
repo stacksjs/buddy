@@ -24,7 +24,7 @@ interface InstalledPackage {
  * range is invisible from the repository's own manifests.
  *
  * @param packageFiles - Scanned manifests from the project
- * @param registry - Client used to list published versions
+ * @param registry - Client used to list versions eligible for configured updates
  * @param projectPath - Directory containing `node_modules`
  * @param logger - Logger for diagnostics
  * @returns One input per installed package that also has published versions
@@ -73,14 +73,17 @@ export async function collectDriftInputs(
       continue
 
     try {
-      const metadata = await registry.getPackageMetadata(pkg.name)
-      if (!metadata?.versions?.length)
+      // Advisory drift must use the same release line and prerelease policy
+      // as actual updates, rather than treating all historical metadata as
+      // install targets.
+      const available = await registry.getReleaseVersions(pkg.name)
+      if (available.length === 0)
         continue
 
       inputs.push({
         name: pkg.name,
         installed: pkg.version,
-        available: metadata.versions,
+        available,
         declared,
       })
     }
