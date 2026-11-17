@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.16...v0.11.17)
+
+## 🐛 Bug Fixes
+
+- **dashboard**: respect the configured release line when reporting caps ([f15e09c](https://github.com/stacksjs/buddy/commit/f15e09c)) _(by Chris Breuer <chrisbreuer93@gmail.com>)_
+
+## 🔧 Chores
+
+- release v0.11.17 ([6a4df8e](https://github.com/stacksjs/buddy/commit/6a4df8e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _Chris Breuer <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.15...v0.11.16)
 
 ## 🐛 Bug Fixes
