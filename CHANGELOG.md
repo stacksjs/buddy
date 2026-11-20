@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.17...v0.11.18)
+
+## ✨ Features
+
+- **cli**: bring Stacks to the Buddy launcher ([a0f4685](https://github.com/stacksjs/buddy/commit/a0f4685)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.18 ([a455646](https://github.com/stacksjs/buddy/commit/a455646)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris Breuer <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.16...v0.11.17)
 
 ## 🐛 Bug Fixes
