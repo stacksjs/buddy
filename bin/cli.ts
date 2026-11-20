@@ -45,6 +45,7 @@ import { applySuggestion, REVIEW_FORMATS } from '../src/review/local'
 import { formatError } from '../src/utils/errors'
 import { Logger } from '../src/utils/logger'
 import { isBuddyBranch } from '../src/utils/branches'
+import { runStacks, stacksArgs } from '../src/stacks-cli'
 
 let _resolvedConfig: BuddyConfig | null = null
 
@@ -3535,6 +3536,14 @@ cli.command('version', 'Show the version of Buddy').action(() => {
   console.log(version)
 })
 
+cli
+  .command('stacks', 'Run the Stacks framework CLI')
+  .option('--runtime <version>', 'Select the machine Stacks runtime version before the command')
+  .option('--project <project>', 'Forward a project name or path to the Stacks command')
+  .action(() => {
+    process.stdout.write('Usage: buddy stacks [--runtime <version>] <command> [args...]\nRun buddy stacks --help for the Stacks command list.\n')
+  })
+
 // `--help` is a flag, but `buddy help` is what a newcomer types. Registering
 // it means the guess works rather than printing 'Command "help" not found'.
 cli.command('help', 'Show this help text').action(() => {
@@ -3554,5 +3563,9 @@ cli.help()
 // parse argv or run a command — only direct execution does.
 export { cli }
 
-if (import.meta.main)
+if (import.meta.main) {
+  const args = stacksArgs(process.argv.slice(2))
+  if (args)
+    runStacks(args)
   cli.parse()
+}

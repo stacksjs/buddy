@@ -21,7 +21,7 @@ hero:
   code:
     - file: "the short version"
       lang: "ascii"
-      content: |
+      content: |2
                      __
             (\,------'()'--o    what buddy replaces
              (_    ___    /~"

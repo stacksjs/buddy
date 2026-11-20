@@ -43,7 +43,9 @@
   "module": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
-    "buddy": "./dist/bin/cli.js"
+    "buddy": "./dist/bin/entry.js",
+    "bud": "./dist/bin/stacks.js",
+    "stacks": "./dist/bin/stacks.js"
   },
   "publishConfig": {
     "access": "public"

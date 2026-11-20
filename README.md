@@ -102,6 +102,18 @@ buddy setup --non-interactive --preset testing --verbose
 buddy scan
 ```
 
+## Stacks CLI
+
+The same global Buddy install runs Stacks commands and hands project commands to the framework version installed in each project.
+
+```sh
+buddy stacks projects:scan ~/Code
+buddy stacks dev --project shop
+buddy stacks daemon:start
+```
+
+See the [Stacks CLI guide](https://buddy.sh/cli/stacks) to switch from a global `@stacksjs/buddy` install and enable generation in your projects.
+
 ## Usage
 
 ### Interactive Setup

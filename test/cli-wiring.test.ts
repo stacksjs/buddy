@@ -51,6 +51,7 @@ describe('cli wiring', () => {
         'search',
         'security',
         'setup',
+        'stacks',
         'touch',
         'update',
         'update-check',

@@ -1,2 +1,4 @@
-#!/usr/bin/env bun
-import('./bin/cli.ts')
+#!/usr/bin/env -S bun --config=/dev/null --no-install --no-env-file
+import { main } from './bin/entry.ts'
+
+await main()

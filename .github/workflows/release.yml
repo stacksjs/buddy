@@ -38,6 +38,22 @@ jobs:
       - name: Verify standalone consumer behavior
         run: bun run test:binaries
 
+      - name: Verify the pinned Stacks runtime is installable
+        timeout-minutes: 45
+        run: |
+          version=$(bun -e 'import { stacksRuntimeVersion } from "./src/stacks-cli"; console.log(stacksRuntimeVersion)')
+          for attempt in $(seq 1 90); do
+            if bun pm view "@stacksjs/buddy@$version" version >/dev/null 2>&1 &&
+              output=$(bun ./dist/bin/entry.js stacks --version 2>&1) &&
+              printf '%s\n' "$output" | grep -F "buddy/$version stacks/$version "; then
+              exit 0
+            fi
+            echo "Waiting for the Stacks $version runtime ($attempt/90)"
+            sleep 30
+          done
+          echo "::error::The published Stacks $version runtime could not be run."
+          exit 1
+
       - name: Publish
         run: pantry publish --npm --access public
         env:

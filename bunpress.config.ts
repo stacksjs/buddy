@@ -44,6 +44,7 @@ const docsSidebar = [
     text: 'CLI',
     items: [
       { text: 'Overview', link: '/cli/overview' },
+      { text: 'Stacks CLI', link: '/cli/stacks' },
       { text: 'setup', link: '/cli/setup' },
       { text: 'Local Review', link: '/cli/review' },
       { text: 'Update Commands', link: '/cli/update' },
@@ -341,6 +342,7 @@ const popularDocs = [
   { text: 'Installation', link: '/install' },
   { text: 'Local Review', link: '/cli/review' },
   { text: 'CLI Overview', link: '/cli/overview' },
+  { text: 'Stacks CLI', link: '/cli/stacks' },
   { text: 'AI Providers', link: '/ai/providers' },
   { text: 'Configuration', link: '/config' },
   { text: 'Monorepos', link: '/advanced/monorepo' },
@@ -484,7 +486,8 @@ const config: BunPressConfig = {
     nav: [
       featuresMenu,
       useCasesMenu,
-      { text: 'Docs', link: '/docs', activeMatch: '^/(docs|intro|install|usage|config|guide|cli|ai|advanced|api|features)' },
+      { text: 'Stacks', link: '/cli/stacks', activeMatch: '^/cli/stacks' },
+      { text: 'Docs', link: '/docs', activeMatch: '^/(docs|intro|install|usage|config|guide|cli(?!/stacks(?:/|$))|ai|advanced|api|features)' },
     ],
 
     sidebar: {

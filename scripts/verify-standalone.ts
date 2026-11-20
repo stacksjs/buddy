@@ -30,17 +30,20 @@ try {
   await run(['git', 'init', '--quiet'], consumer)
   const doctor = await run([binary, 'doctor'], consumer)
   if (!doctor.includes('git repository:') || !doctor.includes('Ready.')) throw new Error('Standalone doctor did not recognize its real consumer repository')
+  const stacks = await run([binary, 'stacks'], consumer)
+  if (!stacks.includes('Usage: buddy stacks')) throw new Error('Standalone Buddy did not register the Stacks launcher')
   // Native archives now exist before publication. Exercise the real package
   // file policy so those platform assets cannot bloat the npm SDK tarball.
   await run([process.execPath, 'pm', 'pack', '--ignore-scripts', '--filename', join(temporary, 'sdk.tgz'), '--quiet'], process.cwd())
   const archiveEntries = (await run(['tar', '-tzf', join(temporary, 'sdk.tgz')], temporary)).trim().split('\n')
-  for (const required of ['package/dist/src/index.js', 'package/dist/src/index.d.ts', 'package/dist/bin/cli.js']) {
+  for (const required of ['package/dist/src/index.js', 'package/dist/src/index.d.ts', 'package/dist/bin/entry.js', 'package/dist/bin/stacks.js']) {
     if (!archiveEntries.includes(required)) throw new Error(`SDK package is missing ${required}`)
   }
   const cliSources = archiveEntries.filter(path => path.startsWith('package/bin/') && !path.endsWith('/'))
   if (cliSources.length !== 1 || cliSources[0] !== 'package/bin/cli.ts' || archiveEntries.some(path => path.endsWith('.zip'))) throw new Error('Native build artifacts leaked into the npm SDK package')
   const packed = JSON.parse(await run(['tar', '-xOzf', join(temporary, 'sdk.tgz'), 'package/package.json'], temporary))
   if (packed.name !== packageName || packed.version !== version) throw new Error('SDK package identity differs from its source')
+  if (packed.bin?.buddy !== './dist/bin/entry.js' || packed.bin?.stacks !== './dist/bin/stacks.js' || packed.bin?.bud !== packed.bin.stacks) throw new Error('SDK package is missing its Buddy and Stacks command aliases')
   console.log(output.trim())
   console.log('Verified standalone version and doctor without executing the consumer Bunfig preload.')
   console.log('Verified SDK entrypoints and package identity without native archive leakage.')

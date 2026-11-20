@@ -20,7 +20,7 @@ hero:
   code:
     - file: "what leaves your network"
       lang: "ascii"
-      content: |
+      content: |2
                      __
             (\,------'()'--o    buddy, per review
              (_    ___    /~"

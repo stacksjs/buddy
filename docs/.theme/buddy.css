@@ -973,3 +973,47 @@ body :is(h1, h2, h3, h4)[id] {
   background: #5b5145;
   background-clip: content-box;
 }
+
+.BuddyWorkflow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+  margin-block: 1.5rem 2rem;
+}
+
+.BPContent .BuddyWorkflow a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--bp-c-border);
+  border-radius: var(--buddy-radius);
+  background: var(--buddy-card-bg);
+  color: var(--bp-c-text-2);
+  box-shadow: var(--buddy-card-shadow);
+  text-decoration: none;
+}
+
+.BPContent .BuddyWorkflow a:hover,
+.BPContent .BuddyWorkflow a:focus-visible {
+  border-color: var(--bp-c-brand-1);
+  box-shadow: var(--buddy-card-shadow-hover);
+}
+
+.BuddyWorkflow strong {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-family: var(--buddy-font-display);
+  font-size: 1.125rem;
+  color: var(--bp-c-text-1);
+}
+
+.BuddyWorkflow strong span {
+  color: var(--bp-c-brand-1);
+}
+
+.BuddyWorkflow code {
+  align-self: flex-start;
+  margin-top: auto;
+}

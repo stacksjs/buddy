@@ -2,6 +2,8 @@
 
 Installing `buddy` is easy. Simply pull it in via your package manager of choice, or download the binary directly.
 
+If you already installed the Stacks CLI globally as `@stacksjs/buddy`, remove that global install before installing `@buddysh/buddy` so it owns the shared command names. Keep the Stacks dependencies inside each project. See the [Stacks CLI guide](/cli/stacks).
+
 ## Package Managers
 
 Choose your package manager of choice:

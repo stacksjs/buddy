@@ -23,6 +23,7 @@ these same commands.
 | Page | What it covers |
 | --- | --- |
 | [Overview](/cli/overview) | Every command, grouped by what it is for |
+| [Stacks CLI](/cli/stacks) | Project commands and background generation |
 | [`buddy setup`](/cli/setup) | Interactive and non-interactive setup |
 | [Local Review](/cli/review) | Reviewing the working tree before a PR exists |
 | [Update Commands](/cli/update) | `scan`, `update`, `update-check` |

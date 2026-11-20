@@ -25,6 +25,10 @@ buddy <command> [options] [arguments]
 
 ## Available Commands
 
+### Stacks
+
+Use [`buddy stacks`](/cli/stacks) to run Stacks commands and manage background generation for registered projects.
+
 ### 🚀 Setup & Configuration
 
 | Command | Description |

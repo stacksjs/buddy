@@ -20,7 +20,7 @@ hero:
   code:
     - file: "nothing to adopt"
       lang: "ascii"
-      content: |
+      content: |2
                      __
             (\,------'()'--o    what changes for the team
              (_    ___    /~"

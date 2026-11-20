@@ -62,11 +62,12 @@ async function buildTarget(target: Target): Promise<string | null> {
     // depend on shell setup rather than on anything visible here.
     process.execPath,
     'build',
-    './bin/cli.ts',
+    './bin/entry.ts',
     '--compile',
-    // A standalone tool owns its runtime. Consumer Bunfig preloads belong
-    // to that application and must not run before Buddy's entrypoint.
+    // The launcher chooses the project before its Bun config and environment
+    // are loaded by the project runtime.
     '--no-compile-autoload-bunfig',
+    '--no-compile-autoload-dotenv',
     `--target=${target.target}`,
     '--outfile',
     binaryPath,

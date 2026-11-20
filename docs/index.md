@@ -3,22 +3,18 @@ layout: home
 
 hero:
   name: "buddy"
-  text: "The teammate who reads every pull request"
-  tagline: "Buddy reviews your code, answers questions in the thread, gates merges, repairs failing CI — and keeps your dependencies current while it is in there. One bot, your CI, your keys."
-  announcement:
-    tag: "v0.11"
-    text: "Now published as @buddysh/buddy"
-    link: /install
+  text: "Code review, updates, and Stacks"
+  tagline: "Review pull requests and manage dependency updates in your own CI. Run every Stacks project on your machine from the same Buddy install."
   actions:
     - theme: brand
-      text: Get Started
+      text: Install Buddy
+      link: /install
+    - theme: alt
+      text: Stacks CLI
+      link: /cli/stacks
+    - theme: alt
+      text: Set up CI
       link: /guide/getting-started
-    - theme: alt
-      text: Browse the features
-      link: /features/
-    - theme: alt
-      text: Compare Buddy
-      link: /compare/
   code:
     - file: "buddy"
       lang: "ascii"
@@ -57,31 +53,17 @@ hero:
 
         ...anything else is treated as a question,
         and answered in the thread.
-    - file: "buddy.config.ts"
-      lang: "ts"
+    - file: "Stacks"
+      lang: "ascii"
       content: |
-        import type { BuddyConfig } from '@buddysh/buddy'
+        $ buddy stacks projects
+          shop  ~/Code/shop
+          blog  ~/Code/blog
 
-        export default {
-          ai: {
-            provider: 'anthropic',
-            model: 'claude-opus-5',
-          },
-          packages: {
-            strategy: 'all',
-            groups: [
-              { name: 'Types', patterns: ['@types/*'] },
-            ],
-          },
-          pullRequest: {
-            labels: ['dependencies'],
-            autoMerge: {
-              enabled: true,
-              strategy: 'squash',
-              conditions: ['patch-only'],
-            },
-          },
-        } satisfies BuddyConfig
+        $ buddy stacks dev --project shop
+
+        $ buddy stacks daemon:status
+          Generation  2 watched, 0 queued
 
 features:
   - title: "Reviews like a colleague, not a linter"
@@ -109,9 +91,22 @@ features:
     details: "Buddy runs as a step in your own workflow. Point it at Anthropic, OpenAI, Google, OpenRouter or any OpenAI-compatible endpoint — or at nothing at all and keep the analyzers. No third-party app on your repository, no diff leaving your pipeline."
 ---
 
-## Two jobs, one teammate
+## Bring Buddy into your workflow
 
-Buddy covers the ground that usually takes two bots and two subscriptions.
+<div class="BuddyWorkflow">
+  <a href="/guide/getting-started">
+    <strong>Pull requests and CI <span aria-hidden="true">→</span></strong>
+    <span>Set up code review, merge gates, and dependency updates.</span>
+    <code>buddy setup</code>
+  </a>
+  <a href="/cli/stacks">
+    <strong>Stacks projects <span aria-hidden="true">→</span></strong>
+    <span>Switch projects and keep migrations, declarations, and auto-imports current.</span>
+    <code>buddy stacks projects</code>
+  </a>
+</div>
+
+## What Buddy does on pull requests
 
 | | Review | Dependencies |
 | --- | --- | --- |
