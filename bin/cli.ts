@@ -7,8 +7,7 @@ import type { ReviewFormat } from '../src/review/local'
 import type { BuddyConfig, PullRequest } from '../src/types'
 import fs from 'node:fs'
 import process from 'node:process'
-import { CLI } from '@stacksjs/clapp'
-import prompts from 'prompts'
+import { CLI, confirm, select } from '@stacksjs/clapp'
 import { version } from '../package.json'
 import { Buddy } from '../src/buddy'
 import { getConfig } from '../src/config'
@@ -143,16 +142,13 @@ async function applyFixes(findings: ReviewFinding[], assumeYes: boolean, logger:
 
     for (const finding of [...fileFindings].sort((a, b) => b.line - a.line)) {
       if (!assumeYes) {
-        const response = await prompts({
-          type: 'confirm',
-          name: 'apply',
+        const apply = await confirm({
           message: `${path}:${finding.line} — ${finding.message}\n  ${finding.suggestion}\nApply?`,
-          initial: false,
+          initialValue: false,
         })
 
-        // A cancelled prompt (Ctrl-C) leaves `apply` undefined; treating that
-        // as "no" is the only safe reading.
-        if (!response.apply)
+        // A cancelled prompt must leave the suggestion unapplied.
+        if (apply !== true)
           continue
       }
 
@@ -342,14 +338,12 @@ cli
         console.log(`Found ${existingTools.length} existing dependency management tool(s):`)
         existingTools.forEach(tool => console.log(`   • ${tool.name} (${tool.configFile})`))
 
-        const migrateResponse = await prompts({
-          type: 'confirm',
-          name: 'migrate',
+        const migrate = await confirm({
           message: 'Would you like to migrate existing configurations to Buddy?',
-          initial: true,
+          initialValue: true,
         })
 
-        if (migrateResponse.migrate) {
+        if (migrate === true) {
           console.log('\n📋 Migrating configurations...')
           for (const tool of existingTools) {
             try {
@@ -393,14 +387,12 @@ cli
         console.log(`Found ${availablePlugins.length} available integration(s):`)
         availablePlugins.forEach(plugin => console.log(`   • ${plugin.name} v${plugin.version}`))
 
-        const pluginResponse = await prompts({
-          type: 'confirm',
-          name: 'enablePlugins',
+        const enablePlugins = await confirm({
           message: 'Would you like to enable these integrations?',
-          initial: true,
+          initialValue: true,
         })
 
-        if (pluginResponse.enablePlugins) {
+        if (enablePlugins === true) {
           for (const plugin of availablePlugins) {
             await pluginManager.loadPlugin(plugin)
           }
@@ -511,61 +503,56 @@ cli
       displayProgress(progress)
 
       console.log('\n⚙️  Workflow Configuration')
-      let workflowResponse
+      let useCase = options.preset ?? 'standard'
       if (options.nonInteractive) {
-        workflowResponse = { useCase: options.preset }
-        console.log(`✅ Using ${options.preset} preset for workflow configuration`)
+        console.log(`✅ Using ${useCase} preset for workflow configuration`)
       }
       else {
-        workflowResponse = await prompts([
-          {
-            type: 'select',
-            name: 'useCase',
-            message: 'What type of update schedule would you like?',
-            choices: [
-              {
-                title: 'Standard Setup (Recommended)',
-                description: 'Dashboard updates 3x/week, dependency updates on schedule',
-                value: 'standard',
-              },
-              {
-                title: 'High Frequency',
-                description: 'Check for updates multiple times per day',
-                value: 'high-frequency',
-              },
-              {
-                title: 'Security Focused',
-                description: 'Frequent patch updates with security-first approach',
-                value: 'security',
-              },
-              {
-                title: 'Minimal Updates',
-                description: 'Weekly checks, lower frequency',
-                value: 'minimal',
-              },
-              {
-                title: 'Development/Testing',
-                description: 'Manual triggers + frequent checks for testing',
-                value: 'testing',
-              },
-              {
-                title: 'Custom Configuration',
-                description: 'Create your own schedule',
-                value: 'custom',
-              },
-            ],
-          },
-        ])
+        const selected = await select({
+          message: 'What type of update schedule would you like?',
+          options: [
+            {
+              label: 'Standard Setup (Recommended)',
+              hint: 'Dashboard updates 3x/week, dependency updates on schedule',
+              value: 'standard',
+            },
+            {
+              label: 'High Frequency',
+              hint: 'Check for updates multiple times per day',
+              value: 'high-frequency',
+            },
+            {
+              label: 'Security Focused',
+              hint: 'Frequent patch updates with security-first approach',
+              value: 'security',
+            },
+            {
+              label: 'Minimal Updates',
+              hint: 'Weekly checks, lower frequency',
+              value: 'minimal',
+            },
+            {
+              label: 'Development/Testing',
+              hint: 'Manual triggers + frequent checks for testing',
+              value: 'testing',
+            },
+            {
+              label: 'Custom Configuration',
+              hint: 'Create your own schedule',
+              value: 'custom',
+            },
+          ],
+        })
 
-        if (!workflowResponse.useCase) {
+        if (typeof selected !== 'string') {
           console.log('Setup cancelled.')
           return
         }
+        useCase = selected
       }
 
-      // Resolved before the config file, not after: the preset decides the
-      // update strategy and auto-merge policy that file is written with.
-      const preset = getWorkflowPreset(workflowResponse.useCase)
+      // The preset supplies the update strategy and auto-merge policy for the generated config.
+      const preset = getWorkflowPreset(useCase)
 
       // Step 5: Generate Configuration File
       updateProgress(progress, 'Configuration File', true)
@@ -580,7 +567,7 @@ cli
 
       console.log('\n🔄 Workflow Generation')
 
-      if (workflowResponse.useCase === 'custom' && !options.nonInteractive) {
+      if (useCase === 'custom' && !options.nonInteractive) {
         await setupCustomWorkflow(preset, logger)
       }
       else {
@@ -2552,14 +2539,12 @@ cli
 
       // Confirmation prompt (unless --force is used)
       if (!options.force) {
-        const response = await prompts({
-          type: 'confirm',
-          name: 'confirmed',
+        const confirmed = await confirm({
           message: `Are you sure you want to delete ${staleBranches.length} stale branches?`,
-          initial: false,
+          initialValue: false,
         })
 
-        if (!response.confirmed) {
+        if (confirmed !== true) {
           logger.info('❌ Cleanup cancelled')
           return
         }

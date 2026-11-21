@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { promisify } from 'node:util'
-import prompts from 'prompts'
+import { confirm, multiselect, select, text as askText } from '@stacksjs/clapp'
 import { convertRenovateRules } from './rules/renovate'
 import { ciTemplateFor } from './templates/gitlab-ci'
 import { GitHubActionsTemplate } from './templates/github-actions'
@@ -1187,37 +1187,35 @@ export async function confirmTokenSetup(): Promise<{ hasCustomToken: boolean, ne
   getDefaultLogger().info('  • Default GITHUB_TOKEN (limited permissions)')
   getDefaultLogger().info('')
 
-  const response = await prompts({
-    type: 'select',
-    name: 'tokenChoice',
+  const tokenChoice = await select({
     message: 'How would you like to configure GitHub authentication?',
-    choices: [
+    options: [
       {
-        title: 'Use organization/repository secrets',
-        description: 'I have already configured PAT as an organization or repository secret',
+        label: 'Use organization/repository secrets',
+        hint: 'I have already configured PAT as an organization or repository secret',
         value: 'existing-secret',
       },
       {
-        title: 'Set up a new Personal Access Token',
-        description: 'Guide me through creating and configuring a new PAT',
+        label: 'Set up a new Personal Access Token',
+        hint: 'Guide me through creating and configuring a new PAT',
         value: 'new-pat',
       },
       {
-        title: 'Use default GITHUB_TOKEN only',
-        description: 'Limited functionality - workflow updates won\'t work',
+        label: 'Use default GITHUB_TOKEN only',
+        hint: 'Limited functionality - workflow updates won\'t work',
         value: 'default-token',
       },
     ],
-    initial: 0,
+    initialValue: 'existing-secret',
   })
 
   // Handle user cancellation
-  if (!response.tokenChoice) {
+  if (typeof tokenChoice !== 'string') {
     getDefaultLogger().info('Using default GITHUB_TOKEN (limited functionality)')
     return { hasCustomToken: false, needsGuide: false }
   }
 
-  switch (response.tokenChoice) {
+  switch (tokenChoice) {
     case 'existing-secret':
       return { hasCustomToken: true, needsGuide: false }
     case 'new-pat':
@@ -2732,115 +2730,90 @@ export function displayValidationResults(results: ValidationResult, title: strin
 }
 
 export async function setupCustomWorkflow(preset: WorkflowPreset, _logger: Logger): Promise<void> {
-  const response = await prompts([
-    {
-      type: 'multiselect',
-      name: 'templates',
-      message: 'Which built-in workflow templates would you like to enable?',
-      choices: [
-        { title: 'Daily Updates', description: 'Run patch updates daily', value: 'daily' },
-        { title: 'Weekly Updates', description: 'Run minor updates weekly', value: 'weekly' },
-        { title: 'Monthly Updates', description: 'Run major updates monthly', value: 'monthly' },
-        { title: 'Comprehensive', description: 'All-in-one workflow', value: 'comprehensive' },
-        { title: 'Docker Support', description: 'Container-optimized workflows', value: 'docker' },
-        { title: 'Monorepo Support', description: 'Multi-package workflows', value: 'monorepo' },
+  const templates = await multiselect<keyof WorkflowPreset['templates']>({
+    message: 'Which built-in workflow templates would you like to enable?',
+    options: [
+      { label: 'Daily Updates', hint: 'Run patch updates daily', value: 'daily' },
+      { label: 'Weekly Updates', hint: 'Run minor updates weekly', value: 'weekly' },
+      { label: 'Monthly Updates', hint: 'Run major updates monthly', value: 'monthly' },
+      { label: 'Comprehensive', hint: 'All-in-one workflow', value: 'comprehensive' },
+      { label: 'Docker Support', hint: 'Container-optimized workflows', value: 'docker' },
+      { label: 'Monorepo Support', hint: 'Multi-package workflows', value: 'monorepo' },
+    ],
+    required: false,
+  })
+  if (!Array.isArray(templates)) return
+  for (const template of templates)
+    preset.templates[template] = true
+
+  const addCustom = await confirm({
+    message: 'Would you like to add custom workflow schedules?',
+    initialValue: false,
+  })
+  if (addCustom !== true) return
+  preset.custom ??= []
+
+  let addMore: boolean
+  do {
+    const name = await askText({
+      message: 'Workflow name (e.g., "security-updates"):',
+      validate: value => value?.length ? undefined : 'Name is required',
+    })
+    if (typeof name !== 'string') return
+    let schedule = await select<string>({
+      message: 'Update frequency:',
+      options: [
+        { label: 'Every 6 hours', value: '0 */6 * * *' },
+        { label: 'Twice daily (9AM, 9PM)', value: '0 9,21 * * *' },
+        { label: 'Daily at 9AM', value: '0 9 * * *' },
+        { label: 'Weekly (Monday 9AM)', value: '0 9 * * 1' },
+        { label: 'Custom cron expression', value: 'custom' },
       ],
-    },
-    {
-      type: 'confirm',
-      name: 'addCustom',
-      message: 'Would you like to add custom workflow schedules?',
-      initial: false,
-    },
-  ])
-
-  // Enable selected templates
-  if (response.templates) {
-    for (const template of response.templates) {
-      preset.templates[template as keyof typeof preset.templates] = true
-    }
-  }
-
-  // Add custom workflows if requested
-  if (response.addCustom) {
-    let addMore = true
-    preset.custom = preset.custom || []
-
-    while (addMore) {
-      const customWorkflow = await prompts([
-        {
-          type: 'text',
-          name: 'name',
-          message: 'Workflow name (e.g., "security-updates"):',
-          validate: (value: string) => value.length > 0 ? true : 'Name is required',
-        },
-        {
-          type: 'select',
-          name: 'schedule',
-          message: 'Update frequency:',
-          choices: [
-            { title: 'Every 6 hours', value: '0 */6 * * *' },
-            { title: 'Twice daily (9AM, 9PM)', value: '0 9,21 * * *' },
-            { title: 'Daily at 9AM', value: '0 9 * * *' },
-            { title: 'Weekly (Monday 9AM)', value: '0 9 * * 1' },
-            { title: 'Custom cron expression', value: 'custom' },
-          ],
-        },
-        {
-          type: prev => prev === 'custom' ? 'text' : null,
-          name: 'customSchedule',
-          message: 'Enter cron expression (e.g., "0 */4 * * *"):',
-          validate: (value: string) => value.length > 0 ? true : 'Cron expression is required',
-        },
-        {
-          type: 'select',
-          name: 'strategy',
-          message: 'Update strategy:',
-          choices: [
-            { title: 'Patch only (safest)', value: 'patch' },
-            { title: 'Minor + Patch', value: 'minor' },
-            { title: 'All updates', value: 'all' },
-          ],
-        },
-        {
-          type: 'confirm',
-          name: 'autoMerge',
-          message: 'Enable auto-merge for this workflow?',
-          initial: false,
-        },
-        {
-          type: prev => prev ? 'select' : null,
-          name: 'autoMergeStrategy',
-          message: 'Auto-merge strategy:',
-          choices: [
-            { title: 'Squash and merge (recommended)', value: 'squash' },
-            { title: 'Create a merge commit', value: 'merge' },
-            { title: 'Rebase and merge', value: 'rebase' },
-          ],
-          initial: 0,
-        },
-      ])
-
-      if (customWorkflow.name) {
-        preset.custom.push({
-          name: customWorkflow.name,
-          schedule: customWorkflow.customSchedule || customWorkflow.schedule,
-          strategy: customWorkflow.strategy,
-          autoMerge: customWorkflow.autoMerge,
-          autoMergeStrategy: customWorkflow.autoMergeStrategy,
-        })
-      }
-
-      const continueResponse = await prompts({
-        type: 'confirm',
-        name: 'continue',
-        message: 'Add another custom workflow?',
-        initial: false,
+    })
+    if (schedule === 'custom') {
+      schedule = await askText({
+        message: 'Enter cron expression (e.g., "0 */4 * * *"):',
+        validate: value => value?.length ? undefined : 'Cron expression is required',
       })
-
-      addMore = continueResponse.continue
     }
-  }
+    if (typeof schedule !== 'string') return
+    const strategy = await select({
+      message: 'Update strategy:',
+      options: [
+        { label: 'Patch only (safest)', value: 'patch' },
+        { label: 'Minor + Patch', value: 'minor' },
+        { label: 'All updates', value: 'all' },
+      ],
+    })
+    if (typeof strategy !== 'string') return
+    const autoMerge = await confirm({
+      message: 'Enable auto-merge for this workflow?',
+      initialValue: false,
+    })
+    if (typeof autoMerge !== 'boolean') return
+
+    let autoMergeStrategy: string | undefined
+    if (autoMerge) {
+      const selected = await select({
+        message: 'Auto-merge strategy:',
+        initialValue: 'squash',
+        options: [
+          { label: 'Squash and merge (recommended)', value: 'squash' },
+          { label: 'Create a merge commit', value: 'merge' },
+          { label: 'Rebase and merge', value: 'rebase' },
+        ],
+      })
+      if (typeof selected !== 'string') return
+      autoMergeStrategy = selected
+    }
+
+    preset.custom.push({ name, schedule, strategy, autoMerge, autoMergeStrategy })
+
+    addMore = await confirm({
+      message: 'Add another custom workflow?',
+      initialValue: false,
+    }) === true
+  } while (addMore)
 }
 
 export async function showFinalInstructions(repoInfo: RepositoryInfo, hasCustomToken: boolean): Promise<void> {
