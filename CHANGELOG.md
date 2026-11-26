@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.19...v0.11.20)
+
+## ✨ Features
+
+- **cli**: classify HQ Discord alerts ([52d70eb](https://github.com/stacksjs/buddy/commit/52d70eb)) _(by Chris <chris@stacksjs.com>)_
+
+## 🔧 Chores
+
+- release v0.11.20 ([cb1a81e](https://github.com/stacksjs/buddy/commit/cb1a81e)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.18...v0.11.19)
 
 ## ✨ Features
