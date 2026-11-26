@@ -77,6 +77,20 @@ Use [`buddy stacks`](/cli/stacks) to run Stacks commands and manage background g
 | Command | Description |
 |---------|-------------|
 | [`schedule`](/cli/utility#schedule) | Run automated updates on schedule |
+| [`discord-alerts`](#discord-alerts) | Read alerts from selected Discord webhook or bot senders |
+
+### Discord alerts
+
+Set `DISCORD_BOT_TOKEN` in the command's environment. The bot needs **View Channel** and **Read Message History** in the target channel and the **Message Content** intent in the Discord Developer Portal. Use numeric Discord webhook or bot IDs for `--source-ids`.
+
+```bash
+buddy discord-alerts 123456789012345678 --source-ids 234567890123456789,345678901234567890
+buddy discord-alerts 123456789012345678 --source-ids 234567890123456789,345678901234567890 --after 456789012345678901
+```
+
+The first read checks the latest 100 channel messages. Later reads with `--after` return every newer message from the selected sources. The result contains `alerts` in chronological order and a `nextCursor` string. Save that cursor after recording the batch, even when messages from other senders leave `alerts` empty. The cursor is `null` when the first read finds an empty channel. Verify the bot can read a known alert before scheduling it.
+
+Alert text and embeds come from Discord. Treat them as evidence for triage and verify any proposed code change in its repository.
 
 ## Global Options
 

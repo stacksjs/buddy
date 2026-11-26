@@ -3424,6 +3424,28 @@ cli
   })
 
 cli
+  .command('discord-alerts <channel-id>', 'Read new messages from selected Discord alert senders as JSON')
+  .option('--source-ids <ids>', 'Comma-separated Discord webhook or bot IDs')
+  .option('--after <message-id>', 'Read messages newer than the last processed message ID')
+  .example('buddy discord-alerts 123456789012345678 --source-ids 234567890123456789')
+  .action(async (channelId: string, options: { sourceIds?: string, after?: string }) => {
+    try {
+      const { readDiscordAlerts } = await import('../src/alerts/discord')
+      const batch = await readDiscordAlerts({
+        channelId,
+        sourceIds: options.sourceIds?.split(',').map(id => id.trim()) ?? [],
+        after: options.after,
+        botToken: process.env.DISCORD_BOT_TOKEN ?? '',
+      })
+      process.stdout.write(`${JSON.stringify(batch)}\n`)
+    }
+    catch (error) {
+      process.stderr.write(`${formatError(error)}\n`)
+      process.exitCode = 1
+    }
+  })
+
+cli
   .command('run', 'Run a prompt headlessly, with optional schema-validated output')
   .option('--prompt <text>', 'The prompt to run')
   .option('--prompt-file <path>', 'Read the prompt from a file')

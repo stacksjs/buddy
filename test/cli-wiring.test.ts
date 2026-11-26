@@ -29,6 +29,7 @@ describe('cli wiring', () => {
         'compare',
         'dashboard',
         'deps',
+        'discord-alerts',
         'doctor',
         'exists',
         'fix-ci',
