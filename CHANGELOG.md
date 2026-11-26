@@ -1,5 +1,28 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.18...v0.11.19)
+
+## ✨ Features
+
+- **cli**: read alerts from trusted Discord senders ([c6f932f](https://github.com/stacksjs/buddy/commit/c6f932f)) _(by Chris <chris@stacksjs.com>)_
+
+## 🐛 Bug Fixes
+
+- use the first-party prompt library in Buddy ([f5dfd38](https://github.com/stacksjs/buddy/commit/f5dfd38)) _(by Chris Breuer <chrisbreuer93@gmail.com>)_
+
+## 💚 Continuous Integration
+
+- name the Pantry publish token PANTRY_TOKEN ([5b68dc8](https://github.com/stacksjs/buddy/commit/5b68dc8)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🔧 Chores
+
+- release v0.11.19 ([3f58124](https://github.com/stacksjs/buddy/commit/3f58124)) _(by Chris <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chris@stacksjs.com>_
+- _Chris Breuer <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/buddy/compare/v0.11.17...v0.11.18)
 
 ## ✨ Features
