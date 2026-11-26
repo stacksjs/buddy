@@ -1,6 +1,8 @@
+import type { HqAlert, HqSource } from './hq'
 import { version } from '../../package.json'
 import { redactDeep } from '../ai/redact'
 import { fetchWithTimeout } from '../utils/http'
+import { classifyHqAlert } from './hq'
 
 interface Embed {
   title?: string
@@ -25,6 +27,7 @@ interface DiscordAlert {
   timestamp: string
   content: string
   embeds: Embed[]
+  hq?: HqAlert
 }
 
 interface DiscordAlertOptions {
@@ -32,6 +35,7 @@ interface DiscordAlertOptions {
   sourceIds: string[]
   botToken: string
   after?: string
+  hqSources?: ReadonlyMap<string, HqSource>
 }
 
 interface DiscordAlertBatch {
@@ -47,7 +51,7 @@ function isSnowflake(value: unknown): value is string {
   return typeof value === 'string' && /^[1-9]\d{0,19}$/.test(value) && BigInt(value) <= MAX_SNOWFLAKE
 }
 
-function readAlert(message: DiscordMessage, sourceIds: Set<string>): DiscordAlert | undefined {
+function readAlert(message: DiscordMessage, sourceIds: Set<string>, hqSources?: ReadonlyMap<string, HqSource>): DiscordAlert | undefined {
   const sourceId = message.webhook_id ?? (message.author?.bot ? message.author.id : undefined)
   if (!sourceId || !sourceIds.has(sourceId))
     return
@@ -56,11 +60,13 @@ function readAlert(message: DiscordMessage, sourceIds: Set<string>): DiscordAler
     throw new Error(`Discord alert ${message.id} has no text or embeds. Check the bot's Message Content intent.`)
 
   const { id, timestamp, content, embeds } = message
+  const hqSource = hqSources?.get(sourceId)
   return {
     id,
     sourceId,
     timestamp,
     content,
+    ...(hqSource ? { hq: classifyHqAlert(hqSource, message) } : {}),
     embeds: embeds.map(({ title, description, url, footer, fields }) => ({
       title,
       description,
@@ -78,19 +84,19 @@ function readAlert(message: DiscordMessage, sourceIds: Set<string>): DiscordAler
  * first, and the caller commits the cursor after handling the batch.
  */
 export async function readDiscordAlerts(
-  { channelId, sourceIds, botToken, after }: DiscordAlertOptions,
+  { channelId, sourceIds, botToken, after, hqSources }: DiscordAlertOptions,
   request: typeof fetchWithTimeout = fetchWithTimeout,
 ): Promise<DiscordAlertBatch> {
   if (!isSnowflake(channelId))
     throw new Error('Provide a valid Discord channel ID.')
-  if (!sourceIds.length || !sourceIds.every(isSnowflake))
-    throw new Error('Provide comma-separated Discord webhook or bot IDs with --source-ids.')
+  const allowedSources = new Set([...sourceIds, ...hqSources?.keys() ?? []])
+  if (!allowedSources.size || ![...allowedSources].every(isSnowflake))
+    throw new Error('Provide valid Discord webhook or bot IDs with --source-ids or --hq-sources.')
   if (after !== undefined && !isSnowflake(after))
     throw new Error('Provide a valid Discord message ID with --after.')
   if (!botToken.trim())
     throw new Error('Set DISCORD_BOT_TOKEN to a Discord bot token.')
 
-  const allowedSources = new Set(sourceIds)
   const cutoff = after === undefined ? undefined : BigInt(after)
   const alerts: DiscordAlert[] = []
   let nextCursor = after ?? null
@@ -142,7 +148,7 @@ export async function readDiscordAlerts(
     for (const message of messages) {
       if (cutoff !== undefined && BigInt(message.id) <= cutoff)
         break
-      const alert = readAlert(message, allowedSources)
+      const alert = readAlert(message, allowedSources, hqSources)
       if (alert)
         alerts.push(alert)
     }

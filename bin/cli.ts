@@ -3426,14 +3426,17 @@ cli
 cli
   .command('discord-alerts <channel-id>', 'Read new messages from selected Discord alert senders as JSON')
   .option('--source-ids <ids>', 'Comma-separated Discord webhook or bot IDs')
+  .option('--hq-sources <sources>', 'Classify alerts from mapped HQ senders, such as bughq=ID,loghq=ID,statushq=ID')
   .option('--after <message-id>', 'Read messages newer than the last processed message ID')
   .example('buddy discord-alerts 123456789012345678 --source-ids 234567890123456789')
-  .action(async (channelId: string, options: { sourceIds?: string, after?: string }) => {
+  .action(async (channelId: string, options: { sourceIds?: string, hqSources?: string, after?: string }) => {
     try {
       const { readDiscordAlerts } = await import('../src/alerts/discord')
+      const { parseHqSources } = await import('../src/alerts/hq')
       const batch = await readDiscordAlerts({
         channelId,
         sourceIds: options.sourceIds?.split(',').map(id => id.trim()) ?? [],
+        hqSources: parseHqSources(options.hqSources),
         after: options.after,
         botToken: process.env.DISCORD_BOT_TOKEN ?? '',
       })

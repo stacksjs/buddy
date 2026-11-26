@@ -86,7 +86,10 @@ Set `DISCORD_BOT_TOKEN` in the command's environment. The bot needs **View Chann
 ```bash
 buddy discord-alerts 123456789012345678 --source-ids 234567890123456789,345678901234567890
 buddy discord-alerts 123456789012345678 --source-ids 234567890123456789,345678901234567890 --after 456789012345678901
+buddy discord-alerts 123456789012345678 --hq-sources bughq=234567890123456789,loghq=345678901234567890,statushq=456789012345678901
 ```
+
+Use `--hq-sources` with the verified webhook IDs for BugHQ, LogHQ, and StatusHQ. Messages from those senders include an `hq` object with the alert kind and available project details. Test messages and unknown formats get distinct kinds so they can be excluded from automated changes. `--source-ids` can include additional senders.
 
 The first read checks the latest 100 channel messages. Later reads with `--after` return every newer message from the selected sources. The result contains `alerts` in chronological order and a `nextCursor` string. Save that cursor after recording the batch, even when messages from other senders leave `alerts` empty. The cursor is `null` when the first read finds an empty channel. Verify the bot can read a known alert before scheduling it.
 
