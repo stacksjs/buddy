@@ -15,12 +15,17 @@ function git(cwd: string, ...args: string[]): string {
 const branch = 'buddy/update-dependencies'
 const branchRef = 'refs/heads/' + branch
 const before = {
-  'package.json': '{"name":"fixture","version":"1.0.0"}',
+  'dependencies.json': '{"name":"fixture","version":"1.0.0"}',
   'bun.lock': '{"version":"1.0.0"}',
   'pantry.lock': '{"version":"1.0.0"}',
 }
+const competing = {
+  ...before,
+  'bun.lock': '{"version":"1.1.0"}',
+  'pantry.lock': '{"version":"1.1.0"}',
+}
 const files = [
-  { path: 'package.json', content: '{"name":"fixture","version":"2.0.0"}', type: 'update' },
+  { path: 'dependencies.json', content: '{"name":"fixture","version":"2.0.0"}', type: 'update' },
   { path: 'bun.lock', content: '{"version":"2.0.0"}', type: 'update' },
   { path: 'pantry.lock', content: '{"version":"2.0.0"}', type: 'update' },
 ] as const
@@ -48,7 +53,10 @@ for (const competingUpdate of [false, true]) {
       git(writer, 'switch', '-c', branch)
       git(writer, 'commit', '--allow-empty', '-m', 'Earlier dependency update')
       git(writer, 'push', 'origin', branch)
-      git(writer, 'commit', '--allow-empty', '-m', 'Competing dependency update')
+      for (const [path, content] of Object.entries(competing))
+        writeFileSync(join(writer, path), content)
+      git(writer, 'add', '.')
+      git(writer, 'commit', '-m', 'Competing dependency update')
       const competingTip = git(writer, 'rev-parse', 'HEAD')
       git(root, 'clone', '--single-branch', '--branch', 'main', remote, checkout)
       expect(git(checkout, 'for-each-ref', '--format=%(objectname)', 'refs/remotes/origin/' + branch)).toBe('')
@@ -68,7 +76,7 @@ for (const competingUpdate of [false, true]) {
       if (competingUpdate) {
         await expect(refresh).rejects.toThrow('Could not update ' + branchRef)
         expect(git(remote, 'rev-parse', branchRef)).toBe(competingTip)
-        for (const [path, content] of Object.entries(before))
+        for (const [path, content] of Object.entries(competing))
           expect(git(remote, 'show', branchRef + ':' + path)).toBe(content)
       }
       else {
