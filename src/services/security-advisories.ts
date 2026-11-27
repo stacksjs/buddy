@@ -56,6 +56,7 @@ interface OsvBatchResponse {
 
 interface OsvVulnerability {
   id: string
+  withdrawn?: string
   aliases?: string[]
   summary?: string
   details?: string
@@ -198,7 +199,7 @@ export class SecurityAdvisoryService {
 
     const byId = new Map<string, OsvVulnerability>()
     for (const vuln of details) {
-      if (vuln)
+      if (vuln && !(vuln.withdrawn && Date.parse(vuln.withdrawn) <= Date.now()))
         byId.set(vuln.id, vuln)
     }
 
@@ -252,7 +253,7 @@ export class SecurityAdvisoryService {
       const ecosystem = toOsvEcosystem(update.dependencyType)
       if (!ecosystem)
         return
-      const version = stripRangePrefix(update.currentVersion)
+      const version = advisoryVersion(update.currentVersion)
       if (!version)
         return
       // Actions are referenced as `v4`, which OSV indexes as `4`. Sending the
@@ -283,7 +284,7 @@ export class SecurityAdvisoryService {
         // Without a stated fix we cannot claim this update resolves anything.
         if (!advisory.fixedVersion)
           return false
-        return isAtLeast(stripRangePrefix(update.newVersion), advisory.fixedVersion)
+        return isAtLeast(advisoryVersion(update.newVersion), advisory.fixedVersion)
       })
 
       if (relevant.length > 0) {
@@ -370,13 +371,11 @@ export function advisoryKey(query: AdvisoryQuery): string {
 }
 
 /**
- * Reduce a version range to the concrete version OSV should be asked about.
- *
- * Ranges like `^4.17.15` are queried at their lower bound: that is the version
- * a fresh install resolves at worst, and it is what the lockfile pins today.
+ * Reduce a version constraint to its first candidate version for OSV.
+ * Pantry prefixes numeric pins with an @ separator.
  */
-function stripRangePrefix(version: string): string {
-  return version.replace(/^[\^~>=<\s]*v?/, '').trim()
+export function advisoryVersion(version: string): string {
+  return version.replace(/^[\^~>=<\s]*@?v?(?=\d)/, '').trim()
 }
 
 /**

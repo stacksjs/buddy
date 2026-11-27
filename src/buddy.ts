@@ -32,7 +32,7 @@ import { applyTemplate, templateTokensForGroup } from './pr/templates'
 import { RegistryClient } from './registry/registry-client'
 import { PackageScanner } from './scanner/package-scanner'
 import { DeprecatedDependenciesChecker } from './services/deprecated-dependencies-checker'
-import { advisoryKey, SecurityAdvisoryService, toOsvEcosystem } from './services/security-advisories'
+import { advisoryKey, advisoryVersion, SecurityAdvisoryService, toOsvEcosystem } from './services/security-advisories'
 import { getGitHubServerUrl } from './utils/endpoints'
 import { GitHubApiError } from './utils/errors'
 import { getUpdateType, groupUpdates, sortUpdatesByPriority } from './utils/helpers'
@@ -3619,7 +3619,7 @@ export class Buddy {
         if (!ecosystem)
           continue
 
-        const version = dependency.currentVersion.replace(/^[\^~>=<\s]*v?/, '').trim()
+        const version = advisoryVersion(dependency.currentVersion)
         if (!version)
           continue
 
