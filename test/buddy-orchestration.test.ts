@@ -572,6 +572,51 @@ describe('buddy orchestration', () => {
       expect(fetchCalls.some(call => call.url.includes('/graphql'))).toBe(false)
     })
 
+    it('queries the installed Bun version and keeps only active advisories on the dashboard', async () => {
+      const fixtures: PackageFile[] = ['1.4.4', '1.1.25'].map((version) => {
+        const file = `${version}/deps.yaml`
+        return {
+          path: file,
+          type: 'deps.yaml',
+          content: `dependencies:\n  bun: ${version}\n`,
+          dependencies: [{ name: 'bun', currentVersion: `@${version}`, type: 'dependencies', file }],
+        }
+      })
+      stubFetch((method, url) => {
+        if (method === 'POST' && url.includes('/v1/querybatch')) {
+          const { queries } = JSON.parse(fetchCalls.at(-1)?.body ?? '{}')
+          return { results: queries.map((query: { package: { name: string }, version: string }) =>
+            query.package.name === 'bun' && query.version !== '1.4.4'
+              ? { vulns: [{ id: 'GHSA-bun-active' }, { id: 'GHSA-bun-withdrawn' }] }
+              : {}) }
+        }
+        if (url.endsWith('/vulns/GHSA-bun-active'))
+          return { id: 'GHSA-bun-active', summary: 'Current Bun advisory', database_specific: { severity: 'HIGH' } }
+        if (url.endsWith('/vulns/GHSA-bun-withdrawn'))
+          return { id: 'GHSA-bun-withdrawn', summary: 'Withdrawn Bun advisory', withdrawn: '2025-01-01T00:00:00Z' }
+        if (method === 'GET' && (url.includes('/pulls?') || url.includes('/issues?')))
+          return []
+        if (method === 'POST' && url.endsWith('/issues'))
+          return issueJson(42)
+        return undefined
+      })
+
+      const buddy = new Buddy(dashboardConfig({ security: { enabled: true } }), projectDir)
+      const scanner = spyOn(buddy['scanner'], 'scanProject').mockResolvedValue(fixtures)
+      restorers.push(() => scanner.mockRestore())
+      await buddy.createOrUpdateDashboard()
+
+      const request = fetchCalls.find(call => call.url.includes('/v1/querybatch'))
+      const { queries } = JSON.parse(request?.body ?? '{}')
+      const versions = queries.filter((query: { package: { name: string } }) => query.package.name === 'bun')
+        .map((query: { version: string }) => query.version).sort()
+      expect(versions).toEqual(['1.1.25', '1.4.4'])
+      const update = fetchCalls.find(call => call.method === 'POST' && call.url.endsWith('/issues'))
+      const { body } = JSON.parse(update?.body ?? '{}')
+      expect(body).toContain('GHSA-bun-active')
+      expect(body).not.toContain('GHSA-bun-withdrawn')
+    })
+
     it('success case - unpins the dashboard only when config says pin false', async () => {
       stubFetch((method, url) => {
         if (method === 'GET' && url.includes('/pulls?'))
