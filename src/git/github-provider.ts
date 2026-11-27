@@ -88,6 +88,8 @@ class LockfileRegenerationError extends Error {
   }
 }
 
+class GitBranchUpdateError extends Error {}
+
 /**
  * `git -c` arguments that make git authenticate as `token` against `serverUrl`.
  *
@@ -285,6 +287,10 @@ export class GitHubProvider implements GitProvider {
         return
       }
 
+      // The API fallback cannot retain the Git lease or regenerated lockfiles.
+      if (gitError instanceof GitBranchUpdateError)
+        throw gitError
+
       this.logger.warn(`⚠️ Git CLI commit failed, falling back to GitHub API: ${gitError}`)
       await this.commitChangesWithAPI(branchName, message, files, baseBranch)
     }
@@ -354,6 +360,17 @@ export class GitHubProvider implements GitProvider {
 
       // Fetch latest changes
       await this.runCommand('git', ['fetch', 'origin'])
+
+      const targetRef = `refs/heads/${branchName}`
+      const pushToken = this.workflowToken || undefined
+      // A main-only checkout may have no remote-tracking ref for the bot branch.
+      // Observe the remote before preparing files and use that exact lease.
+      const advertised = (await this.runCommand('git', ['ls-remote', '--refs', 'origin', targetRef], pushToken).catch((error: unknown) => {
+        throw new GitBranchUpdateError(`Could not read the Git lease for ${targetRef}. ${formatError(error)}`)
+      })).trim()
+      const [expected = '', remoteRef] = advertised.split(/\s+/)
+      if (advertised && (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(expected) || remoteRef !== targetRef))
+        throw new GitBranchUpdateError(`Invalid Git lease for ${targetRef}`)
 
       // Renovate-style branch recreation: reset the PR branch to the base branch tip,
       // then apply dependency file changes fresh on top. This completely eliminates
@@ -490,8 +507,12 @@ export class GitHubProvider implements GitProvider {
         // files: GitHub runs no workflows for a push made with GITHUB_TOKEN, so
         // a branch buddy refreshed with it never had its CI re-run and kept
         // the old result, or none at all.
-        const pushToken = this.workflowToken || undefined
-        await this.runCommand('git', ['push', 'origin', branchName, '--force-with-lease'], pushToken)
+        try {
+          await this.runCommand('git', ['push', 'origin', `${branchName}:${targetRef}`, `--force-with-lease=${targetRef}:${expected}`], pushToken)
+        }
+        catch (error) {
+          throw new GitBranchUpdateError(`Could not update ${targetRef}. ${formatError(error)}`)
+        }
 
         this.logger.info(`✅ Successfully recreated ${branchName} with fresh changes from ${baseBranch}: ${message}`)
       }
