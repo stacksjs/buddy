@@ -322,6 +322,36 @@ describe('RegistryClient HTTP behavior', () => {
     })
   })
 
+  it('reports an outdated dependency in every manifest that needs the update', async () => {
+    const name = 'shared-package'
+    fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
+      dependencies: { [name]: '1.2.0' },
+    }))
+    fs.mkdirSync(path.join(testDir, 'nested'))
+    fs.writeFileSync(path.join(testDir, 'nested/package.json'), JSON.stringify({
+      devDependencies: { [name]: '^1.1.0' },
+    }))
+    fs.mkdirSync(path.join(testDir, 'current'))
+    fs.writeFileSync(path.join(testDir, 'current/package.json'), JSON.stringify({
+      dependencies: { [name]: '1.2.1' },
+    }))
+    fs.mkdirSync(path.join(testDir, 'ignored'))
+    fs.writeFileSync(path.join(testDir, 'ignored/package.json'), JSON.stringify({
+      dependencies: { [name]: '1.1.0' },
+    }))
+
+    const client = makeClient(baseConfig({ packages: { strategy: 'all', ignorePaths: ['ignored/**'] } }))
+    spyOn(client as any, 'runCommand').mockResolvedValue('[]')
+    spyOn(client, 'getLatestVersion').mockResolvedValue('1.2.1')
+    spyOn(client, 'getPackageMetadata').mockResolvedValue(undefined)
+
+    const updates = await client.getOutdatedPackages()
+    expect(updates.map(({ file, currentVersion, newVersion }) => [file, currentVersion, newVersion]).sort()).toEqual([
+      ['nested/package.json', '1.1.0', '1.2.1'],
+      ['package.json', '1.2.0', '1.2.1'],
+    ])
+  })
+
   describe('getUpdatesForPackages', () => {
     it('passes validated filter tokens through to bun outdated', async () => {
       const client = makeClient()
@@ -375,10 +405,6 @@ describe('RegistryClient HTTP behavior', () => {
       const filtered = await (client as any).getPackageJsonOutdated('a')
       expect(filtered.map((result: { name: string }) => result.name)).toEqual(['a'])
       expect(latestSpy.mock.calls.map(call => call[0])).toEqual(['a'])
-
-      // findPackageLocation reads the same tree.
-      expect(await (client as any).findPackageLocation('a')).toBe('package.json')
-      expect(await (client as any).findPackageLocation('not-anywhere')).toBeNull()
     })
 
     it('warns and returns [] when package.json is valid JSON but not an object', async () => {
