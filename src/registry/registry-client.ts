@@ -1,11 +1,13 @@
 import type { BuddyConfig, PackageMetadata, PackageUpdate } from '../types'
 import type { Logger } from '../utils/logger'
+import { Glob } from 'bun'
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { PackageRegistryError } from '../types'
 import { AsyncMemo, DEFAULT_CONCURRENCY, mapWithConcurrency } from '../utils/concurrency'
+import { isLocationRange } from '../utils/dependency-file-parser'
 import { getComposerRegistryUrl, getGitHubApiUrl, getNpmRegistryUrl } from '../utils/endpoints'
 import { getUpdateType } from '../utils/helpers'
 import { fetchJsonOrNull, fetchWithTimeout } from '../utils/http'
@@ -18,6 +20,12 @@ export interface BunOutdatedResult {
   latest: string
   workspace?: string
   file?: string
+}
+
+interface PackageDeclaration {
+  file: string
+  version: string
+  workspace?: string
 }
 
 // Narrow shapes for the external API responses this file consumes.
@@ -313,29 +321,60 @@ export class RegistryClient {
         return true
       })
 
-      const updates: PackageUpdate[] = await mapWithConcurrency(
+      const declarations = candidates.length > 0 ? await this.findPackageDeclarations() : new Map<string, PackageDeclaration[]>()
+      const ignoredPaths = this.config?.packages?.ignorePaths?.map(pattern => new Glob(pattern)) ?? []
+      const updatesByPackage = await mapWithConcurrency(
         candidates,
-        async (result) => {
-          const [metadata, packageLocation] = await Promise.all([
-            this.getPackageMetadata(result.name),
-            this.findPackageLocation(result.name),
-          ])
+        async (result): Promise<PackageUpdate[]> => {
+          const locations = declarations.get(result.name) ?? [{ file: 'package.json', version: result.current }]
+          const applicable = locations.flatMap((location) => {
+            if (ignoredPaths.some(glob => glob.match(location.file)) || isLocationRange(location.version) || this.shouldRespectVersion(location.version))
+              return []
 
-          return {
+            // A resolved version from Bun applies only to its own manifest.
+            const matchesResult = result.file
+              ? location.file === result.file
+              : result.workspace
+                ? location.workspace === result.workspace
+                : location.file === 'package.json'
+            const currentVersion = matchesResult && Bun.semver.satisfies(result.current, location.version)
+              ? result.current
+              : this.cleanVersionRange(location.version)
+            if (!currentVersion)
+              return []
+
+            try {
+              if (Bun.semver.order(currentVersion, result.latest) >= 0)
+                return []
+            }
+            catch {
+              return []
+            }
+
+            const updateType = getUpdateType(currentVersion, result.latest)
+            if (updateType === 'major' && this.config?.packages?.excludeMajor)
+              return []
+
+            return [{ file: location.file, currentVersion, updateType }]
+          })
+          if (applicable.length === 0)
+            return []
+
+          const metadata = await this.getPackageMetadata(result.name)
+          return applicable.map(location => ({
+            ...location,
             name: result.name,
-            currentVersion: result.current,
             newVersion: result.latest,
-            updateType: getUpdateType(result.current, result.latest),
-            dependencyType: 'dependencies' as const, // Refined later by package.json analysis
-            file: packageLocation || 'package.json',
+            dependencyType: 'dependencies',
             metadata,
             releaseNotesUrl: this.getReleaseNotesUrl(result.name, metadata),
             changelogUrl: this.getChangelogUrl(result.name, metadata),
             homepage: metadata?.homepage,
-          }
+          }))
         },
         this.concurrency,
       )
+      const updates = updatesByPackage.flat()
 
       // Also check for Composer packages if composer.json exists
       const composerJsonPath = path.join(this.projectPath, 'composer.json')
@@ -1524,27 +1563,32 @@ export class RegistryClient {
   }
 
   /**
-   * Find the actual package.json file that contains a specific package
+   * Index dependency declarations in the project manifests using the same
+   * section precedence as the package.json writer.
    */
-  private async findPackageLocation(packageName: string): Promise<string | null> {
-    const packageJsonFiles = await this.findPackageJsonFiles()
-
-    for (const filePath of packageJsonFiles) {
+  private async findPackageDeclarations(): Promise<Map<string, PackageDeclaration[]>> {
+    const declarations = new Map<string, PackageDeclaration[]>()
+    for (const file of await this.findPackageJsonFiles()) {
       try {
-        const fullPath = path.join(this.projectPath, filePath)
-        const content = fs.readFileSync(fullPath, 'utf-8')
+        const content = fs.readFileSync(path.join(this.projectPath, file), 'utf-8')
         const packageData = JSON.parse(content)
-
-        // Check all dependency sections
         const allDeps = {
-          ...packageData.dependencies,
-          ...packageData.devDependencies,
-          ...packageData.peerDependencies,
           ...packageData.optionalDependencies,
+          ...packageData.peerDependencies,
+          ...packageData.devDependencies,
+          ...packageData.dependencies,
         }
 
-        if (allDeps[packageName]) {
-          return filePath
+        for (const [name, version] of Object.entries(allDeps)) {
+          if (typeof version !== 'string')
+            continue
+
+          const location = { file, version, workspace: packageData.name }
+          const locations = declarations.get(name)
+          if (locations)
+            locations.push(location)
+          else
+            declarations.set(name, [location])
         }
       }
       catch {
@@ -1553,7 +1597,7 @@ export class RegistryClient {
       }
     }
 
-    return null
+    return declarations
   }
 
   /**
