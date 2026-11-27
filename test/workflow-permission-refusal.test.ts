@@ -1,11 +1,12 @@
 import type { FileChange } from '../src/types'
 import { describe, expect, it, spyOn } from 'bun:test'
 import { Buffer } from 'node:buffer'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { gitAuthConfigArgs, GitHubProvider, isWorkflowPermissionRefusal, WorkflowPermissionError } from '../src/git/github-provider'
+import { Logger } from '../src/utils/logger'
 
 /**
  * A token can exist and still be refused for `.github/workflows/`: a GitHub
@@ -103,4 +104,41 @@ describe('git authentication for an override token', () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+})
+
+it('regenerates locks for real manifest writes in a test-labelled process', async () => {
+  const cwd = process.cwd()
+  const dir = mkdtempSync(join(tmpdir(), 'buddy-lock-write-'))
+  const previous = process.env.NODE_ENV
+  process.env.NODE_ENV = 'test'
+  try {
+    for (const [folder, version] of [['before', '1.0.0'], ['after', '2.0.0']]) {
+      mkdirSync(join(dir, folder))
+      writeFileSync(join(dir, folder, 'package.json'), JSON.stringify({ name: 'fixture', version }))
+    }
+    const manifest = (folder: string): string => JSON.stringify({ name: 'lock-test', dependencies: { fixture: `file:./${folder}` } })
+    writeFileSync(join(dir, 'package.json'), manifest('before'))
+    const bun = (...args: string[]) => Bun.spawnSync([process.execPath, 'install', '--ignore-scripts', ...args], { cwd: dir })
+    expect(bun().exitCode).toBe(0)
+    process.chdir(dir)
+
+    const provider = new GitHubProvider('token', 'owner', 'repo', false, undefined, 'https://api.github.test', Logger.silent())
+    const staged: string[] = []
+    provider.runCommand = async (_command, args) => {
+      if (args[0] === 'add') staged.push(args[1]!)
+      return ''
+    }
+    await provider.commitChanges('buddy/update', 'chore(deps): update fixture', [
+      { path: 'package.json', type: 'update', content: manifest('after') },
+    ])
+
+    expect(bun('--frozen-lockfile').exitCode).toBe(0)
+    expect(staged).toContain('bun.lock')
+  }
+  finally {
+    process.chdir(cwd)
+    if (previous === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = previous
+    rmSync(dir, { recursive: true, force: true })
+  }
 })

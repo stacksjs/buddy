@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import process from 'node:process'
-import { detectPackageManager } from './helpers'
 import { getDefaultLogger } from './logger'
 
 export type PackageManagerType = 'bun' | 'npm' | 'yarn' | 'pnpm' | 'composer' | 'pantry'
@@ -149,6 +149,14 @@ export async function regenerateLockFile(
  * Pantry's own manifests. A change to one of these only reaches `pantry.lock`.
  */
 const PANTRY_MANIFESTS = new Set(['deps.yaml', 'deps.yml', 'pantry.jsonc', 'pantry.json', 'pantry.toml'])
+const JS_PACKAGE_MANAGERS = ['bun', 'pnpm', 'yarn', 'npm'] as const
+type FileExists = (path: string) => boolean
+
+/** Whether changing this manifest can invalidate a dependency lockfile. */
+export function isLockfileManifest(path: string): boolean {
+  const name = path.split('/').at(-1) ?? ''
+  return name === 'package.json' || name === 'composer.json' || PANTRY_MANIFESTS.has(name)
+}
 
 /**
  * Examine which manifest files were updated to determine which package managers
@@ -163,7 +171,7 @@ const PANTRY_MANIFESTS = new Set(['deps.yaml', 'deps.yml', 'pantry.jsonc', 'pant
  * @param updatedFilePaths - List of file paths that were updated
  * @param cwd - Project root whose lock files decide the managers
  */
-export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: string = process.cwd()): PackageManagerType[] {
+export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: string = process.cwd(), exists: FileExists = existsSync): PackageManagerType[] {
   const managers: Set<PackageManagerType> = new Set()
   let pantryInputChanged = false
 
@@ -172,7 +180,7 @@ export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: s
 
     if (fileName === 'package.json') {
       // Detect the JS package manager from lock files on disk
-      managers.add(detectPackageManager(cwd))
+      managers.add(JS_PACKAGE_MANAGERS.find(manager => lockFileFor(manager, cwd, exists)) ?? 'bun')
       pantryInputChanged = true
     }
 
@@ -184,7 +192,7 @@ export function detectRequiredPackageManagers(updatedFilePaths: string[], cwd: s
       pantryInputChanged = true
   }
 
-  if (pantryInputChanged && hasLockFile('pantry', cwd))
+  if (pantryInputChanged && lockFileFor('pantry', cwd, exists))
     managers.add('pantry')
 
   return Array.from(managers)
@@ -212,7 +220,7 @@ export interface NestedLockProject {
  * @param updatedFilePaths - Paths a change touches, relative to the root
  * @param cwd - Repository root
  */
-export function nestedLockProjects(updatedFilePaths: string[], cwd: string = process.cwd()): NestedLockProject[] {
+export function nestedLockProjects(updatedFilePaths: string[], cwd: string = process.cwd(), exists: FileExists = existsSync): NestedLockProject[] {
   const projects = new Map<string, NestedLockProject>()
   for (const filePath of updatedFilePaths) {
     const clean = filePath.replace(/^\.\//, '')
@@ -221,11 +229,11 @@ export function nestedLockProjects(updatedFilePaths: string[], cwd: string = pro
     const dir = clean.slice(0, clean.lastIndexOf('/'))
     if (projects.has(dir))
       continue
-    const absolute = `${cwd}/${dir}`
-    const manager = (['bun', 'pnpm', 'yarn', 'npm'] as const).find(candidate => hasLockFile(candidate, absolute))
+    const absolute = join(cwd, dir)
+    const manager = JS_PACKAGE_MANAGERS.find(candidate => lockFileFor(candidate, absolute, exists))
     if (!manager)
       continue
-    const lockFile = lockFileFor(manager, absolute)
+    const lockFile = lockFileFor(manager, absolute, exists)
     if (lockFile)
       projects.set(dir, { dir, manager, lockFile: `${dir}/${lockFile}` })
   }
@@ -235,7 +243,7 @@ export function nestedLockProjects(updatedFilePaths: string[], cwd: string = pro
 /**
  * The lock file a manager writes in this project, or null when it has none.
  */
-export function lockFileFor(packageManager: PackageManagerType, cwd: string): string | null {
+export function lockFileFor(packageManager: PackageManagerType, cwd: string, exists: FileExists = existsSync): string | null {
   const candidates: Record<PackageManagerType, string[]> = {
     bun: ['bun.lock', 'bun.lockb'],
     npm: ['package-lock.json'],
@@ -244,7 +252,7 @@ export function lockFileFor(packageManager: PackageManagerType, cwd: string): st
     composer: ['composer.lock'],
     pantry: ['pantry.lock'],
   }
-  return candidates[packageManager].find(name => existsSync(`${cwd}/${name}`)) ?? null
+  return candidates[packageManager].find(name => exists(join(cwd, name))) ?? null
 }
 
 /**
@@ -258,14 +266,15 @@ export function lockFileFor(packageManager: PackageManagerType, cwd: string): st
  * @param changedPaths - Paths the pull request changes
  * @param cwd - Project root whose lock files decide what is expected
  */
-export function missingLockFiles(changedPaths: string[], cwd: string = process.cwd()): string[] {
+export function missingLockFiles(changedPaths: string[], cwd: string = process.cwd(), exists: FileExists = existsSync): string[] {
   const changed = new Set(changedPaths.map(path => path.replace(/^\.\//, '')))
-  const nestedDirs = new Set(nestedLockProjects(changedPaths, cwd).map(project => project.dir))
+  const nested = nestedLockProjects(changedPaths, cwd, exists)
+  const nestedDirs = new Set(nested.map(project => project.dir))
   // A manifest inside a nested project needs only that project's lock file.
   const rootPaths = changedPaths.filter(path => !nestedDirs.has(path.replace(/^\.\//, '').replace(/\/package\.json$/, '')))
-  const rootLocks = detectRequiredPackageManagers(rootPaths, cwd)
-    .map(manager => lockFileFor(manager, cwd))
-  const nestedLocks = nestedLockProjects(changedPaths, cwd).map(project => project.lockFile)
+  const rootLocks = detectRequiredPackageManagers(rootPaths, cwd, exists)
+    .map(manager => lockFileFor(manager, cwd, exists))
+  const nestedLocks = nested.map(project => project.lockFile)
   return [...rootLocks, ...nestedLocks]
     .filter((lockFile): lockFile is string => lockFile !== null && !changed.has(lockFile))
 }
@@ -274,20 +283,5 @@ export function missingLockFiles(changedPaths: string[], cwd: string = process.c
  * Check if a lock file exists for a given package manager in the working directory
  */
 export function hasLockFile(packageManager: PackageManagerType, cwd: string): boolean {
-  const path = require('node:path')
-
-  switch (packageManager) {
-    case 'bun':
-      return existsSync(path.join(cwd, 'bun.lock')) || existsSync(path.join(cwd, 'bun.lockb'))
-    case 'npm':
-      return existsSync(path.join(cwd, 'package-lock.json'))
-    case 'yarn':
-      return existsSync(path.join(cwd, 'yarn.lock'))
-    case 'pnpm':
-      return existsSync(path.join(cwd, 'pnpm-lock.yaml'))
-    case 'composer':
-      return existsSync(path.join(cwd, 'composer.lock'))
-    case 'pantry':
-      return existsSync(path.join(cwd, 'pantry.lock'))
-  }
+  return lockFileFor(packageManager, cwd) !== null
 }

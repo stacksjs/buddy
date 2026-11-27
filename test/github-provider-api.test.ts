@@ -604,6 +604,72 @@ describe('gitHubProvider API surface', () => {
   })
 
   describe('commitChanges via API', () => {
+    function writableApiCommit(paths: string[], truncated = false) {
+      const prov = github()
+      ;(prov as any).runCommand = async () => { throw new Error('git unavailable') }
+      const calls = stubFetch((call) => {
+        if (call.url.includes('/git/ref/heads/'))
+          return json({ object: { sha: 'base-sha' } })
+        if (call.method === 'GET' && call.url.includes('/git/commits/'))
+          return json({ tree: { sha: 'tree-sha' } })
+        if (call.method === 'GET' && call.url.includes('/git/trees/tree-sha'))
+          return json({ truncated, tree: paths.map(path => ({ path, type: 'blob' })) })
+        return json({ sha: 'written-sha' })
+      })
+      return { prov, calls }
+    }
+
+    it('does not write a manifest without the tracked Bun and Pantry locks', async () => {
+      const { prov, calls } = writableApiCommit(['package.json', 'bun.lock', 'pantry.lock'])
+
+      const error = await prov.commitChanges('buddy/x', 'msg', [
+        { path: 'package.json', content: '{"dependencies":{"stacks":"0.75.711"}}', type: 'update' },
+      ]).catch((e: unknown) => e)
+
+      expect((error as Error)?.message).toContain('bun.lock, pantry.lock')
+      expect(calls.filter(call => call.method !== 'GET')).toEqual([])
+    })
+
+    it('allows a standalone nested update with its own supplied lock', async () => {
+      const { prov, calls } = writableApiCommit(['bun.lock', 'docs/package.json', 'docs/pnpm-lock.yaml'])
+
+      await prov.commitChanges('buddy/x', 'msg', [
+        { path: 'docs/package.json', content: '{"dependencies":{"docs":"1.1.0"}}', type: 'update' },
+        { path: 'docs/pnpm-lock.yaml', content: 'updated lock', type: 'update' },
+      ])
+
+      expect(calls.filter(call => call.method === 'PATCH')).toHaveLength(1)
+    })
+
+    it('allows an API manifest update in a repository without lockfiles', async () => {
+      const { prov, calls } = writableApiCommit(['package.json'])
+
+      await prov.commitChanges('buddy/x', 'msg', [
+        { path: 'package.json', content: '{"dependencies":{"stacks":"0.75.711"}}', type: 'update' },
+      ])
+
+      expect(calls.filter(call => call.method === 'PATCH')).toHaveLength(1)
+    })
+
+    it('does not count a deleted lock as a regenerated lock', async () => {
+      const { prov, calls } = writableApiCommit(['package.json', 'bun.lock'])
+
+      await expect(prov.commitChanges('buddy/x', 'msg', [
+        { path: 'package.json', content: '{}', type: 'update' },
+        { path: 'bun.lock', content: '', type: 'delete' },
+      ])).rejects.toThrow('without updated lockfiles: bun.lock')
+      expect(calls.filter(call => call.method !== 'GET')).toEqual([])
+    })
+
+    it('does not write a manifest if the base tree is incomplete', async () => {
+      const { prov, calls } = writableApiCommit(['package.json'], true)
+
+      await expect(prov.commitChanges('buddy/x', 'msg', [
+        { path: 'package.json', content: '{}', type: 'update' },
+      ])).rejects.toThrow('The base tree is incomplete')
+      expect(calls.filter(call => call.method !== 'GET')).toEqual([])
+    })
+
     function providerForCommit(contentsError: Error): { prov: GitHubProvider, endpoints: string[] } {
       const prov = github()
       ;(prov as any).runCommand = async () => {
