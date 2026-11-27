@@ -8,7 +8,7 @@ import { getGitHubApiUrl } from '../utils/endpoints'
 import { formatError, GitHubApiError } from '../utils/errors'
 import { assertUpdateTargetsExist, FileChangeValidationError, normalizeRepositoryPath } from '../utils/file-changes'
 import { fetchWithTimeout } from '../utils/http'
-import { detectRequiredPackageManagers, getAllLockFilePaths, nestedLockProjects, regenerateLockFile } from '../utils/lock-file'
+import { detectRequiredPackageManagers, getAllLockFilePaths, isLockfileManifest, missingLockFiles, nestedLockProjects, regenerateLockFile } from '../utils/lock-file'
 import { getDefaultLogger } from '../utils/logger'
 import { isBuddyBranch } from '../utils/branches'
 
@@ -408,12 +408,14 @@ export class GitHubProvider implements GitProvider {
         }
       })
 
+      const updatedPaths: string[] = []
+      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.BUN_ENV === 'test'
       // Apply file changes
       for (const file of files) {
         const cleanPath = normalizeRepositoryPath(file.path)
 
         // Safety check: prevent writing to sensitive files during tests
-        if (process.env.NODE_ENV === 'test' || process.env.BUN_ENV === 'test') {
+        if (isTestEnv) {
           const sensitiveFiles = ['package.json', 'bun.lock', 'bun.lockb', 'package-lock.json', 'yarn.lock']
           if (sensitiveFiles.includes(cleanPath) && file.content === '{"name":"x"}') {
             this.logger.warn(`⚠️ Skipping test file write to ${cleanPath} to prevent overwriting project files`)
@@ -424,6 +426,7 @@ export class GitHubProvider implements GitProvider {
         if (file.type === 'delete') {
           try {
             await this.runCommand('git', ['rm', cleanPath])
+            updatedPaths.push(cleanPath)
           }
           catch {
             // File might not exist, that's ok for delete operations
@@ -433,68 +436,61 @@ export class GitHubProvider implements GitProvider {
           // Bun.write creates parent directories automatically and is async
           await Bun.write(cleanPath, file.content)
           await this.runCommand('git', ['add', cleanPath])
+          updatedPaths.push(cleanPath)
         }
       }
 
-      // Regenerate lock files after manifest changes (skip in test environments).
-      // We HARD-FAIL if regeneration fails for any required manager: a PR with an
-      // updated manifest but stale lockfile is a correctness bug — consumers will
-      // install the wrong versions. Fail loudly so the caller can retry or
-      // investigate instead of silently opening a broken PR.
-      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.BUN_ENV === 'test'
-      if (!isTestEnv) {
-        const updatedPaths = files.map(f => f.path.replace(/^\.\//, '').replace(/^\/+/, ''))
-        const requiredManagers = detectRequiredPackageManagers(updatedPaths)
+      // Real writes require matching locks even when the process uses a test environment.
+      const requiredManagers = detectRequiredPackageManagers(updatedPaths)
 
-        if (requiredManagers.length > 0) {
-          this.logger.info(`🔒 Regenerating lock files for: ${requiredManagers.join(', ')}`)
-          const cwd = process.cwd()
-          const failures: string[] = []
+      if (requiredManagers.length > 0) {
+        this.logger.info(`🔒 Regenerating lock files for: ${requiredManagers.join(', ')}`)
+        const cwd = process.cwd()
+        const failures: string[] = []
 
-          for (const manager of requiredManagers) {
-            try {
-              const result = await regenerateLockFile(manager, cwd)
-              if (result.success) {
-                // Stage any regenerated lock files
-                for (const lockFile of getAllLockFilePaths()) {
-                  try {
-                    await this.runCommand('git', ['add', lockFile])
-                  }
-                  catch {
-                    // Lock file may not exist for this manager, that's fine
-                  }
+        for (const manager of requiredManagers) {
+          try {
+            const result = await regenerateLockFile(manager, cwd)
+            if (result.success) {
+              // Stage any regenerated lock files
+              for (const lockFile of getAllLockFilePaths()) {
+                try {
+                  await this.runCommand('git', ['add', lockFile])
+                }
+                catch {
+                  // Lock file may not exist for this manager, that's fine
                 }
               }
-              else {
-                failures.push(`${manager}: ${result.message}`)
-              }
             }
-            catch (lockError) {
-              failures.push(`${manager}: ${lockError instanceof Error ? lockError.message : String(lockError)}`)
+            else {
+              failures.push(`${manager}: ${result.message}`)
             }
           }
+          catch (lockError) {
+            failures.push(`${manager}: ${lockError instanceof Error ? lockError.message : String(lockError)}`)
+          }
+        }
 
-          // Projects with a lock file of their own beside a changed manifest
-          // are separate installs; the root install does not touch them.
-          for (const project of nestedLockProjects(updatedPaths, cwd)) {
-            try {
-              const result = await regenerateLockFile(project.manager, `${cwd}/${project.dir}`)
-              if (result.success)
-                await this.runCommand('git', ['add', project.lockFile])
-              else
-                failures.push(`${project.dir} (${project.manager}): ${result.message}`)
-            }
-            catch (lockError) {
-              failures.push(`${project.dir} (${project.manager}): ${lockError instanceof Error ? lockError.message : String(lockError)}`)
-            }
+        // Projects with a lock file of their own beside a changed manifest
+        // are separate installs; the root install does not touch them.
+        for (const project of nestedLockProjects(updatedPaths, cwd)) {
+          try {
+            const result = await regenerateLockFile(project.manager, `${cwd}/${project.dir}`)
+            if (result.success)
+              await this.runCommand('git', ['add', project.lockFile])
+            else
+              failures.push(`${project.dir} (${project.manager}): ${result.message}`)
           }
+          catch (lockError) {
+            failures.push(`${project.dir} (${project.manager}): ${lockError instanceof Error ? lockError.message : String(lockError)}`)
+          }
+        }
 
-          if (failures.length > 0) {
-            const detail = failures.map(f => `  - ${f}`).join('\n')
-            throw new LockfileRegenerationError(
-              `Lock file regeneration failed; refusing to open PR with stale lockfiles.\n${detail}`,
-            )
-          }
+        if (failures.length > 0) {
+          const detail = failures.map(f => `  - ${f}`).join('\n')
+          throw new LockfileRegenerationError(
+            `Lock file regeneration failed; refusing to open PR with stale lockfiles.\n${detail}`,
+          )
         }
       }
 
@@ -563,16 +559,6 @@ export class GitHubProvider implements GitProvider {
         this.logger.info(`✅ Including ${workflowFiles.length} workflow file(s) with elevated permissions`)
       }
 
-      // Note: Lock files cannot be regenerated when committing via the API path
-      // because there is no local filesystem to run install commands against.
-      const hasManifestFiles = files.some(f =>
-        f.path.endsWith('package.json') || f.path.endsWith('composer.json'),
-      )
-      if (hasManifestFiles) {
-        this.logger.warn(`⚠️ Committing manifest files via API — lock files will not be updated.`)
-        this.logger.warn(`   Lock file regeneration requires the Git CLI commit path (local filesystem).`)
-      }
-
       // Renovate-style: base the new commit on the base branch (e.g. main), not the PR branch.
       // This recreates the branch from scratch, eliminating any merge conflicts.
       this.logger.info(`🔄 Recreating ${branchName} from ${baseBranch} via API (Renovate-style)...`)
@@ -586,7 +572,7 @@ export class GitHubProvider implements GitProvider {
       await assertUpdateTargetsExist(files, async (cleanPath) => {
         const encodedPath = cleanPath.split('/').map(segment => encodeURIComponent(segment)).join('/')
         try {
-          await this.apiRequest(`GET /repos/${this.owner}/${this.repo}/contents/${encodedPath}?ref=${encodeURIComponent(baseBranch)}`)
+          await this.apiRequest(`GET /repos/${this.owner}/${this.repo}/contents/${encodedPath}?ref=${encodeURIComponent(baseSha)}`)
           return true
         }
         catch (error: any) {
@@ -595,6 +581,23 @@ export class GitHubProvider implements GitProvider {
           throw error
         }
       })
+
+      // The API cannot run the package managers. Check the exact base tree so
+      // a failed Git commit cannot discard the regenerated files on fallback.
+      const changedPaths = files
+        .filter(file => file.type !== 'delete' || isLockfileManifest(normalizeRepositoryPath(file.path)))
+        .map(file => normalizeRepositoryPath(file.path))
+      if (changedPaths.some(isLockfileManifest)) {
+        const baseTree: { truncated: boolean, tree: { path: string, type: string }[] }
+          = await this.apiRequest(`GET /repos/${this.owner}/${this.repo}/git/trees/${baseTreeSha}?recursive=1`)
+        if (baseTree.truncated || !Array.isArray(baseTree.tree))
+          throw new LockfileRegenerationError('The base tree is incomplete; use Git to verify and regenerate its lockfiles before publishing.')
+
+        const tracked = new Set(baseTree.tree.filter(entry => entry.type === 'blob').map(entry => entry.path))
+        const missing = missingLockFiles(changedPaths, '.', path => tracked.has(normalizeRepositoryPath(path)))
+        if (missing.length > 0)
+          throw new LockfileRegenerationError(`Refusing to publish dependency manifests without updated lockfiles: ${missing.join(', ')}. Use Git to regenerate them and retry.`)
+      }
 
       // Create new tree with file changes
       const tree = []
