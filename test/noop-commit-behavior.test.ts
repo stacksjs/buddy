@@ -41,7 +41,7 @@ describe('No-op commit prevention', () => {
     await prov.commitChanges('buddy/test-branch', 'test message', filesChanged)
 
     const hasCommit = commands.some(c => c.args[0] === 'commit' && c.args[1] === '-m')
-    const hasPush = commands.some(c => c.args[0] === 'push' && c.args.includes('--force-with-lease'))
+    const hasPush = commands.some(c => c.args[0] === 'push' && c.args.includes('--force-with-lease=refs/heads/buddy/test-branch:'))
     expect(hasCommit).toBeTrue()
     expect(hasPush).toBeTrue()
   })
